@@ -76,7 +76,7 @@ export function Header({ onToggleSidebar }: HeaderProps) {
           </Button>
 
           {/* Admin Settings */}
-          {hasRole('admin') && (
+          {hasRole('Admin') && (
             <Button
               variant="ghost"
               size="sm"
@@ -136,13 +136,26 @@ export function Header({ onToggleSidebar }: HeaderProps) {
                 <div className="hidden sm:block text-left">
                   <div className="text-sm font-medium">{user?.firstName}</div>
                   <div className="text-xs text-muted-foreground">
-                    {user?.roles.includes('admin') && (
+                    {user?.roles.includes('Admin') && (
                       <span className="inline-flex items-center">
                         <Shield className="h-3 w-3 mr-1" />
                         Admin
                       </span>
                     )}
-                    {!user?.roles.includes('admin') && user?.roles[0]}
+                    {user?.roles.includes('ServiceAdministrator') && (
+                      <span className="inline-flex items-center">
+                        <Shield className="h-3 w-3 mr-1" />
+                        Service Admin
+                      </span>
+                    )}
+                    {user?.roles.includes('ProductAdministrator') && (
+                      <span className="inline-flex items-center">
+                        <Shield className="h-3 w-3 mr-1" />
+                        Product Admin
+                      </span>
+                    )}
+                    {user?.roles.includes('User') && !user?.roles.includes('Admin') && 
+                     !user?.roles.includes('ServiceAdministrator') && !user?.roles.includes('ProductAdministrator') && 'User'}
                   </div>
                 </div>
                 <ChevronDown className="h-4 w-4" />
@@ -160,11 +173,23 @@ export function Header({ onToggleSidebar }: HeaderProps) {
                     <div>
                       <div className="font-medium">{user?.firstName} {user?.lastName}</div>
                       <div className="text-sm text-muted-foreground">{user?.email}</div>
-                      <div className="flex items-center mt-1">
-                        {user?.roles.includes('admin') && (
-                          <span className="inline-flex items-center text-xs bg-primary/10 text-primary px-2 py-1 rounded">
+                      <div className="flex flex-wrap items-center mt-1 gap-1">
+                        {user?.roles.includes('Admin') && (
+                          <span className="inline-flex items-center text-xs bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400 px-2 py-1 rounded">
                             <Shield className="h-3 w-3 mr-1" />
                             Admin
+                          </span>
+                        )}
+                        {user?.roles.includes('ServiceAdministrator') && (
+                          <span className="inline-flex items-center text-xs bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400 px-2 py-1 rounded">
+                            <Shield className="h-3 w-3 mr-1" />
+                            Service Admin
+                          </span>
+                        )}
+                        {user?.roles.includes('ProductAdministrator') && (
+                          <span className="inline-flex items-center text-xs bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400 px-2 py-1 rounded">
+                            <Shield className="h-3 w-3 mr-1" />
+                            Product Admin
                           </span>
                         )}
                       </div>
@@ -209,7 +234,7 @@ export function Header({ onToggleSidebar }: HeaderProps) {
                 </div>
 
                 {/* Admin Section */}
-                {hasRole('admin') && (
+                {hasRole('Admin') && (
                   <div className="p-2 border-t">
                     <div className="px-3 py-2 text-xs font-medium text-muted-foreground">
                       Administration

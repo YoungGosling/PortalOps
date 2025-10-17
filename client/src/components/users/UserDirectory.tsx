@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { 
   Users, 
   Search, 
@@ -15,8 +15,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui
 import { Button } from '../ui/Button'
 import { Input } from '../ui/Input'
 import { mockUsers } from '../../data/mockData'
-import { User } from '../../types'
+import { User, UserRole } from '../../types'
 import { formatDate } from '../../lib/utils'
+import { usersApi } from '../../lib/api'
 
 interface UserCardProps {
   user: User
@@ -29,7 +30,7 @@ function UserCard({ user, onEdit, onDelete }: UserCardProps) {
 
   const getRoleColor = (role: string) => {
     switch (role) {
-      case 'admin':
+      case 'Admin':
         return 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400'
       case 'hr':
         return 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400'
@@ -124,7 +125,7 @@ function UserCard({ user, onEdit, onDelete }: UserCardProps) {
                 key={role}
                 className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getRoleColor(role)}`}
               >
-                {role === 'admin' && <Shield className="h-3 w-3 mr-1" />}
+                {role === 'Admin' && <Shield className="h-3 w-3 mr-1" />}
                 {role.charAt(0).toUpperCase() + role.slice(1)}
               </span>
             ))}
@@ -142,18 +143,61 @@ function UserCard({ user, onEdit, onDelete }: UserCardProps) {
 }
 
 export function UserDirectory() {
-  const [users, setUsers] = useState<User[]>(mockUsers)
+  const [users, setUsers] = useState<User[]>([])
   const [searchTerm, setSearchTerm] = useState('')
   const [roleFilter, setRoleFilter] = useState<string>('all')
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  // Load users from API
+  useEffect(() => {
+    const loadUsers = async () => {
+      try {
+        setLoading(true)
+        setError(null)
+        
+        // Try to load from API first
+        const response = await usersApi.getUsers({ search: searchTerm })
+        
+        // Convert API response to User format
+        const apiUsers: User[] = response.data.map((apiUser: any) => ({
+          id: apiUser.id,
+          email: apiUser.email,
+          firstName: apiUser.name.split(' ')[0] || apiUser.name,
+          lastName: apiUser.name.split(' ').slice(1).join(' ') || '',
+          title: '', // API doesn't provide this yet
+          department: apiUser.department || '',
+          roles: ['User'] as UserRole[], // Will be determined from permissions
+          canLogin: !!apiUser.password_hash,
+          isActive: true,
+          createdAt: apiUser.created_at,
+          updatedAt: apiUser.updated_at,
+        }))
+        
+        setUsers(apiUsers)
+        console.log('✅ Users loaded from API:', apiUsers.length)
+      } catch (err) {
+        console.error('❌ Failed to load users from API:', err)
+        setError('API connection failed. Using mock data for demonstration.')
+        // Fallback to mock data
+        setUsers(mockUsers)
+        console.log('📋 Using mock data:', mockUsers.length, 'users')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadUsers()
+  }, [searchTerm])
 
   const filteredUsers = users.filter(user => {
     const matchesSearch = 
-      user.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.firstName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.lastName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.department?.toLowerCase().includes(searchTerm.toLowerCase())
     
-    const matchesRole = roleFilter === 'all' || user.roles.includes(roleFilter as any)
+    const matchesRole = roleFilter === 'all' || user.roles?.includes(roleFilter as any)
     
     return matchesSearch && matchesRole
   })
@@ -171,14 +215,33 @@ export function UserDirectory() {
 
   const getRoleCounts = () => {
     return {
-      admin: users.filter(u => u.roles.includes('admin')).length,
-      hr: users.filter(u => u.roles.includes('hr')).length,
-      finance: users.filter(u => u.roles.includes('finance')).length,
-      user: users.filter(u => u.roles.includes('user')).length,
+      admin: users.filter(u => u.roles.includes('Admin')).length,
+      service_admin: users.filter(u => u.roles.includes('ServiceAdministrator')).length,
+      product_admin: users.filter(u => u.roles.includes('ProductAdministrator')).length,
+      user: users.filter(u => u.roles.includes('User')).length,
     }
   }
 
   const roleCounts = getRoleCounts()
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">User Directory</h1>
+            <p className="text-gray-600 dark:text-gray-400">
+              Manage user accounts and access permissions
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center justify-center py-12">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          <span className="ml-2">Loading users...</span>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">
@@ -189,6 +252,11 @@ export function UserDirectory() {
           <p className="text-gray-600 dark:text-gray-400">
             Manage user accounts and access permissions
           </p>
+          {error && (
+            <p className="text-yellow-600 text-sm mt-1">
+              ⚠️ {error}
+            </p>
+          )}
         </div>
         <Button>
           <Plus className="h-4 w-4 mr-2" />
@@ -197,7 +265,7 @@ export function UserDirectory() {
       </div>
 
       {/* Stats */}
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center space-x-2">
@@ -223,10 +291,21 @@ export function UserDirectory() {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center space-x-2">
+              <Users className="h-5 w-5 text-blue-600" />
+              <div>
+                <div className="text-2xl font-bold">{roleCounts.service_admin}</div>
+                <div className="text-sm text-gray-600 dark:text-gray-400">Service Admins</div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center space-x-2">
               <Users className="h-5 w-5 text-green-600" />
               <div>
-                <div className="text-2xl font-bold">{roleCounts.hr + roleCounts.finance}</div>
-                <div className="text-sm text-gray-600 dark:text-gray-400">Staff</div>
+                <div className="text-2xl font-bold">{roleCounts.product_admin}</div>
+                <div className="text-sm text-gray-600 dark:text-gray-400">Product Admins</div>
               </div>
             </div>
           </CardContent>
@@ -262,8 +341,8 @@ export function UserDirectory() {
         >
           <option value="all">All Roles</option>
           <option value="admin">Admin</option>
-          <option value="hr">HR</option>
-          <option value="finance">Finance</option>
+          <option value="service_admin">Service Admin</option>
+          <option value="product_admin">Product Admin</option>
           <option value="user">User</option>
         </select>
       </div>

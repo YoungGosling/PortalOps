@@ -7,13 +7,36 @@ export interface User {
   title?: string
   department?: string
   roles: UserRole[]
+  servicePermissions?: ServicePermission[]
+  productPermissions?: ProductPermission[]
   avatar?: string
   isActive: boolean
+  canLogin: boolean // New field to indicate if user can log in
   createdAt: string
   updatedAt: string
 }
 
-export type UserRole = 'admin' | 'hr' | 'finance' | 'user'
+export type UserRole = 'Admin' | 'ServiceAdministrator' | 'ProductAdministrator' | 'User'
+
+// Permission Types
+export interface ServicePermission {
+  id: string
+  userId: string
+  serviceId: string
+  assignedBy: string
+  assignedAt: string
+  isActive: boolean
+}
+
+export interface ProductPermission {
+  id: string
+  userId: string
+  serviceId: string
+  productId: string
+  assignedBy: string
+  assignedAt: string
+  isActive: boolean
+}
 
 // Service Types
 export interface WebService {
@@ -36,6 +59,20 @@ export interface ServiceProduct {
   description?: string
   serviceId: string
   isActive: boolean
+  billingInfo?: ProductBillingInfo
+}
+
+// Product Billing Types
+export interface ProductBillingInfo {
+  id: string
+  productId: string
+  billAmount?: number
+  cardholderName?: string
+  expirationDate?: string
+  paymentMethod?: string
+  isComplete: boolean
+  createdAt: string
+  updatedAt: string
 }
 
 // Payment Types

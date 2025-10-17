@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { 
   CheckCircle, 
   Clock, 
@@ -16,6 +16,7 @@ import { Input } from '../ui/Input'
 import { mockTasks, mockUsers, mockServices } from '../../data/mockData'
 import { WorkflowTask, TaskStatus } from '../../types'
 import { formatDateTime } from '../../lib/utils'
+import { workflowApi } from '../../lib/api'
 
 interface TaskCardProps {
   task: WorkflowTask
@@ -209,29 +210,92 @@ function TaskCard({ task, onStatusChange, onAddComment }: TaskCardProps) {
 }
 
 export function Inbox() {
-  const [tasks, setTasks] = useState<WorkflowTask[]>(mockTasks)
+  const [tasks, setTasks] = useState<WorkflowTask[]>([])
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState<TaskStatus | 'all'>('all')
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  // Load tasks from API
+  useEffect(() => {
+    const loadTasks = async () => {
+      try {
+        setLoading(true)
+        setError(null)
+        
+        // Try to load from API first
+        const apiTasks = await workflowApi.getTasks()
+        
+        // Convert API response to WorkflowTask format
+        const convertedTasks: WorkflowTask[] = apiTasks.map((apiTask: any) => ({
+          id: apiTask.id,
+          type: apiTask.type || 'onboarding',
+          title: apiTask.title,
+          description: apiTask.description || '',
+          assignedTo: apiTask.assignedTo,
+          targetUserId: apiTask.targetUserId,
+          serviceId: apiTask.serviceId,
+          productId: apiTask.productId,
+          status: apiTask.status,
+          priority: apiTask.priority || 'medium',
+          dueDate: apiTask.dueDate,
+          completedAt: apiTask.completedAt,
+          completedBy: apiTask.completedBy,
+          comments: apiTask.comments || [],
+          createdAt: apiTask.createdAt,
+          updatedAt: apiTask.updatedAt,
+        }))
+        
+        setTasks(convertedTasks)
+        console.log('✅ Tasks loaded from API:', convertedTasks.length)
+      } catch (err) {
+        console.error('❌ Failed to load tasks from API:', err)
+        setError('API connection failed. Using mock data for demonstration.')
+        
+        // Fallback to mock data
+        setTasks(mockTasks)
+        console.log('📋 Using mock data:', mockTasks.length, 'tasks')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadTasks()
+  }, [])
 
   const filteredTasks = tasks.filter(task => {
-    const matchesSearch = task.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         task.description.toLowerCase().includes(searchTerm.toLowerCase())
+    const matchesSearch = task.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         task.description?.toLowerCase().includes(searchTerm.toLowerCase())
     const matchesStatus = statusFilter === 'all' || task.status === statusFilter
     return matchesSearch && matchesStatus
   })
 
-  const handleStatusChange = (taskId: string, newStatus: TaskStatus) => {
-    setTasks(tasks.map(task => 
-      task.id === taskId 
-        ? { 
-            ...task, 
-            status: newStatus,
-            completedAt: newStatus === 'completed' ? new Date().toISOString() : task.completedAt,
-            completedBy: newStatus === 'completed' ? '1' : task.completedBy, // Current user
-            updatedAt: new Date().toISOString()
-          }
-        : task
-    ))
+  const handleStatusChange = async (taskId: string, newStatus: TaskStatus) => {
+    try {
+      // Call API to update task status
+      await workflowApi.updateTask(taskId, { 
+        status: newStatus,
+        completedAt: newStatus === 'completed' ? new Date().toISOString() : undefined
+      })
+      
+      // Update local state
+      setTasks(tasks.map(task => 
+        task.id === taskId 
+          ? { 
+              ...task, 
+              status: newStatus,
+              completedAt: newStatus === 'completed' ? new Date().toISOString() : task.completedAt,
+              completedBy: newStatus === 'completed' ? '1' : task.completedBy, // Current user
+              updatedAt: new Date().toISOString()
+            }
+          : task
+      ))
+      
+      console.log('✅ Task status updated successfully')
+    } catch (err) {
+      console.error('❌ Failed to update task status:', err)
+      alert('Failed to update task status. Please try again.')
+    }
   }
 
   const handleAddComment = (taskId: string, content: string) => {
@@ -266,6 +330,23 @@ export function Inbox() {
 
   const statusCounts = getStatusCounts()
 
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Inbox</h1>
+          <p className="text-gray-600 dark:text-gray-400">
+            Manage onboarding and offboarding workflow tasks
+          </p>
+        </div>
+        <div className="flex items-center justify-center py-12">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          <span className="ml-2">Loading tasks...</span>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -274,6 +355,11 @@ export function Inbox() {
         <p className="text-gray-600 dark:text-gray-400">
           Manage onboarding and offboarding workflow tasks
         </p>
+        {error && (
+          <p className="text-yellow-600 text-sm mt-1">
+            ⚠️ {error}
+          </p>
+        )}
       </div>
 
       {/* Stats */}

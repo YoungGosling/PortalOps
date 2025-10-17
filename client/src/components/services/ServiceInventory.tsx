@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { 
   Plus, 
   Search, 
@@ -18,6 +18,8 @@ import { Input } from '../ui/Input'
 import { mockServices } from '../../data/mockData'
 import { WebService } from '../../types'
 import { formatDate } from '../../lib/utils'
+import { useAuth } from '../../contexts/AuthContext'
+import { servicesApi } from '../../lib/api'
 
 interface ServiceCardProps {
   service: WebService
@@ -143,13 +145,78 @@ function ServiceCard({ service, onEdit, onDelete }: ServiceCardProps) {
 }
 
 export function ServiceInventory() {
-  const [services, setServices] = useState<WebService[]>(mockServices)
+  const { canAddService, getAccessibleServices } = useAuth()
   const [searchTerm, setSearchTerm] = useState('')
   const [, setShowAddForm] = useState(false)
+  const [services, setServices] = useState<WebService[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  // Load services from API
+  useEffect(() => {
+    const loadServices = async () => {
+      try {
+        setLoading(true)
+        setError(null)
+        
+        // Try to load from API first
+        const apiServices = await servicesApi.getServices()
+        
+        // Convert API response to WebService format
+        const convertedServices: WebService[] = apiServices.map((apiService: any) => ({
+          id: apiService.id,
+          name: apiService.name,
+          vendor: apiService.vendor || 'Unknown',
+          url: apiService.url || '',
+          description: apiService.description || '',
+          products: apiService.products || [],
+          paymentInfo: {
+            id: `p${apiService.id}`,
+            serviceId: apiService.id,
+            cardholder: 'Company Finance',
+            renewalFrequency: 'monthly',
+            nextRenewalDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+            amount: 0,
+            currency: 'USD',
+            isActive: true,
+          },
+          administrators: [],
+          isActive: true,
+          createdAt: apiService.created_at || new Date().toISOString(),
+          updatedAt: apiService.updated_at || new Date().toISOString(),
+        }))
+        
+        // Filter services based on user permissions
+        const accessibleServiceIds = getAccessibleServices()
+        const userServices = accessibleServiceIds.length === 0 
+          ? convertedServices // Admin sees all services
+          : convertedServices.filter(service => accessibleServiceIds.includes(service.id))
+        
+        setServices(userServices)
+        console.log('✅ Services loaded from API:', userServices.length)
+      } catch (err) {
+        console.error('❌ Failed to load services from API:', err)
+        setError('API connection failed. Using mock data for demonstration.')
+        
+        // Fallback to mock data
+        const accessibleServiceIds = getAccessibleServices()
+        const userServices = accessibleServiceIds.length === 0 
+          ? mockServices // Admin sees all services
+          : mockServices.filter(service => accessibleServiceIds.includes(service.id))
+        
+        setServices(userServices)
+        console.log('📋 Using mock data:', userServices.length, 'services')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadServices()
+  }, [getAccessibleServices])
 
   const filteredServices = services.filter(service =>
-    service.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    service.vendor.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    service.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    service.vendor?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     service.description?.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
@@ -158,10 +225,36 @@ export function ServiceInventory() {
     // TODO: Implement edit functionality
   }
 
-  const handleDelete = (serviceId: string) => {
+  const handleDelete = async (serviceId: string) => {
     if (window.confirm('Are you sure you want to delete this service?')) {
-      setServices(services.filter(s => s.id !== serviceId))
+      try {
+        await servicesApi.deleteService(serviceId)
+        setServices(services.filter(s => s.id !== serviceId))
+        console.log('✅ Service deleted successfully')
+      } catch (err) {
+        console.error('❌ Failed to delete service:', err)
+        alert('Failed to delete service. Please try again.')
+      }
     }
+  }
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Service Inventory</h1>
+            <p className="text-gray-600 dark:text-gray-400">
+              Manage your web services and their configurations
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center justify-center py-12">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          <span className="ml-2">Loading services...</span>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -173,11 +266,18 @@ export function ServiceInventory() {
           <p className="text-gray-600 dark:text-gray-400">
             Manage your web services and their configurations
           </p>
+          {error && (
+            <p className="text-yellow-600 text-sm mt-1">
+              ⚠️ {error}
+            </p>
+          )}
         </div>
-        <Button onClick={() => setShowAddForm(true)}>
-          <Plus className="h-4 w-4 mr-2" />
-          Add Service
-        </Button>
+        {canAddService() && (
+          <Button onClick={() => setShowAddForm(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Add Service
+          </Button>
+        )}
       </div>
 
       {/* Stats */}
@@ -277,7 +377,7 @@ export function ServiceInventory() {
           <p className="text-gray-600 dark:text-gray-400 mb-4">
             {searchTerm ? 'Try adjusting your search terms.' : 'Get started by adding your first service.'}
           </p>
-          {!searchTerm && (
+          {!searchTerm && canAddService() && (
             <Button onClick={() => setShowAddForm(true)}>
               <Plus className="h-4 w-4 mr-2" />
               Add Service

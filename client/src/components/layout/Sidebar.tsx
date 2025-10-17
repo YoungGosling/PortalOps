@@ -1,19 +1,20 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { 
   BarChart3, 
   Inbox, 
   Building, 
   Users, 
-  CreditCard, 
-  FileText,
+  CreditCard,
   Shield,
   UserCheck,
   Archive,
   Settings,
   ChevronDown,
-  ChevronRight
+  ChevronRight,
+  Package
 } from 'lucide-react'
 import { useAuth } from '../../contexts/AuthContext'
+import { usePaymentSummaryContext } from '../../contexts/PaymentSummaryContext'
 import { cn } from '../../lib/utils'
 
 interface SidebarProps {
@@ -40,6 +41,7 @@ interface MenuSection {
 
 export function Sidebar({ isCollapsed, currentPath, onNavigate }: SidebarProps) {
   const { hasAnyRole } = useAuth()
+  const { incompleteCount } = usePaymentSummaryContext()
   const [expandedSections, setExpandedSections] = useState<string[]>(['administration', 'system-setup'])
 
   const menuSections: MenuSection[] = [
@@ -49,21 +51,21 @@ export function Sidebar({ isCollapsed, currentPath, onNavigate }: SidebarProps) 
       items: [
         { id: 'dashboard', label: 'Dashboard', icon: BarChart3, path: '/dashboard' },
         { id: 'inbox', label: 'Inbox', icon: Inbox, path: '/inbox' },
-        { id: 'services', label: 'Service Inventory', icon: Building, path: '/services', roles: ['hr', 'admin'] },
-        { id: 'users', label: 'User Directory', icon: Users, path: '/users', roles: ['hr', 'admin'] },
-        { id: 'payments', label: 'Payment Registry', icon: CreditCard, path: '/payments', roles: ['finance', 'admin'] },
-        { id: 'reports', label: 'Reports', icon: FileText, path: '/reports', roles: ['hr', 'finance', 'admin'] },
+        { id: 'services', label: 'Service Inventory', icon: Building, path: '/services', roles: ['Admin', 'ServiceAdministrator', 'ProductAdministrator'] },
+        { id: 'products', label: 'Product Inventory', icon: Package, path: '/products', roles: ['Admin', 'ServiceAdministrator'] },
+        { id: 'payment-register', label: 'Payment Register', icon: CreditCard, path: '/payment-register', roles: ['Admin'] },
+        { id: 'users', label: 'User Directory', icon: Users, path: '/users', roles: ['Admin', 'ServiceAdministrator', 'ProductAdministrator'] },
       ]
     },
     {
       id: 'administration',
       label: 'Administration',
       collapsible: true,
-      roles: ['admin'],
+      roles: ['Admin'],
       items: [
         { id: 'system-dashboard', label: 'System Dashboard', icon: BarChart3, path: '/admin/dashboard' },
         { id: 'security', label: 'Security & Compliance', icon: Shield, path: '/admin/security' },
-        { id: 'user-admin', label: 'User Administration', icon: UserCheck, path: '/admin/users' },
+        { id: 'permission-manager', label: 'Permission Management', icon: UserCheck, path: '/admin/permissions' },
         { id: 'master-files', label: 'Master Files', icon: Archive, path: '/admin/files' },
       ]
     },
@@ -71,7 +73,7 @@ export function Sidebar({ isCollapsed, currentPath, onNavigate }: SidebarProps) 
       id: 'system-setup',
       label: 'System Setup',
       collapsible: true,
-      roles: ['admin'],
+      roles: ['Admin'],
       items: [
         { id: 'config', label: 'System Configuration', icon: Settings, path: '/admin/config' },
       ]
@@ -100,7 +102,7 @@ export function Sidebar({ isCollapsed, currentPath, onNavigate }: SidebarProps) 
         key={item.id}
         onClick={() => onNavigate(item.path)}
         className={cn(
-          'w-full flex items-center space-x-3 px-3 py-2 rounded-md text-sm font-medium transition-colors',
+          'w-full flex items-center space-x-3 px-3 py-2 rounded-md text-sm font-medium transition-colors relative',
           isActive 
             ? 'bg-accent text-foreground' 
             : 'text-muted-foreground hover:text-foreground hover:bg-accent/50',
@@ -109,7 +111,21 @@ export function Sidebar({ isCollapsed, currentPath, onNavigate }: SidebarProps) 
         title={isCollapsed ? item.label : undefined}
       >
         <Icon className="h-4 w-4 flex-shrink-0" />
-        {!isCollapsed && <span>{item.label}</span>}
+        {!isCollapsed && (
+          <div className="flex items-center justify-between w-full">
+            <span>{item.label}</span>
+            {item.id === 'payment-register' && incompleteCount > 0 && (
+              <span className="bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center ml-2">
+                {incompleteCount}
+              </span>
+            )}
+          </div>
+        )}
+        {isCollapsed && item.id === 'payment-register' && incompleteCount > 0 && (
+          <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center">
+            {incompleteCount > 9 ? '9+' : incompleteCount}
+          </span>
+        )}
       </button>
     )
   }

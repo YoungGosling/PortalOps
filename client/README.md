@@ -1,75 +1,165 @@
-# PortalOps Frontend Demo
+# PortalOps Client - Role-Based Access Control System
 
-A comprehensive React-based frontend demo for PortalOps - a centralized, secure SaaS platform for managing company webservices, granular user access, payment monitoring, and automating HR-triggered onboarding/offboarding workflows.
+A comprehensive React-based frontend for PortalOps with advanced Role-Based Access Control (RBAC) system, implementing hierarchical permission management for enterprise service administration.
 
-## 🚀 Features
+## 🚀 New Role System Overview
 
-### ✅ Completed Features
+Based on the updated Product Requirements Document, the system now implements a three-tier role hierarchy:
 
-- **Authentication System**
-  - Sign in/Sign up forms with role-based access
-  - Mock authentication with different user roles (Admin, HR, Finance, User)
-  - Theme switching (Light/Dark/System)
-  - Secure session management
+### 🔐 Role Definitions
 
-- **Responsive Layout**
-  - Modern enterprise header with navigation
-  - Collapsible sidebar with role-based menu items
-  - Mobile-responsive design
-  - Consistent UI components
+#### 1. **Admin** (Full System Access)
+- **Login**: ✅ Enabled
+- **Permissions**: Complete system control
+- **Capabilities**:
+  - View and manage all services and products
+  - Assign Service Administrator roles to users
+  - Assign Product Administrator roles to users
+  - Access all administrative functions
+  - Full User Directory access
 
-- **Dashboard**
-  - Overview cards with key metrics
-  - Recent activity feed
-  - Upcoming renewals tracking
-  - Quick action buttons
-  - Role-based content visibility
+#### 2. **Service Administrator** (Service-Level Management)
+- **Login**: ✅ Enabled  
+- **Permissions**: Manage assigned services and all their products
+- **Capabilities**:
+  - View only assigned services in Service Inventory
+  - Add new services to the system
+  - Manage all products under assigned services
+  - Assign Product Administrator roles (within managed services only)
+  - Full User Directory access
 
-- **Service Inventory**
-  - Complete CRUD interface for web services
-  - Service cards with detailed information
-  - Product/module management
-  - Payment information tracking
-  - Search and filtering capabilities
+#### 3. **Product Administrator** (Product-Level Management)
+- **Login**: ✅ Enabled
+- **Permissions**: Manage specific assigned products
+- **Capabilities**:
+  - View services containing assigned products only
+  - Manage only specifically assigned products
+  - Cannot add new services
+  - Cannot assign roles to other users
+  - Full User Directory access
 
-- **User Directory**
-  - User management with role assignments
-  - User cards with contact information
-  - Role-based filtering and search
-  - Department and status tracking
-
-- **Inbox/Workflow System**
-  - Onboarding and offboarding task management
-  - Task status tracking (Pending, In Progress, Completed, Escalated)
-  - Comment system for task collaboration
-  - Priority and due date management
-  - Real-time status updates
-
-### 🔄 Placeholder Features (UI Only)
-
-- Payment Registry
-- Reports & Audit Trails
-- Admin Configuration Pages
-- Security & Compliance Settings
-
-## 🛠 Technology Stack
-
-- **React 18** with TypeScript
-- **Tailwind CSS** for styling
-- **Lucide React** for icons
-- **Context API** for state management
-- **Mock Data** for demonstration
+#### 4. **User** (Data-Only Role)
+- **Login**: ❌ **Cannot login to system**
+- **Purpose**: Data storage only for HR/workflow purposes
+- **Visibility**: Appears in User Directory for other roles to view
 
 ## 🎯 Demo Credentials
 
-Use these credentials to test different user roles:
+### Login-Enabled Accounts
 
-- **Admin**: `admin@portalops.com` / `password`
-- **HR Manager**: `hr@portalops.com` / `password`
-- **Finance**: `finance@portalops.com` / `password`
-- **User**: `user@portalops.com` / `password`
+| Role | Email | Password | Access Level |
+|------|-------|----------|--------------|
+| **Admin** | `admin@portalops.com` | `password` | Full system access |
+| **Service Admin** | `service.admin@portalops.com` | `password` | Google Workspace + Microsoft 365 |
+| **Product Admin** | `product.admin@portalops.com` | `password` | Gmail + Google Drive only |
 
-## 🏃‍♂️ Getting Started
+### Non-Login Users (Data Only)
+- `emily.davis@portalops.com` - Software Engineer
+- `jane.smith@portalops.com` - Product Manager  
+- `david.wilson@portalops.com` - Marketing Specialist
+
+## 🏗 Key Features Implemented
+
+### ✅ Advanced Permission System
+- **Hierarchical Role Assignment**: Admin → Service Admin → Product Admin
+- **Granular Access Control**: Service and product-level permissions
+- **Dynamic UI Filtering**: Content filtered based on user permissions
+- **Permission Management Interface**: Assign and revoke roles with proper authorization
+
+### ✅ Service Inventory with RBAC
+- **Admin**: Sees all services
+- **Service Admin**: Sees only assigned services  
+- **Product Admin**: Sees services containing assigned products
+- **Add Service Button**: Visible only to Admin and Service Admin
+
+### ✅ User Directory with Role Management
+- All login-enabled roles can view User Directory
+- Admin can assign Service Admin and Product Admin roles
+- Service Admin can assign Product Admin roles (within their services only)
+- Visual role indicators and permission status
+
+### ✅ Enhanced Authentication
+- Login validation checks `canLogin` property
+- Role-based navigation menu filtering
+- Dynamic header with role badges
+- Secure session management
+
+### ✅ Permission Management Dashboard
+- **Admin Access**: Full permission assignment interface
+- **Service Admin Access**: Limited to product admin assignments
+- **Visual Permission Tracking**: Clear display of current assignments
+- **Hierarchical Assignment**: Respects role hierarchy rules
+
+## 🎨 UI/UX Improvements
+
+### Role-Based Navigation
+- **Dynamic Sidebar**: Menu items filtered by user permissions
+- **Service Inventory**: Filtered service list based on access rights
+- **Add Service Button**: Conditional visibility
+- **Permission Manager**: Admin-only advanced role assignment
+
+### Visual Role Indicators
+- **Color-Coded Badges**: 
+  - 🔴 Admin (Red)
+  - 🔵 Service Admin (Blue)  
+  - 🟢 Product Admin (Green)
+  - ⚪ User (Gray)
+- **Header Display**: Current user role with icon
+- **User Menu**: Comprehensive role information
+
+### Access Control Matrix
+
+| Feature | Admin | Service Admin | Product Admin | User |
+|---------|-------|---------------|---------------|------|
+| **Login to System** | ✅ | ✅ | ✅ | ❌ |
+| **Service Inventory** | All services | Assigned services | Services with assigned products | N/A |
+| **Add Service** | ✅ | ✅ | ❌ | N/A |
+| **Product Management** | All products | All products in assigned services | Assigned products only | N/A |
+| **User Directory** | ✅ | ✅ | ✅ | N/A |
+| **Assign Service Admin** | ✅ | ❌ | ❌ | N/A |
+| **Assign Product Admin** | ✅ | ✅ (own services) | ❌ | N/A |
+
+## 🛠 Technical Implementation
+
+### Permission Context System
+```typescript
+interface AuthContextType {
+  canAccessService: (serviceId: string) => boolean
+  canAccessProduct: (serviceId: string, productId: string) => boolean
+  canAddService: () => boolean
+  canAssignServiceAdmin: () => boolean
+  canAssignProductAdmin: (serviceId?: string) => boolean
+  getAccessibleServices: () => string[]
+  getAccessibleProducts: (serviceId: string) => string[]
+}
+```
+
+### Enhanced Type System
+```typescript
+interface User {
+  roles: UserRole[]
+  servicePermissions?: ServicePermission[]
+  productPermissions?: ProductPermission[]
+  canLogin: boolean
+}
+
+interface ServicePermission {
+  userId: string
+  serviceId: string
+  assignedBy: string
+  isActive: boolean
+}
+
+interface ProductPermission {
+  userId: string
+  serviceId: string
+  productId: string
+  assignedBy: string
+  isActive: boolean
+}
+```
+
+## 🚀 Getting Started
 
 1. **Install Dependencies**
    ```bash
@@ -81,95 +171,45 @@ Use these credentials to test different user roles:
    npm start
    ```
 
-3. **Open Browser**
-   Navigate to `http://localhost:3000`
+3. **Test Role-Based Access**
+   - Login with different role accounts
+   - Observe filtered navigation and content
+   - Test permission assignment (Admin account)
 
-## 📱 Role-Based Access
+## 📋 Testing Scenarios
 
-The application implements role-based access control:
+### Admin Testing
+1. Login as `admin@portalops.com`
+2. Navigate to Permission Management
+3. Assign Service Admin role to a user
+4. Assign Product Admin role to another user
+5. Verify role assignments in User Directory
 
-### Admin Role
-- Full access to all modules
-- System administration features
-- User management capabilities
-- Security and compliance settings
+### Service Admin Testing  
+1. Login as `service.admin@portalops.com`
+2. Verify limited service visibility (Google Workspace + Microsoft 365)
+3. Test "Add Service" functionality
+4. Assign Product Admin role within managed services
 
-### HR Role
-- Service inventory management
-- User directory access
-- Workflow task management
-- Reports access
+### Product Admin Testing
+1. Login as `product.admin@portalops.com`  
+2. Verify limited service visibility (Google Workspace only)
+3. Verify limited product access (Gmail + Google Drive only)
+4. Confirm no "Add Service" button
+5. Confirm no role assignment capabilities
 
-### Finance Role
-- Payment registry access
-- Service cost tracking
-- Financial reports
-- Renewal management
+## 🔄 Migration from Previous System
 
-### User Role
-- Dashboard access
-- Personal inbox
-- Limited service visibility
+### Key Changes
+- **Removed Roles**: `hr`, `finance` → Replaced with granular permissions
+- **Added Roles**: `service_admin`, `product_admin`
+- **Login Restriction**: `user` role can no longer login
+- **Permission Granularity**: Service and product-level access control
+- **Hierarchical Assignment**: Delegated permission management
 
-## 🎨 Design System
+### Backward Compatibility
+- Existing user data structure maintained
+- Graceful handling of legacy role assignments
+- Migration path for existing permissions
 
-The application follows enterprise design principles:
-
-- **Colors**: Professional blue primary with semantic colors
-- **Typography**: Clean, readable fonts with proper hierarchy
-- **Components**: Consistent, reusable UI components
-- **Spacing**: Systematic spacing using Tailwind's scale
-- **Accessibility**: WCAG compliant color contrasts and keyboard navigation
-
-## 📊 Mock Data
-
-The demo includes realistic mock data for:
-
-- **4 Web Services** (Google Workspace, Microsoft 365, Slack, Jira)
-- **5 Users** with different roles and departments
-- **3 Workflow Tasks** in various states
-- **Payment Information** with renewal tracking
-- **User Access Assignments** across services
-
-## 🔮 Future Enhancements
-
-- Real API integration
-- Advanced filtering and sorting
-- Bulk operations
-- Email notifications
-- Advanced reporting
-- Audit trail visualization
-- Integration with HR systems
-- Mobile app companion
-
-## 📁 Project Structure
-
-```
-src/
-├── components/
-│   ├── auth/           # Authentication components
-│   ├── dashboard/      # Dashboard and overview
-│   ├── inbox/          # Workflow task management
-│   ├── layout/         # Header, sidebar, layout
-│   ├── services/       # Service inventory
-│   ├── ui/             # Reusable UI components
-│   └── users/          # User directory
-├── contexts/           # React contexts (Auth, Theme)
-├── data/              # Mock data
-├── lib/               # Utility functions
-├── types/             # TypeScript type definitions
-└── App.tsx            # Main application component
-```
-
-## 🎯 Key Features Demonstrated
-
-1. **Enterprise Authentication** - Role-based access with secure session management
-2. **Responsive Design** - Works seamlessly across desktop, tablet, and mobile
-3. **Modern UI/UX** - Clean, professional interface following enterprise standards
-4. **Workflow Management** - Complete task lifecycle from creation to completion
-5. **Service Management** - Comprehensive service and product tracking
-6. **User Administration** - Role-based user management with detailed profiles
-7. **Dashboard Analytics** - Key metrics and activity tracking
-8. **Theme Support** - Light/dark mode with system preference detection
-
-This demo showcases a production-ready frontend for an enterprise service management platform, demonstrating modern React development practices and enterprise-grade UI/UX design.
+This implementation provides a robust, scalable RBAC system that meets enterprise security requirements while maintaining intuitive user experience and administrative flexibility.

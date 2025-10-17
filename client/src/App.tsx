@@ -1,32 +1,20 @@
 import React, { useState } from 'react'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { ThemeProvider } from './contexts/ThemeContext'
+import { PaymentSummaryProvider } from './contexts/PaymentSummaryContext'
+// Import API test in development
+import './utils/testApi'
 import { AuthPage } from './components/auth/AuthPage'
 import { Layout } from './components/layout/Layout'
 import { Dashboard } from './components/dashboard/Dashboard'
 import { ServiceInventory } from './components/services/ServiceInventory'
 import { Inbox } from './components/inbox/Inbox'
 import { UserDirectory } from './components/users/UserDirectory'
+import { PermissionManager } from './components/permissions/PermissionManager'
+import { PaymentRegister } from './components/payment/PaymentRegister'
+import { ProductInventory } from './components/products/ProductInventory'
 
 // Placeholder components for other pages
-
-function PaymentsPage() {
-  return (
-    <div className="space-y-6">
-      <h1 className="text-3xl font-bold">Payment Registry</h1>
-      <p>Track service payments and renewals.</p>
-    </div>
-  )
-}
-
-function ReportsPage() {
-  return (
-    <div className="space-y-6">
-      <h1 className="text-3xl font-bold">Reports</h1>
-      <p>Generate audit trails and compliance reports.</p>
-    </div>
-  )
-}
 
 function AdminDashboard() {
   return (
@@ -46,14 +34,14 @@ function SecurityPage() {
   )
 }
 
-function UserAdminPage() {
-  return (
-    <div className="space-y-6">
-      <h1 className="text-3xl font-bold">User Administration</h1>
-      <p>Advanced user management and role assignments.</p>
-    </div>
-  )
-}
+// function UserAdminPage() {
+//   return (
+//     <div className="space-y-6">
+//       <h1 className="text-3xl font-bold">User Administration</h1>
+//       <p>Advanced user management and role assignments.</p>
+//     </div>
+//   )
+// }
 
 function MasterFilesPage() {
   return (
@@ -97,18 +85,18 @@ function AppContent() {
         return <Inbox />
       case '/services':
         return <ServiceInventory />
+      case '/products':
+        return <ProductInventory />
       case '/users':
         return <UserDirectory />
-      case '/payments':
-        return <PaymentsPage />
-      case '/reports':
-        return <ReportsPage />
+      case '/payment-register':
+        return <PaymentRegister />
       case '/admin/dashboard':
         return <AdminDashboard />
       case '/admin/security':
         return <SecurityPage />
-      case '/admin/users':
-        return <UserAdminPage />
+      case '/admin/permissions':
+        return <PermissionManager />
       case '/admin/files':
         return <MasterFilesPage />
       case '/admin/config':
@@ -129,7 +117,9 @@ function App() {
   return (
     <ThemeProvider>
       <AuthProvider>
-        <AppContent />
+        <PaymentSummaryProvider>
+          <AppContent />
+        </PaymentSummaryProvider>
       </AuthProvider>
     </ThemeProvider>
   )

@@ -9,10 +9,68 @@ export const mockServices: WebService[] = [
     url: 'https://workspace.google.com',
     description: 'Email, calendar, drive, and productivity tools',
     products: [
-      { id: '1-1', name: 'Gmail', description: 'Email service', serviceId: '1', isActive: true },
-      { id: '1-2', name: 'Google Drive', description: 'Cloud storage', serviceId: '1', isActive: true },
-      { id: '1-3', name: 'Google Calendar', description: 'Calendar service', serviceId: '1', isActive: true },
-      { id: '1-4', name: 'Google Meet', description: 'Video conferencing', serviceId: '1', isActive: true },
+      { 
+        id: '1-1', 
+        name: 'Gmail', 
+        description: 'Email service', 
+        serviceId: '1', 
+        isActive: true,
+        billingInfo: {
+          id: 'b1-1',
+          productId: '1-1',
+          billAmount: 120,
+          cardholderName: 'Company Finance',
+          expirationDate: '2025-12-31',
+          paymentMethod: 'Credit Card',
+          isComplete: true,
+          createdAt: '2024-01-01T00:00:00Z',
+          updatedAt: '2024-01-01T00:00:00Z',
+        }
+      },
+      { 
+        id: '1-2', 
+        name: 'Google Drive', 
+        description: 'Cloud storage', 
+        serviceId: '1', 
+        isActive: true,
+        billingInfo: {
+          id: 'b1-2',
+          productId: '1-2',
+          billAmount: undefined, // Incomplete
+          cardholderName: undefined,
+          expirationDate: undefined,
+          paymentMethod: undefined,
+          isComplete: false,
+          createdAt: '2024-01-01T00:00:00Z',
+          updatedAt: '2024-01-01T00:00:00Z',
+        }
+      },
+      { 
+        id: '1-3', 
+        name: 'Google Calendar', 
+        description: 'Calendar service', 
+        serviceId: '1', 
+        isActive: true,
+        billingInfo: {
+          id: 'b1-3',
+          productId: '1-3',
+          billAmount: 80,
+          cardholderName: 'Company Finance',
+          expirationDate: undefined, // Incomplete
+          paymentMethod: 'Credit Card',
+          isComplete: false,
+          createdAt: '2024-01-01T00:00:00Z',
+          updatedAt: '2024-01-01T00:00:00Z',
+        }
+      },
+      { 
+        id: '1-4', 
+        name: 'Google Meet', 
+        description: 'Video conferencing', 
+        serviceId: '1', 
+        isActive: true 
+        // No billing info - incomplete
+      },
     ],
     paymentInfo: {
       id: 'p1',
@@ -36,10 +94,58 @@ export const mockServices: WebService[] = [
     url: 'https://office.com',
     description: 'Office suite and productivity tools',
     products: [
-      { id: '2-1', name: 'Outlook', description: 'Email and calendar', serviceId: '2', isActive: true },
-      { id: '2-2', name: 'OneDrive', description: 'Cloud storage', serviceId: '2', isActive: true },
-      { id: '2-3', name: 'Teams', description: 'Collaboration platform', serviceId: '2', isActive: true },
-      { id: '2-4', name: 'SharePoint', description: 'Document management', serviceId: '2', isActive: true },
+      { 
+        id: '2-1', 
+        name: 'Outlook', 
+        description: 'Email and calendar', 
+        serviceId: '2', 
+        isActive: true,
+        billingInfo: {
+          id: 'b2-1',
+          productId: '2-1',
+          billAmount: 150,
+          cardholderName: 'Company Finance',
+          expirationDate: '2025-06-30',
+          paymentMethod: 'Credit Card',
+          isComplete: true,
+          createdAt: '2024-01-01T00:00:00Z',
+          updatedAt: '2024-01-01T00:00:00Z',
+        }
+      },
+      { 
+        id: '2-2', 
+        name: 'OneDrive', 
+        description: 'Cloud storage', 
+        serviceId: '2', 
+        isActive: true 
+        // No billing info - incomplete
+      },
+      { 
+        id: '2-3', 
+        name: 'Teams', 
+        description: 'Collaboration platform', 
+        serviceId: '2', 
+        isActive: true,
+        billingInfo: {
+          id: 'b2-3',
+          productId: '2-3',
+          billAmount: 200,
+          cardholderName: undefined, // Incomplete
+          expirationDate: '2025-03-31',
+          paymentMethod: 'Credit Card',
+          isComplete: false,
+          createdAt: '2024-01-01T00:00:00Z',
+          updatedAt: '2024-01-01T00:00:00Z',
+        }
+      },
+      { 
+        id: '2-4', 
+        name: 'SharePoint', 
+        description: 'Document management', 
+        serviceId: '2', 
+        isActive: true 
+        // No billing info - incomplete
+      },
     ],
     paymentInfo: {
       id: 'p2',
@@ -117,43 +223,85 @@ export const mockUsers: User[] = [
     lastName: 'Admin',
     title: 'System Administrator',
     department: 'IT',
-    roles: ['admin'],
+    roles: ['Admin'],
+    canLogin: true,
     isActive: true,
     createdAt: '2024-01-01T00:00:00Z',
     updatedAt: '2024-01-01T00:00:00Z',
   },
   {
     id: '2',
-    email: 'hr@portalops.com',
+    email: 'service.admin@portalops.com',
     firstName: 'Sarah',
     lastName: 'Johnson',
-    title: 'HR Manager',
-    department: 'Human Resources',
-    roles: ['hr'],
+    title: 'Service Administrator',
+    department: 'IT Operations',
+    roles: ['ServiceAdministrator'],
+    canLogin: true,
+    servicePermissions: [
+      {
+        id: 'sp1',
+        userId: '2',
+        serviceId: '1', // Google Workspace
+        assignedBy: '1',
+        assignedAt: '2024-01-01T00:00:00Z',
+        isActive: true,
+      },
+      {
+        id: 'sp2',
+        userId: '2',
+        serviceId: '2', // Microsoft 365
+        assignedBy: '1',
+        assignedAt: '2024-01-01T00:00:00Z',
+        isActive: true,
+      },
+    ],
     isActive: true,
     createdAt: '2024-01-01T00:00:00Z',
     updatedAt: '2024-01-01T00:00:00Z',
   },
   {
     id: '3',
-    email: 'finance@portalops.com',
+    email: 'product.admin@portalops.com',
     firstName: 'Michael',
     lastName: 'Chen',
-    title: 'Finance Director',
-    department: 'Finance',
-    roles: ['finance'],
+    title: 'Product Administrator',
+    department: 'Engineering',
+    roles: ['ProductAdministrator'],
+    canLogin: true,
+    productPermissions: [
+      {
+        id: 'pp1',
+        userId: '3',
+        serviceId: '1', // Google Workspace
+        productId: '1-1', // Gmail
+        assignedBy: '2',
+        assignedAt: '2024-01-01T00:00:00Z',
+        isActive: true,
+      },
+      {
+        id: 'pp2',
+        userId: '3',
+        serviceId: '1', // Google Workspace
+        productId: '1-2', // Google Drive
+        assignedBy: '2',
+        assignedAt: '2024-01-01T00:00:00Z',
+        isActive: true,
+      },
+    ],
     isActive: true,
     createdAt: '2024-01-01T00:00:00Z',
     updatedAt: '2024-01-01T00:00:00Z',
   },
   {
     id: '4',
-    email: 'user@portalops.com',
+    email: 'emily.davis@portalops.com',
     firstName: 'Emily',
     lastName: 'Davis',
     title: 'Software Engineer',
     department: 'Engineering',
-    roles: ['user'],
+    roles: ['User'],
+    canLogin: false, // Users cannot login according to new PRD
     isActive: true,
     createdAt: '2024-01-01T00:00:00Z',
     updatedAt: '2024-01-01T00:00:00Z',
@@ -165,7 +313,21 @@ export const mockUsers: User[] = [
     lastName: 'Smith',
     title: 'Product Manager',
     department: 'Product',
-    roles: ['user'],
+    roles: ['User'],
+    canLogin: false, // Users cannot login according to new PRD
+    isActive: true,
+    createdAt: '2024-01-01T00:00:00Z',
+    updatedAt: '2024-01-01T00:00:00Z',
+  },
+  {
+    id: '6',
+    email: 'david.wilson@portalops.com',
+    firstName: 'David',
+    lastName: 'Wilson',
+    title: 'Marketing Specialist',
+    department: 'Marketing',
+    roles: ['User'],
+    canLogin: false,
     isActive: true,
     createdAt: '2024-01-01T00:00:00Z',
     updatedAt: '2024-01-01T00:00:00Z',

@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import { 
   Building, 
   Users, 
@@ -11,6 +11,7 @@ import {
 } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/Card'
 import { useAuth } from '../../contexts/AuthContext'
+import { servicesApi, usersApi, workflowApi, paymentApi } from '../../lib/api'
 
 interface StatCardProps {
   title: string
@@ -212,6 +213,56 @@ function UpcomingRenewals() {
 
 export function Dashboard() {
   const { user, hasAnyRole } = useAuth()
+  const [stats, setStats] = useState({
+    services: 0,
+    users: 0,
+    pendingTasks: 0,
+    upcomingRenewals: 0,
+  })
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  // Load dashboard statistics from API
+  useEffect(() => {
+    const loadDashboardStats = async () => {
+      try {
+        setLoading(true)
+        setError(null)
+        
+        // Load data from multiple APIs in parallel
+        const [services, users, tasks, paymentSummary] = await Promise.all([
+          servicesApi.getServices().catch(() => []),
+          usersApi.getUsers().catch(() => ({ data: [] })),
+          workflowApi.getTasks('pending').catch(() => []),
+          paymentApi.getPaymentSummary().catch(() => ({ incompleteCount: 0 }))
+        ])
+        
+        setStats({
+          services: services.length,
+          users: Array.isArray(users) ? users.length : users.data?.length || 0,
+          pendingTasks: tasks.length,
+          upcomingRenewals: paymentSummary.incompleteCount || 0,
+        })
+        
+        console.log('✅ Dashboard stats loaded from API')
+      } catch (err) {
+        console.error('❌ Failed to load dashboard stats:', err)
+        setError('Some dashboard data may be unavailable.')
+        
+        // Use fallback values
+        setStats({
+          services: 12,
+          users: 248,
+          pendingTasks: 7,
+          upcomingRenewals: 3,
+        })
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadDashboardStats()
+  }, [])
 
   return (
     <div className="space-y-6">
@@ -223,13 +274,18 @@ export function Dashboard() {
         <p className="text-muted-foreground">
           Here's what's happening with your enterprise services today.
         </p>
+        {error && (
+          <p className="text-yellow-600 text-sm mt-1">
+            ⚠️ {error}
+          </p>
+        )}
       </div>
 
       {/* Stats Grid */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <StatCard
           title="Active Services"
-          value={12}
+          value={loading ? '...' : stats.services}
           description="Currently managed services"
           icon={Building}
           trend={{ value: 8.2, isPositive: true }}
@@ -237,7 +293,7 @@ export function Dashboard() {
         />
         <StatCard
           title="Total Users"
-          value={248}
+          value={loading ? '...' : stats.users}
           description="Active user accounts"
           icon={Users}
           trend={{ value: 12.5, isPositive: true }}
@@ -245,16 +301,16 @@ export function Dashboard() {
         />
         <StatCard
           title="Pending Tasks"
-          value={7}
+          value={loading ? '...' : stats.pendingTasks}
           description="Workflow tasks requiring attention"
           icon={Clock}
           trend={{ value: 3.1, isPositive: false }}
           color="yellow"
         />
         <StatCard
-          title="Upcoming Renewals"
-          value={3}
-          description="Services due for renewal"
+          title="Incomplete Billing"
+          value={loading ? '...' : stats.upcomingRenewals}
+          description="Products with incomplete billing info"
           icon={AlertTriangle}
           color="red"
         />
@@ -280,7 +336,7 @@ export function Dashboard() {
               <div className="text-sm text-muted-foreground">Create a new user account</div>
             </button>
             
-            {hasAnyRole(['hr', 'admin']) && (
+            {hasAnyRole(['ServiceAdministrator', 'Admin']) && (
               <button className="p-4 border rounded-lg hover:bg-accent transition-colors text-left">
                 <Building className="h-6 w-6 text-green-600 mb-2" />
                 <div className="font-medium">Add Service</div>
