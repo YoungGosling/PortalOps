@@ -90,48 +90,54 @@ export function ServiceFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[450px]">
+      <DialogContent className="sm:max-w-[500px]">
         <form onSubmit={handleSubmit}>
-          <DialogHeader>
-            <DialogTitle className="text-xl font-semibold">
+          <DialogHeader className="pb-4">
+            <DialogTitle className="text-2xl font-bold">
               {isEditMode ? 'Edit Service' : 'Add Service'}
             </DialogTitle>
-            <DialogDescription className="text-sm text-muted-foreground">
+            <DialogDescription className="text-sm text-muted-foreground pt-1">
               {isEditMode
                 ? 'Update the service name below.'
                 : 'Create a new service by entering its name.'}
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="service-name" className="text-sm font-medium">
+          <div className="space-y-5 py-4">
+            <div className="space-y-2.5">
+              <Label htmlFor="service-name" className="text-sm font-semibold text-foreground">
                 Service Name <span className="text-destructive">*</span>
               </Label>
               <Input
                 id="service-name"
-                placeholder="Enter service name"
+                placeholder="e.g., Microsoft 365, Google Workspace"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 disabled={loading}
                 required
-                className="h-10"
+                autoFocus
+                className="h-11 text-base bg-background"
               />
+              <p className="text-xs text-muted-foreground">
+                Enter a descriptive name for this service
+              </p>
             </div>
           </div>
 
-          <DialogFooter className="gap-2">
+          <DialogFooter className="gap-2 pt-4">
             <Button
               type="button"
               variant="outline"
               onClick={handleCancel}
               disabled={loading}
+              className="min-w-[100px]"
             >
               Cancel
             </Button>
             <Button
               type="submit"
-              disabled={loading}
+              disabled={loading || !name.trim()}
+              className="min-w-[140px]"
             >
               {loading ? (
                 <>
