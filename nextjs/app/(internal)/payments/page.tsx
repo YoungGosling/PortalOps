@@ -139,24 +139,15 @@ export default function PaymentsPage() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div className="space-y-2">
-        <div className="flex items-center gap-3">
-          <div className="p-2 rounded-lg bg-gradient-to-br from-chart-5/20 to-destructive/20">
-            <CreditCard className="h-8 w-8 text-chart-5" />
-          </div>
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-chart-5 to-destructive bg-clip-text text-transparent">
-              Payment Register
-            </h1>
-            <p className="text-muted-foreground">
-              Manage billing information for all products
-            </p>
-          </div>
-        </div>
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight">Payment Register</h1>
+        <p className="text-muted-foreground">
+          Manage billing information for all products
+        </p>
       </div>
 
       {loading ? (
-        <Card>
+        <Card className="border-0 shadow-sm">
           <CardContent className="p-0">
             <div className="animate-pulse p-8">
               {[...Array(8)].map((_, i) => (
@@ -166,159 +157,209 @@ export default function PaymentsPage() {
           </CardContent>
         </Card>
       ) : payments.length === 0 ? (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <div className="p-4 rounded-full bg-gradient-to-br from-chart-5/20 to-info/20 mb-4">
-              <CreditCard className="h-12 w-12 text-chart-5" />
+        <Card className="border-0 shadow-sm">
+          <CardContent className="flex flex-col items-center justify-center py-16">
+            <div className="p-4 rounded-full bg-amber-50 dark:bg-amber-950 mb-4">
+              <CreditCard className="h-16 w-16 text-amber-600 dark:text-amber-400" />
             </div>
-            <h3 className="text-lg font-semibold mb-2">No payment records found</h3>
-            <p className="text-sm text-muted-foreground">
+            <h3 className="text-xl font-semibold mb-2">No payment records found</h3>
+            <p className="text-sm text-muted-foreground text-center max-w-md">
               Payment records are created automatically when products are added
             </p>
           </CardContent>
         </Card>
       ) : (
-        <Card>
+        <Card className="border-0 shadow-sm">
           <CardContent className="p-0">
             <div className="divide-y">
               {payments.map((payment) => {
                 const isEditing = editingPaymentId === payment.product_id;
+                const isIncomplete = !payment.is_complete;
                 
                 return (
                   <div
                     key={payment.product_id}
-                    className={`flex items-center gap-4 p-4 transition-all duration-200 ${
-                      isEditing ? 'bg-gradient-to-r from-primary/10 to-info/10 shadow-sm' : 'hover:bg-accent/50'
+                    className={`flex items-start gap-4 p-5 transition-colors ${
+                      isEditing 
+                        ? 'bg-blue-50/50 dark:bg-blue-950/20' 
+                        : isIncomplete 
+                        ? 'bg-amber-50/30 dark:bg-amber-950/10 hover:bg-amber-50/50 dark:hover:bg-amber-950/20' 
+                        : 'hover:bg-accent/10'
                     }`}
                   >
-                    <div className="flex-shrink-0">
+                    {/* Status Icon */}
+                    <div className="flex-shrink-0 mt-1">
                       {payment.is_complete ? (
-                        <div className="p-1 rounded-full bg-success/20">
-                          <CheckCircle2 className="h-5 w-5 text-success" />
-                        </div>
+                        <CheckCircle2 className="h-6 w-6 text-green-600 dark:text-green-400" />
                       ) : (
-                        <div className="p-1 rounded-full bg-warning/20 animate-pulse">
-                          <AlertCircle className="h-5 w-5 text-warning" />
+                        <div className="relative">
+                          <AlertCircle className="h-6 w-6 text-amber-600 dark:text-amber-400" />
+                          <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
                         </div>
                       )}
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium truncate">{payment.product_name}</p>
-                      <p className="text-sm text-muted-foreground truncate">
-                        {payment.service_name}
-                      </p>
+
+                    {/* Payment Type Icon */}
+                    <div className="flex-shrink-0 mt-1">
+                      <div className="p-2 rounded-lg bg-amber-100 dark:bg-amber-900/20">
+                        <CreditCard className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+                      </div>
                     </div>
                     
                     {isEditing ? (
                       // Edit Mode
                       <>
-                        <div className="flex items-center gap-3">
-                          <div className="w-32">
-                            <Input
-                              type="number"
-                              step="0.01"
-                              placeholder="Amount"
-                              value={formData.amount}
-                              onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
-                              className="h-8 text-sm"
-                            />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-3">
+                            <h3 className="text-lg font-semibold">{payment.product_name}</h3>
+                            <Badge variant="outline" className="text-blue-600 border-blue-600">
+                              Editing
+                            </Badge>
                           </div>
-                          <div className="w-40">
-                            <Input
-                              placeholder="Cardholder name"
-                              value={formData.cardholder_name}
-                              onChange={(e) => setFormData({ ...formData, cardholder_name: e.target.value })}
-                              className="h-8 text-sm"
-                            />
+                          <p className="text-sm text-muted-foreground mb-4">
+                            {payment.service_name}
+                          </p>
+                          
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                              <label className="text-xs font-medium text-muted-foreground">Amount</label>
+                              <Input
+                                type="number"
+                                step="0.01"
+                                placeholder="Enter amount"
+                                value={formData.amount}
+                                onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
+                                className="h-9"
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <label className="text-xs font-medium text-muted-foreground">Cardholder Name</label>
+                              <Input
+                                placeholder="Enter cardholder name"
+                                value={formData.cardholder_name}
+                                onChange={(e) => setFormData({ ...formData, cardholder_name: e.target.value })}
+                                className="h-9"
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <label className="text-xs font-medium text-muted-foreground">Expiry Date</label>
+                              <Input
+                                type="date"
+                                value={formData.expiry_date}
+                                onChange={(e) => setFormData({ ...formData, expiry_date: e.target.value })}
+                                className="h-9"
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <label className="text-xs font-medium text-muted-foreground">Payment Method</label>
+                              <Select
+                                value={formData.payment_method}
+                                onValueChange={(value) => setFormData({ ...formData, payment_method: value })}
+                              >
+                                <SelectTrigger className="h-9">
+                                  <SelectValue placeholder="Select method" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="Credit Card">Credit Card</SelectItem>
+                                  <SelectItem value="Visa">Visa</SelectItem>
+                                  <SelectItem value="Mastercard">Mastercard</SelectItem>
+                                  <SelectItem value="Bank Transfer">Bank Transfer</SelectItem>
+                                  <SelectItem value="PayPal">PayPal</SelectItem>
+                                  <SelectItem value="Wire Transfer">Wire Transfer</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
                           </div>
-                          <div className="w-32">
-                            <Input
-                              type="date"
-                              value={formData.expiry_date}
-                              onChange={(e) => setFormData({ ...formData, expiry_date: e.target.value })}
-                              className="h-8 text-sm"
-                            />
-                          </div>
-                          <div className="w-32">
-                            <Select
-                              value={formData.payment_method}
-                              onValueChange={(value) => setFormData({ ...formData, payment_method: value })}
-                            >
-                              <SelectTrigger className="h-8 text-sm">
-                                <SelectValue placeholder="Method" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="Credit Card">Credit Card</SelectItem>
-                                <SelectItem value="Visa">Visa</SelectItem>
-                                <SelectItem value="Mastercard">Mastercard</SelectItem>
-                                <SelectItem value="Bank Transfer">Bank Transfer</SelectItem>
-                                <SelectItem value="PayPal">PayPal</SelectItem>
-                                <SelectItem value="Wire Transfer">Wire Transfer</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          <div className="flex gap-1">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleSave(payment.product_id)}
-                              disabled={submitting}
-                              className="h-8 w-8 p-0 hover:bg-success/20 transition-colors"
-                            >
-                              <Check className="h-4 w-4 text-success" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={handleCancel}
-                              disabled={submitting}
-                              className="h-8 w-8 p-0 hover:bg-destructive/20 transition-colors"
-                            >
-                              <X className="h-4 w-4 text-destructive" />
-                            </Button>
-                          </div>
+                        </div>
+                        
+                        <div className="flex-shrink-0 flex gap-2">
+                          <Button
+                            size="default"
+                            onClick={() => handleSave(payment.product_id)}
+                            disabled={submitting}
+                            className="min-w-[80px]"
+                          >
+                            <Check className="h-4 w-4 mr-2" />
+                            Save
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="default"
+                            onClick={handleCancel}
+                            disabled={submitting}
+                          >
+                            <X className="h-4 w-4 mr-2" />
+                            Cancel
+                          </Button>
                         </div>
                       </>
                     ) : (
                       // View Mode
                       <>
-                        <div className="flex items-center gap-4 text-sm">
-                          <div className="w-32">
-                            {payment.amount ? (
-                              <span className="font-semibold text-success">${payment.amount}</span>
-                            ) : (
-                              <span className="text-muted-foreground">-</span>
-                            )}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <h3 className="text-lg font-semibold">{payment.product_name}</h3>
+                            <Badge 
+                              variant={payment.is_complete ? 'default' : 'secondary'}
+                              className={payment.is_complete 
+                                ? 'bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-400 border-0' 
+                                : 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400 border-0'
+                              }
+                            >
+                              {payment.is_complete ? 'Complete' : 'Incomplete'}
+                            </Badge>
                           </div>
-                          <div className="w-40 truncate">
-                            {payment.cardholder_name || (
-                              <span className="text-muted-foreground">No cardholder</span>
-                            )}
+                          
+                          <p className="text-sm text-muted-foreground mb-3">
+                            {payment.service_name}
+                          </p>
+
+                          <div className="grid grid-cols-4 gap-4 text-sm">
+                            <div>
+                              <p className="text-xs text-muted-foreground mb-1">Amount</p>
+                              {payment.amount ? (
+                                <p className="font-semibold text-base">${payment.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}</p>
+                              ) : (
+                                <p className="text-muted-foreground">Not set</p>
+                              )}
+                            </div>
+                            <div>
+                              <p className="text-xs text-muted-foreground mb-1">Cardholder</p>
+                              {payment.cardholder_name ? (
+                                <p className="font-medium truncate">{payment.cardholder_name}</p>
+                              ) : (
+                                <p className="text-muted-foreground">Not set</p>
+                              )}
+                            </div>
+                            <div>
+                              <p className="text-xs text-muted-foreground mb-1">Expiry Date</p>
+                              {payment.expiry_date ? (
+                                <p className="font-medium">{payment.expiry_date}</p>
+                              ) : (
+                                <p className="text-muted-foreground">Not set</p>
+                              )}
+                            </div>
+                            <div>
+                              <p className="text-xs text-muted-foreground mb-1">Method</p>
+                              {payment.payment_method ? (
+                                <p className="font-medium truncate">{payment.payment_method}</p>
+                              ) : (
+                                <p className="text-muted-foreground">Not set</p>
+                              )}
+                            </div>
                           </div>
-                          <div className="w-32">
-                            {payment.expiry_date || (
-                              <span className="text-muted-foreground">No date</span>
-                            )}
-                          </div>
-                          <div className="w-32 truncate">
-                            {payment.payment_method || (
-                              <span className="text-muted-foreground">No method</span>
-                            )}
-                          </div>
-                          <Badge
-                            variant={payment.is_complete ? 'success' : 'warning'}
-                            className="shrink-0"
-                          >
-                            {payment.is_complete ? 'Complete' : 'Incomplete'}
-                          </Badge>
+                        </div>
+                        
+                        <div className="flex-shrink-0">
                           <Button
-                            variant="ghost"
-                            size="sm"
+                            variant="default"
+                            size="lg"
                             onClick={() => handleEdit(payment)}
                             disabled={editingPaymentId !== null}
-                            className="shrink-0 hover:bg-primary/10 hover:text-primary transition-colors"
+                            className="min-w-[100px]"
                           >
-                            <Edit className="h-4 w-4" />
+                            <Edit className="h-4 w-4 mr-2" />
+                            Edit
                           </Button>
                         </div>
                       </>

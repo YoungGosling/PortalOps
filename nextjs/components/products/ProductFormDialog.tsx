@@ -199,7 +199,6 @@ export function ProductFormDialog({
             </Button>
             <Button
               type="submit"
-              variant="warning"
               disabled={loading || services.length === 0}
             >
               {loading ? (

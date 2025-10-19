@@ -93,10 +93,10 @@ export function ServiceFormDialog({
       <DialogContent className="sm:max-w-[450px]">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
-            <DialogTitle className="text-2xl">
+            <DialogTitle className="text-xl font-semibold">
               {isEditMode ? 'Edit Service' : 'Add Service'}
             </DialogTitle>
-            <DialogDescription>
+            <DialogDescription className="text-sm text-muted-foreground">
               {isEditMode
                 ? 'Update the service name below.'
                 : 'Create a new service by entering its name.'}
@@ -105,7 +105,7 @@ export function ServiceFormDialog({
 
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="service-name">
+              <Label htmlFor="service-name" className="text-sm font-medium">
                 Service Name <span className="text-destructive">*</span>
               </Label>
               <Input
@@ -115,11 +115,12 @@ export function ServiceFormDialog({
                 onChange={(e) => setName(e.target.value)}
                 disabled={loading}
                 required
+                className="h-10"
               />
             </div>
           </div>
 
-          <DialogFooter>
+          <DialogFooter className="gap-2">
             <Button
               type="button"
               variant="outline"
@@ -130,7 +131,6 @@ export function ServiceFormDialog({
             </Button>
             <Button
               type="submit"
-              variant="success"
               disabled={loading}
             >
               {loading ? (

@@ -26,7 +26,7 @@ export default function DashboardPage() {
         // Fetch all data in parallel
         const [statsData, activitiesData, renewalsData, tasksData] = await Promise.all([
           apiClient.getDashboardStats(),
-          apiClient.getRecentActivities(10),
+          apiClient.getRecentActivities(4),
           apiClient.getUpcomingRenewals(3),
           apiClient.getPendingTasksCount(),
         ]);
@@ -67,18 +67,18 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold tracking-tight">
+    <div className="flex flex-col h-[calc(100vh-4rem)] overflow-hidden animate-fade-in">
+      <div className="flex-none pb-4">
+        <h1 className="text-2xl font-bold tracking-tight">
           Welcome back, {user?.name?.split(' ')[0] || 'User'}!
         </h1>
-        <p className="text-muted-foreground mt-1">
+        <p className="text-muted-foreground text-sm mt-0.5">
           Here's what's happening with your enterprise services today.
         </p>
       </div>
 
       {/* Top Section: Statistics Cards */}
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+      <div className="flex-none grid gap-4 md:grid-cols-2 lg:grid-cols-4 pb-4">
         <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-foreground">Total Services</CardTitle>
@@ -149,16 +149,16 @@ export default function DashboardPage() {
       </div>
 
       {/* Middle Section: Recent Activity and Upcoming Renewals */}
-      <div className="grid gap-6 md:grid-cols-2">
-        <Card className="border-0 shadow-sm">
-          <CardHeader className="pb-4">
-            <CardTitle className="text-xl font-semibold">Recent Activity</CardTitle>
-            <CardDescription className="text-sm">
+      <div className="flex-1 grid gap-4 md:grid-cols-2 pb-4 min-h-0">
+        <Card className="border-0 shadow-sm flex flex-col">
+          <CardHeader className="pb-3 flex-none">
+            <CardTitle className="text-lg font-semibold">Recent Activity</CardTitle>
+            <CardDescription className="text-xs">
               Latest system activities and updates
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
+          <CardContent className="flex-1 overflow-y-auto min-h-0 pb-0">
+            <div className="space-y-3">
               {activities.length === 0 ? (
                 <p className="text-sm text-muted-foreground text-center py-8">No recent activities</p>
               ) : (
@@ -176,18 +176,18 @@ export default function DashboardPage() {
                   })();
 
                   return (
-                    <div key={activity.id} className="flex items-start gap-3 pb-4 border-b last:border-0 last:pb-0">
-                      <div className="mt-1 p-2 rounded-full bg-primary/10">
+                    <div key={activity.id} className="flex items-start gap-3 pb-3 border-b last:border-0 last:pb-0">
+                      <div className="mt-0.5 p-1.5 rounded-full bg-primary/10">
                         {activity.action.includes('user') ? (
-                          <Users className="h-4 w-4 text-primary" />
+                          <Users className="h-3.5 w-3.5 text-primary" />
                         ) : activity.action.includes('payment') ? (
-                          <CreditCard className="h-4 w-4 text-primary" />
+                          <CreditCard className="h-3.5 w-3.5 text-primary" />
                         ) : activity.action.includes('service') ? (
-                          <Building className="h-4 w-4 text-primary" />
+                          <Building className="h-3.5 w-3.5 text-primary" />
                         ) : activity.action.includes('product') ? (
-                          <BarChart3 className="h-4 w-4 text-primary" />
+                          <BarChart3 className="h-3.5 w-3.5 text-primary" />
                         ) : (
-                          <Activity className="h-4 w-4 text-primary" />
+                          <Activity className="h-3.5 w-3.5 text-primary" />
                         )}
                       </div>
                       <div className="flex-1 min-w-0 space-y-1">
@@ -214,15 +214,15 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
-        <Card className="border-0 shadow-sm">
-          <CardHeader className="pb-4">
-            <CardTitle className="text-xl font-semibold">Upcoming Renewals</CardTitle>
-            <CardDescription className="text-sm">
+        <Card className="border-0 shadow-sm flex flex-col">
+          <CardHeader className="pb-3 flex-none">
+            <CardTitle className="text-lg font-semibold">Upcoming Renewals</CardTitle>
+            <CardDescription className="text-xs">
               Services requiring payment renewal
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
+          <CardContent className="flex-1 overflow-y-auto min-h-0 pb-0">
+            <div className="space-y-2.5">
               {renewals.length === 0 ? (
                 <p className="text-sm text-muted-foreground text-center py-8">No upcoming renewals</p>
               ) : (
@@ -233,16 +233,16 @@ export default function DashboardPage() {
                   const isDueSoon = daysUntilExpiry <= 30;
 
                   return (
-                    <div key={renewal.productId} className="flex items-center justify-between p-4 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
-                      <div className="flex-1 space-y-1">
+                    <div key={renewal.productId} className="flex items-center justify-between p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
+                      <div className="flex-1 space-y-0.5">
                         <p className="font-semibold text-sm">{renewal.productName}</p>
                         <p className="text-xs text-muted-foreground">Due: {renewal.expiryDate}</p>
                       </div>
-                      <div className="flex flex-col items-end gap-1">
+                      <div className="flex flex-col items-end gap-0.5">
                         {renewal.amount && (
-                          <span className="text-lg font-bold">${renewal.amount.toLocaleString('en-US', { minimumFractionDigits: 0 })}</span>
+                          <span className="text-base font-bold">${renewal.amount.toLocaleString('en-US', { minimumFractionDigits: 0 })}</span>
                         )}
-                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                        <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${
                           isDueSoon 
                             ? 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400' 
                             : 'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-400'
@@ -260,39 +260,39 @@ export default function DashboardPage() {
       </div>
 
       {/* Bottom Section: Quick Actions */}
-      <Card className="border-0 shadow-sm">
-        <CardHeader className="pb-4">
-          <CardTitle className="text-xl font-semibold">Quick Actions</CardTitle>
-          <CardDescription className="text-sm">
+      <Card className="border-0 shadow-sm flex-none">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-lg font-semibold">Quick Actions</CardTitle>
+          <CardDescription className="text-xs">
             Common tasks and shortcuts
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="grid gap-4 md:grid-cols-3">
+        <CardContent className="pb-4">
+          <div className="grid gap-3 md:grid-cols-3">
             {isAdmin() && (
               <>
                 <button 
                   onClick={() => router.push('/inbox')}
-                  className={`relative p-6 rounded-xl border-2 transition-all duration-200 text-left ${
+                  className={`relative p-4 rounded-xl border-2 transition-all duration-200 text-left ${
                     (pendingTasks?.pendingCount ?? 0) > 0 
                       ? 'border-red-200 bg-red-50 dark:border-red-900 dark:bg-red-950/30 animate-shake shadow-md' 
                       : 'border-transparent bg-muted/30 hover:bg-muted/50 hover:shadow-md'
                   }`}
                 >
-                  <div className="flex flex-col items-center text-center gap-3">
-                    <div className={`p-4 rounded-full ${
+                  <div className="flex flex-col items-center text-center gap-2">
+                    <div className={`p-3 rounded-full ${
                       (pendingTasks?.pendingCount ?? 0) > 0 
                         ? 'bg-red-100 dark:bg-red-900/50' 
                         : 'bg-blue-100 dark:bg-blue-900/50'
                     }`}>
-                      <Inbox className={`h-7 w-7 ${
+                      <Inbox className={`h-5 w-5 ${
                         (pendingTasks?.pendingCount ?? 0) > 0 
                           ? 'text-red-600 dark:text-red-400' 
                           : 'text-blue-600 dark:text-blue-400'
                       }`} />
                     </div>
                     <div>
-                      <p className="font-semibold text-base mb-1">
+                      <p className="font-semibold text-sm mb-0.5">
                         View Inbox
                       </p>
                       <p className="text-xs text-muted-foreground">
@@ -300,7 +300,7 @@ export default function DashboardPage() {
                       </p>
                     </div>
                     {(pendingTasks?.pendingCount ?? 0) > 0 && (
-                      <span className="absolute -top-2 -right-2 flex h-7 w-7 items-center justify-center rounded-full bg-red-500 text-white text-sm font-bold shadow-lg animate-pulse">
+                      <span className="absolute -top-1.5 -right-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-red-500 text-white text-xs font-bold shadow-lg animate-pulse">
                         {pendingTasks?.pendingCount}
                       </span>
                     )}
@@ -309,26 +309,26 @@ export default function DashboardPage() {
 
                 <button 
                   onClick={() => router.push('/payments')}
-                  className={`relative p-6 rounded-xl border-2 transition-all duration-200 text-left ${
+                  className={`relative p-4 rounded-xl border-2 transition-all duration-200 text-left ${
                     (stats?.incompletePayments ?? 0) > 0 
                       ? 'border-red-200 bg-red-50 dark:border-red-900 dark:bg-red-950/30 animate-shake shadow-md' 
                       : 'border-transparent bg-muted/30 hover:bg-muted/50 hover:shadow-md'
                   }`}
                 >
-                  <div className="flex flex-col items-center text-center gap-3">
-                    <div className={`p-4 rounded-full ${
+                  <div className="flex flex-col items-center text-center gap-2">
+                    <div className={`p-3 rounded-full ${
                       (stats?.incompletePayments ?? 0) > 0 
                         ? 'bg-red-100 dark:bg-red-900/50' 
                         : 'bg-amber-100 dark:bg-amber-900/50'
                     }`}>
-                      <CreditCard className={`h-7 w-7 ${
+                      <CreditCard className={`h-5 w-5 ${
                         (stats?.incompletePayments ?? 0) > 0 
                           ? 'text-red-600 dark:text-red-400' 
                           : 'text-amber-600 dark:text-amber-400'
                       }`} />
                     </div>
                     <div>
-                      <p className="font-semibold text-base mb-1">
+                      <p className="font-semibold text-sm mb-0.5">
                         View Payment
                       </p>
                       <p className="text-xs text-muted-foreground">
@@ -336,7 +336,7 @@ export default function DashboardPage() {
                       </p>
                     </div>
                     {(stats?.incompletePayments ?? 0) > 0 && (
-                      <span className="absolute -top-2 -right-2 flex h-7 w-7 items-center justify-center rounded-full bg-red-500 text-white text-sm font-bold shadow-lg animate-pulse">
+                      <span className="absolute -top-1.5 -right-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-red-500 text-white text-xs font-bold shadow-lg animate-pulse">
                         {stats?.incompletePayments}
                       </span>
                     )}
@@ -345,14 +345,14 @@ export default function DashboardPage() {
 
                 <button 
                   onClick={() => router.push('/users')}
-                  className="p-6 rounded-xl border-2 border-transparent bg-muted/30 hover:bg-muted/50 hover:shadow-md transition-all duration-200 text-left"
+                  className="p-4 rounded-xl border-2 border-transparent bg-muted/30 hover:bg-muted/50 hover:shadow-md transition-all duration-200 text-left"
                 >
-                  <div className="flex flex-col items-center text-center gap-3">
-                    <div className="p-4 rounded-full bg-green-100 dark:bg-green-900/50">
-                      <UserPlus className="h-7 w-7 text-green-600 dark:text-green-400" />
+                  <div className="flex flex-col items-center text-center gap-2">
+                    <div className="p-3 rounded-full bg-green-100 dark:bg-green-900/50">
+                      <UserPlus className="h-5 w-5 text-green-600 dark:text-green-400" />
                     </div>
                     <div>
-                      <p className="font-semibold text-base mb-1">
+                      <p className="font-semibold text-sm mb-0.5">
                         Add New User
                       </p>
                       <p className="text-xs text-muted-foreground">

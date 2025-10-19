@@ -97,20 +97,13 @@ export default function ProductsPage() {
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="p-2 rounded-lg bg-gradient-to-br from-warning/20 to-chart-5/20">
-            <Package className="h-8 w-8 text-warning" />
-          </div>
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-warning to-chart-5 bg-clip-text text-transparent">
-              Product Inventory
-            </h1>
-            <p className="text-muted-foreground">
-              View and manage all products across services
-            </p>
-          </div>
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Product Inventory</h1>
+          <p className="text-muted-foreground">
+            View and manage all products across services
+          </p>
         </div>
-        <Button variant="warning" onClick={handleAddProduct}>
+        <Button onClick={handleAddProduct}>
           <Plus className="mr-2 h-4 w-4" />
           Add Product
         </Button>
@@ -136,7 +129,7 @@ export default function ProductsPage() {
       </div>
 
       {loading ? (
-        <Card>
+        <Card className="border-0 shadow-sm">
           <CardContent className="p-0">
             <div className="animate-pulse p-8">
               <div className="h-8 bg-muted rounded w-1/4 mb-4" />
@@ -147,35 +140,37 @@ export default function ProductsPage() {
           </CardContent>
         </Card>
       ) : products.length === 0 ? (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <div className="p-4 rounded-full bg-gradient-to-br from-warning/20 to-chart-5/20 mb-4">
-              <Package className="h-12 w-12 text-warning" />
+        <Card className="border-0 shadow-sm">
+          <CardContent className="flex flex-col items-center justify-center py-16">
+            <div className="p-4 rounded-full bg-green-50 dark:bg-green-950 mb-4">
+              <Package className="h-12 w-12 text-green-600 dark:text-green-400" />
             </div>
-            <h3 className="text-lg font-semibold mb-2">No products found</h3>
-            <p className="text-sm text-muted-foreground mb-4">
-              Get started by creating your first product
+            <h3 className="text-xl font-semibold mb-2">No products found</h3>
+            <p className="text-sm text-muted-foreground text-center max-w-md mb-4">
+              Get started by creating your first product and assigning it to a service
             </p>
-            <Button variant="warning" onClick={handleAddProduct}>
+            <Button onClick={handleAddProduct}>
               <Plus className="mr-2 h-4 w-4" />
               Add Product
             </Button>
           </CardContent>
         </Card>
       ) : (
-        <Card>
+        <Card className="border-0 shadow-sm">
           <CardContent className="p-0">
             <div className="divide-y">
               {products.map((product) => (
                 <div
                   key={product.id}
-                  className="flex items-center justify-between p-4 hover:bg-accent transition-colors"
+                  className="flex items-center justify-between p-5 hover:bg-accent/10 transition-colors"
                 >
                   <div className="flex items-center gap-4">
-                    <Package className="h-5 w-5 text-muted-foreground" />
+                    <div className="p-2 rounded-lg bg-green-50 dark:bg-green-950">
+                      <Package className="h-5 w-5 text-green-600 dark:text-green-400" />
+                    </div>
                     <div>
-                      <p className="font-medium">{product.name}</p>
-                      <p className="text-sm text-muted-foreground">
+                      <p className="font-semibold text-sm">{product.name}</p>
+                      <p className="text-xs text-muted-foreground">
                         {product.service_name || 'No Service'}
                       </p>
                     </div>
@@ -191,7 +186,7 @@ export default function ProductsPage() {
                     <Button 
                       variant="outline" 
                       size="sm"
-                      className="hover:bg-destructive/10 hover:text-destructive hover:border-destructive"
+                      className="text-destructive hover:bg-destructive/10 hover:text-destructive hover:border-destructive"
                       onClick={() => handleDeleteProduct(product)}
                     >
                       Delete

@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ServiceFormDialog } from '@/components/services/ServiceFormDialog';
 import { DeleteServiceDialog } from '@/components/services/DeleteServiceDialog';
-import { Plus, Building } from 'lucide-react';
+import { Plus, Building, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function ServicesPage() {
@@ -61,49 +61,33 @@ export default function ServicesPage() {
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="p-2 rounded-lg bg-gradient-to-br from-success/20 to-info/20">
-            <Building className="h-8 w-8 text-success" />
-          </div>
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-success to-info bg-clip-text text-transparent">
-              Service Inventory
-            </h1>
-            <p className="text-muted-foreground">
-              Manage your enterprise services and their associated products
-            </p>
-          </div>
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Service Inventory</h1>
+          <p className="text-muted-foreground">
+            Manage your enterprise services and their associated products
+          </p>
         </div>
-        <Button variant="success" onClick={handleAddService}>
+        <Button onClick={handleAddService}>
           <Plus className="mr-2 h-4 w-4" />
           Add Service
         </Button>
       </div>
 
       {loading ? (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {[...Array(6)].map((_, i) => (
-            <Card key={i} className="animate-pulse">
-              <CardHeader>
-                <div className="h-6 bg-muted rounded w-3/4" />
-              </CardHeader>
-              <CardContent>
-                <div className="h-4 bg-muted rounded w-1/2" />
-              </CardContent>
-            </Card>
-          ))}
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
       ) : services.length === 0 ? (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <div className="p-4 rounded-full bg-gradient-to-br from-success/20 to-info/20 mb-4">
-              <Building className="h-12 w-12 text-success" />
+        <Card className="border-0 shadow-sm">
+          <CardContent className="flex flex-col items-center justify-center py-16">
+            <div className="p-4 rounded-full bg-blue-50 dark:bg-blue-950 mb-4">
+              <Building className="h-12 w-12 text-blue-600 dark:text-blue-400" />
             </div>
-            <h3 className="text-lg font-semibold mb-2">No services found</h3>
-            <p className="text-sm text-muted-foreground mb-4">
+            <h3 className="text-xl font-semibold mb-2">No services found</h3>
+            <p className="text-sm text-muted-foreground text-center max-w-md mb-4">
               Get started by creating your first service
             </p>
-            <Button variant="success" onClick={handleAddService}>
+            <Button onClick={handleAddService}>
               <Plus className="mr-2 h-4 w-4" />
               Add Service
             </Button>
@@ -112,30 +96,28 @@ export default function ServicesPage() {
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {services.map((service) => (
-            <Card key={service.id} className="hover:shadow-lg transition-all duration-200 hover:scale-[1.02] border-l-4 border-l-success">
-              <CardHeader>
-                <CardTitle className="flex items-center justify-between">
-                  <span>{service.name}</span>
-                  <div className="p-1.5 rounded-lg bg-success/10">
-                    <Building className="h-5 w-5 text-success" />
-                  </div>
-                </CardTitle>
+            <Card key={service.id} className="border-0 shadow-sm hover:shadow-md transition-shadow">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+                <CardTitle className="text-lg font-semibold">{service.name}</CardTitle>
+                <div className="p-2.5 rounded-lg bg-blue-50 dark:bg-blue-950">
+                  <Building className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                </div>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {/* Product count and names */}
+                  {/* Product count */}
                   <div className="space-y-2">
-                    <p className="text-sm font-semibold text-primary">
+                    <p className="text-sm text-muted-foreground">
                       {service.productCount} {service.productCount <= 1 ? 'Product' : 'Products'}
                     </p>
                     
                     {/* Product names - only show if products exist */}
                     {service.products && service.products.length > 0 && (
-                      <div className="flex flex-wrap gap-1">
+                      <div className="flex flex-wrap gap-1.5">
                         {service.products.map((product) => (
                           <span
                             key={product.id}
-                            className="inline-flex items-center px-2 py-0.5 rounded-md text-xs bg-success/10 text-success border border-success/20"
+                            className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-400"
                           >
                             {product.name}
                           </span>
@@ -148,7 +130,7 @@ export default function ServicesPage() {
                     <Button 
                       variant="outline" 
                       size="sm" 
-                      className="flex-1 hover:bg-info/10 hover:text-info hover:border-info"
+                      className="flex-1"
                       onClick={() => handleEditService(service)}
                     >
                       Edit

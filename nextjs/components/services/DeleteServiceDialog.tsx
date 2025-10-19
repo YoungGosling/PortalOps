@@ -57,32 +57,26 @@ export function DeleteServiceDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-full bg-destructive/20">
-              <AlertTriangle className="h-6 w-6 text-destructive" />
+          <div className="flex items-center gap-3 mb-2">
+            <div className="p-2 rounded-lg bg-red-50 dark:bg-red-950">
+              <AlertTriangle className="h-6 w-6 text-red-600 dark:text-red-400" />
             </div>
-            <DialogTitle className="text-2xl">Delete Service</DialogTitle>
+            <DialogTitle className="text-xl font-semibold">Delete Service</DialogTitle>
           </div>
-          <DialogDescription className="pt-2">
+          <DialogDescription className="text-sm text-muted-foreground">
             Are you sure you want to delete this service? This action cannot be undone.
           </DialogDescription>
         </DialogHeader>
 
         {service && (
           <div className="space-y-3 py-4">
-            <div className="p-4 rounded-lg border border-destructive/30 bg-destructive/5">
+            <div className="p-4 rounded-lg border bg-muted/30">
               <div className="space-y-2">
-                <div className="flex justify-between">
+                <div className="flex justify-between items-center">
                   <span className="text-sm font-medium text-muted-foreground">Service Name:</span>
                   <span className="text-sm font-semibold">{service.name}</span>
                 </div>
-                {service.vendor && (
-                  <div className="flex justify-between">
-                    <span className="text-sm font-medium text-muted-foreground">Vendor:</span>
-                    <span className="text-sm font-semibold">{service.vendor}</span>
-                  </div>
-                )}
-                <div className="flex justify-between">
+                <div className="flex justify-between items-center">
                   <span className="text-sm font-medium text-muted-foreground">Products:</span>
                   <span className="text-sm font-semibold">
                     {service.product_count || 0} {service.product_count === 1 ? 'Product' : 'Products'}
@@ -91,12 +85,12 @@ export function DeleteServiceDialog({
               </div>
             </div>
 
-            <div className="p-3 rounded-lg bg-info/10 border border-info/30">
+            <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900">
               <div className="flex gap-2">
-                <Info className="h-5 w-5 text-info shrink-0 mt-0.5" />
+                <Info className="h-4 w-4 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
                 <div className="space-y-1">
-                  <p className="text-sm font-medium text-info">Non-destructive deletion</p>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-sm font-medium text-blue-900 dark:text-blue-100">Non-destructive deletion</p>
+                  <p className="text-xs text-blue-700 dark:text-blue-300">
                     Deleting this service will only remove the service itself. Associated products will become 
                     "unassociated" and remain in the system. They can be reassigned to other services later.
                   </p>
@@ -106,7 +100,7 @@ export function DeleteServiceDialog({
           </div>
         )}
 
-        <DialogFooter>
+        <DialogFooter className="gap-2">
           <Button
             type="button"
             variant="outline"
