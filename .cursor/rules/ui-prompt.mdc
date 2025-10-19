@@ -1,0 +1,754 @@
+---
+alwaysApply: false
+---
+## UI Design Prompts for Enterprise Application
+
+ 
+
+Based on analyzing the codebase, here are detailed prompts to recreate the UI components and design system of this enterprise management application:
+
+ 
+
+### **1. Design System & Color Scheme**
+
+ 
+
+```
+
+Create a modern enterprise design system with these specifications:
+
+ 
+
+**Color Palette:**
+
+- Primary: HSL(221, 83%, 53%) - Professional blue
+
+- Primary Dark: HSL(221, 83%, 43%) - Darker blue for hover states
+
+- Background: White/HSL(222.2, 84%, 4.9%) for dark mode
+
+- Foreground: HSL(222.2, 84%, 4.9%)/White for dark mode
+
+- Accent: HSL(210, 40%, 96.1%) - Light gray for hover states
+
+- Muted: HSL(215.4, 16.3%, 46.9%) - Muted text color
+
+- Border: HSL(214.3, 31.8%, 91.4%) - Subtle borders
+
+- Success: HSL(142, 76%, 36%) - Green for success states
+
+- Warning: HSL(48, 96%, 53%) - Yellow for warnings
+
+- Destructive: HSL(0, 84.2%, 60.2%) - Red for errors
+
+ 
+
+**Typography:**
+
+- Font: System fonts (default)
+
+- Border radius: 0.5rem base with calculated variants
+
+- Spacing: Standard Tailwind spacing scale
+
+ 
+
+**Theme Support:**
+
+- Light and dark mode support
+
+- System theme detection
+
+- CSS variables for easy theme switching
+
+```
+
+ 
+
+### **2. Top Navigation Header**
+
+ 
+
+```
+
+Create a modern enterprise application header with these features:
+
+ 
+
+**Layout:**
+
+- Fixed height: 56px (h-14)
+
+- Full width with backdrop blur effect
+
+- Subtle border bottom
+
+- Background: Semi-transparent with backdrop-blur
+
+ 
+
+**Left Section:**
+
+- Sidebar toggle button (hamburger menu)
+
+- Vertical separator
+
+- Company logo with shield icon
+
+- Brand name "PortalOps" (hide on mobile)
+
+ 
+
+**Right Section:**
+
+- Global search button with search icon and Ctrl+K shortcut tooltip
+
+- Admin settings button (conditional, with orange notification dot)
+
+- Vertical separator
+
+- Inbox/notifications dropdown with bell icon
+
+- Help button with question mark icon and F1 shortcut
+
+- Vertical separator
+
+- User profile dropdown
+
+ 
+
+**Styling:**
+
+- Ghost buttons with hover states
+
+- Consistent 36px button size (h-9 w-9)
+
+- Subtle hover effects with accent colors
+
+- Tooltips for all buttons with keyboard shortcuts
+
+- Smooth transitions for all interactive elements
+
+```
+
+ 
+
+### **3. Collapsible Sidebar Navigation**
+
+ 
+
+```
+
+Design a role-based enterprise sidebar with these specifications:
+
+ 
+
+**Structure:**
+
+- Collapsible: 256px expanded, 56px collapsed
+
+- Smooth transitions between states
+
+- Role-based menu item visibility
+
+ 
+
+**Menu Sections:**
+
+1. **Navigation** (always visible):
+
+   - Dashboard (BarChart3 icon)
+
+   - Inbox (Inbox icon)
+
+   - Service Inventory (Building icon) - HR/Admin only
+
+   - User Directory (Users icon) - HR/Admin only
+
+   - Payment Registry (CreditCard icon) - Finance/Admin only
+
+   - Reports (FileText icon) - HR/Finance/Admin only
+
+ 
+
+2. **Administration** (Admin only, collapsible):
+
+   - System Dashboard (BarChart3 icon)
+
+   - Security & Compliance (Shield icon)
+
+   - User Administration (UserCheck icon)
+
+   - Master Files (Archive icon)
+
+ 
+
+3. **System Setup** (Admin only, collapsible):
+
+   - System Configuration (Settings icon)
+
+ 
+
+**Features:**
+
+- Active state highlighting with accent background
+
+- Icon-only view when collapsed
+
+- Expandable sections with chevron indicators
+
+- Smooth hover effects
+
+- Role-based conditional rendering
+
+```
+
+ 
+
+### **4. Authentication Page Layout**
+
+ 
+
+```
+
+Create a centered authentication form with these specifications:
+
+ 
+
+**Layout:**
+
+- Full viewport height with centered card
+
+- Maximum width: 448px (max-w-md)
+
+- Card with subtle shadow and border
+
+- Centered on screen with background
+
+ 
+
+**Header:**
+
+- Company name "PortalOps" in large font (text-3xl)
+
+- Subtitle: "Secure access to your enterprise services"
+
+- Centered alignment
+
+ 
+
+**Tabs:**
+
+- Two tabs: "Sign In" and "Sign Up"
+
+- Grid layout with equal width columns
+
+- Smooth tab switching
+
+ 
+
+**Sign In Form:**
+
+- Email input with proper validation
+
+- Password input with masked characters
+
+- Full-width submit button
+
+- Loading states with disabled state
+
+ 
+
+**Sign Up Form:**
+
+- Two-column grid for first/last name
+
+- Email and password inputs
+
+- Full-width submit button
+
+- Form validation and loading states
+
+ 
+
+**Styling:**
+
+- Consistent spacing (space-y-4 for form elements)
+
+- Proper labels and placeholders
+
+- Focus states and accessibility
+
+- Loading indicators
+
+```
+
+ 
+
+### **5. User Profile Dropdown**
+
+ 
+
+```
+
+Design a comprehensive user profile dropdown with these features:
+
+ 
+
+**Trigger Button:**
+
+- User avatar (circular, 28px)
+
+- User first name (hidden on mobile)
+
+- User role badge below name
+
+- Chevron down indicator
+
+- Hover effects
+
+ 
+
+**Dropdown Content:**
+
+- Width: 288px (w-72)
+
+- Backdrop blur effect
+
+- Subtle shadow and border
+
+ 
+
+**Header Section:**
+
+- Larger user avatar (40px)
+
+- Full name and email
+
+- Role badges with hierarchy:
+
+  - Admin: Crown icon, primary color
+
+  - Other roles: Secondary styling
+
+  - Multiple role support
+
+ 
+
+**Menu Sections:**
+
+1. **Profile & Settings:**
+
+   - Profile Settings (User icon, Shift+Cmd+P shortcut)
+
+   - Notification Preferences (Bell icon)
+
+ 
+
+2. **Appearance:**
+
+   - Light Theme (Sun icon)
+
+   - Dark Theme (Moon icon)
+
+   - System Theme (Monitor icon)
+
+   - Current theme indicator dot
+
+ 
+
+3. **Administration** (Admin only):
+
+   - System Setup (Settings icon, Shift+Cmd+A shortcut)
+
+   - Security Settings (Key icon)
+
+ 
+
+4. **Sign Out:**
+
+   - Red text with logout icon
+
+   - Shift+Cmd+Q shortcut
+
+ 
+
+**Features:**
+
+- Smooth animations
+
+- Keyboard shortcuts displayed
+
+- Conditional sections based on user role
+
+- Theme switching functionality
+
+```
+
+ 
+
+### **6. Form Layouts & Components**
+
+ 
+
+```
+
+Create consistent form layouts with these patterns:
+
+ 
+
+**Profile Settings Form:**
+
+- Card-based layout with header and content sections
+
+- Avatar upload with camera overlay button
+
+- Two-column grid for related fields (first/last name)
+
+- Full-width fields for email, title, department
+
+- Proper spacing between form groups (space-y-4)
+
+- Save button with loading states
+
+ 
+
+**Form Field Structure:**
+
+- Label above input with proper htmlFor association
+
+- Input with consistent styling and focus states
+
+- Error states with red border and text
+
+- Helper text in muted color
+
+- Disabled states with reduced opacity
+
+ 
+
+**File Upload Component:**
+
+- Hidden file input
+
+- Custom button trigger with icon
+
+- File type and size validation
+
+- Progress indicators during upload
+
+- Error handling with toast notifications
+
+ 
+
+**Button Variants:**
+
+- Primary: Blue background with white text
+
+- Secondary: Light background with dark text
+
+- Ghost: Transparent with hover effects
+
+- Destructive: Red for dangerous actions
+
+- Consistent sizing (h-10 default, h-9 small, h-11 large)
+
+```
+
+ 
+
+### **7. Enterprise Dashboard Cards**
+
+ 
+
+```
+
+Design enterprise dashboard cards with these specifications:
+
+ 
+
+**Card Structure:**
+
+- Rounded corners (rounded-lg)
+
+- Subtle border and shadow
+
+- White/dark background based on theme
+
+- Consistent padding (p-6)
+
+ 
+
+**Card Header:**
+
+- Title with large font (text-2xl, font-semibold)
+
+- Optional description in muted text
+
+- Flex layout with space between items
+
+ 
+
+**Card Content:**
+
+- Main content area with reduced top padding (pt-0)
+
+- Support for charts, tables, lists, or metrics
+
+- Consistent spacing and typography
+
+ 
+
+**Status Cards:**
+
+- Metric display with large numbers
+
+- Trend indicators (up/down arrows)
+
+- Color coding (green for positive, red for negative)
+
+- Supporting text with context
+
+ 
+
+**Interactive Elements:**
+
+- Hover effects for clickable cards
+
+- Loading states with skeleton placeholders
+
+- Empty states with helpful messaging
+
+```
+
+ 
+
+### **8. Data Tables & Lists**
+
+ 
+
+```
+
+Create enterprise-grade data tables with these features:
+
+ 
+
+**Table Structure:**
+
+- Full-width responsive layout
+
+- Striped rows for better readability
+
+- Hover effects on rows
+
+- Sticky header for long tables
+
+ 
+
+**Column Features:**
+
+- Sortable headers with indicators
+
+- Resizable columns
+
+- Checkbox selection column
+
+- Action column with dropdown menus
+
+ 
+
+**Row Actions:**
+
+- Edit button with pencil icon
+
+- Delete button with trash icon (red color)
+
+- More actions dropdown menu
+
+- Bulk action support with checkboxes
+
+ 
+
+**Filtering & Search:**
+
+- Search input with magnifying glass icon
+
+- Filter dropdowns for categories
+
+- Date range pickers
+
+- Clear filters button
+
+ 
+
+**Pagination:**
+
+- Page numbers with prev/next buttons
+
+- Items per page selector
+
+- Total count display
+
+- Jump to page input
+
+ 
+
+**Loading & Empty States:**
+
+- Skeleton rows during loading
+
+- Empty state with illustration and helpful text
+
+- Error states with retry button
+
+```
+
+ 
+
+### **9. Modal Dialogs & Overlays**
+
+ 
+
+```
+
+Design consistent modal dialogs with these specifications:
+
+ 
+
+**Dialog Structure:**
+
+- Centered overlay with backdrop blur
+
+- Maximum width constraints based on content
+
+- Smooth fade and scale animations
+
+- Keyboard navigation support (ESC to close)
+
+ 
+
+**Dialog Header:**
+
+- Title with large font
+
+- Optional subtitle/description
+
+- Close button (X) in top right corner
+
+ 
+
+**Dialog Content:**
+
+- Scrollable content area
+
+- Consistent padding and spacing
+
+- Form layouts for input dialogs
+
+ 
+
+**Dialog Footer:**
+
+- Right-aligned button group
+
+- Cancel button (secondary style)
+
+- Primary action button
+
+- Consistent spacing between buttons
+
+ 
+
+**Dialog Variants:**
+
+- Confirmation dialogs with warning colors
+
+- Form dialogs with validation
+
+- Information dialogs with success/error states
+
+- Full-screen dialogs on mobile
+
+ 
+
+**Accessibility:**
+
+- Focus management
+
+- ARIA labels and descriptions
+
+- Keyboard navigation
+
+- Screen reader support
+
+```
+
+ 
+
+### **10. Notification System**
+
+ 
+
+```
+
+Implement a toast notification system with these features:
+
+ 
+
+**Toast Structure:**
+
+- Bottom-right positioning by default
+
+- Maximum width with word wrapping
+
+- Auto-dismiss after 5 seconds
+
+- Manual dismiss with X button
+
+ 
+
+**Toast Variants:**
+
+- Success: Green border and icon (CheckCircle)
+
+- Error: Red border and icon (XCircle)
+
+- Warning: Yellow border and icon (AlertTriangle)
+
+- Info: Blue border and icon (Info)
+
+ 
+
+**Toast Content:**
+
+- Title in medium font weight
+
+- Description in regular weight
+
+- Icon aligned to content
+
+- Action buttons (optional)
+
+ 
+
+**Animation:**
+
+- Slide in from right
+
+- Stack multiple toasts
+
+- Smooth exit animations
+
+- Pause on hover
+
+ 
+
+**Toast Features:**
+
+- Progress bar for auto-dismiss
+
+- Persistent toasts (no auto-dismiss)
+
+- Click to dismiss
+
+- Queue management for multiple toasts

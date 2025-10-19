@@ -50,9 +50,9 @@ export function SignUpForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-5">
       {errors.general && (
-        <div className="p-3 text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-md">
+        <div className="p-3 text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-lg">
           {errors.general}
         </div>
       )}
@@ -105,7 +105,7 @@ export function SignUpForm() {
 
       <Button
         type="submit"
-        className="w-full"
+        className="w-full h-11 text-base font-medium"
         disabled={isLoading}
       >
         {isLoading ? 'Creating account...' : 'Create Account'}

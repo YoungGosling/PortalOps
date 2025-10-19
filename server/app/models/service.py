@@ -20,7 +20,7 @@ class Service(Base):
 
     # Relationships
     products = relationship(
-        "Product", back_populates="service", cascade="all, delete-orphan")
+        "Product", back_populates="service")
     permission_assignments = relationship(
         "PermissionAssignment", back_populates="service")
 
@@ -30,7 +30,7 @@ class Product(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     service_id = Column(UUID(as_uuid=True), ForeignKey(
-        "services.id", ondelete="CASCADE"), nullable=False)
+        "services.id", ondelete="SET NULL"), nullable=True)
     name = Column(String(255), nullable=False)
     url = Column(Text, nullable=True)
     description = Column(Text, nullable=True)

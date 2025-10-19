@@ -1,5 +1,5 @@
 // API Configuration and HTTP Client
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api'
 
 interface ApiError {
   error: string
@@ -9,15 +9,32 @@ interface ApiError {
 class ApiClient {
   private baseURL: string
   private token: string | null = null
+  private initialized: boolean = false
 
   constructor(baseURL: string) {
     this.baseURL = baseURL
+    // Initialize token from localStorage if available
+    this.initializeToken()
+  }
+
+  private initializeToken() {
+    if (typeof window !== 'undefined' && !this.initialized) {
+      const storedToken = localStorage.getItem('portalops_token')
+      if (storedToken) {
+        this.token = storedToken
+        console.log('[API Client] Token initialized from localStorage:', storedToken.substring(0, 30) + '...')
+      } else {
+        console.warn('[API Client] No token found in localStorage')
+      }
+      this.initialized = true
+    }
   }
 
   setToken(token: string) {
     this.token = token
     if (typeof window !== 'undefined') {
       localStorage.setItem('portalops_token', token)
+      console.log('[API Client] Token set and stored in localStorage:', token.substring(0, 30) + '...')
     }
   }
 
@@ -25,14 +42,29 @@ class ApiClient {
     this.token = null
     if (typeof window !== 'undefined') {
       localStorage.removeItem('portalops_token')
+      console.log('[API Client] Token cleared from memory and localStorage')
     }
   }
 
   getToken(): string | null {
-    if (this.token) return this.token
+    // Always try to get the latest token from localStorage
     if (typeof window !== 'undefined') {
-      return localStorage.getItem('portalops_token')
+      const storedToken = localStorage.getItem('portalops_token')
+      if (storedToken && storedToken !== this.token) {
+        // Token in localStorage is different from memory, update memory
+        this.token = storedToken
+        console.log('[API Client] Token synced from localStorage')
+      }
+      if (storedToken) {
+        return storedToken
+      }
     }
+    
+    // Fallback to memory token
+    if (this.token) {
+      return this.token
+    }
+    
     return null
   }
 
@@ -54,6 +86,18 @@ class ApiClient {
     const token = this.getToken()
     if (token) {
       headers.Authorization = `Bearer ${token}`
+      console.log(`[API Request] ${options.method || 'GET'} ${endpoint} - With Auth Token: ${token.substring(0, 30)}...`)
+    } else {
+      console.error(`[API Request] ${options.method || 'GET'} ${endpoint} - ⚠️  NO TOKEN! Request will likely fail with 403`)
+      // Check if token exists in localStorage for debugging
+      if (typeof window !== 'undefined') {
+        const lsToken = localStorage.getItem('portalops_token')
+        if (lsToken) {
+          console.error('[API Request] Token EXISTS in localStorage but not returned by getToken()!')
+        } else {
+          console.error('[API Request] No token in localStorage either')
+        }
+      }
     }
 
     try {
@@ -61,6 +105,8 @@ class ApiClient {
         ...options,
         headers,
       })
+      
+      console.log(`[API Response] ${options.method || 'GET'} ${endpoint} - Status: ${response.status}`)
 
       if (!response.ok) {
         const errorData: ApiError = await response.json().catch(() => ({
@@ -122,15 +168,14 @@ export interface LoginResponse {
   }
 }
 
+// Updated for v2.0
 export interface UserProfile {
   id: string
   name: string
   email: string
+  department?: string
   roles: string[]
-  permissions: {
-    services: string[]
-    products: string[]
-  }
+  assignedServiceIds: string[] // Simplified permissions
 }
 
 export interface PaginatedResponse<T> {
@@ -153,9 +198,10 @@ export const authApi = {
 
 // Users API
 export const usersApi = {
-  getUsers: (params?: { search?: string; page?: number; limit?: number }) => {
+  getUsers: (params?: { search?: string; productId?: string; page?: number; limit?: number }) => {
     const searchParams = new URLSearchParams()
     if (params?.search) searchParams.append('search', params.search)
+    if (params?.productId) searchParams.append('productId', params.productId)
     if (params?.page) searchParams.append('page', params.page.toString())
     if (params?.limit) searchParams.append('limit', params.limit.toString())
     
@@ -163,17 +209,26 @@ export const usersApi = {
     return apiClient.get<PaginatedResponse<any>>(`/users${query ? `?${query}` : ''}`)
   },
 
-  createUser: (userData: any) =>
+  createUser: (userData: {
+    name: string
+    email: string
+    department: string
+    role?: 'Admin' | 'ServiceAdmin'
+    assignedServiceIds?: string[]
+  }) =>
     apiClient.post<any>('/users', userData),
 
-  updateUser: (userId: string, userData: any) =>
+  updateUser: (userId: string, userData: {
+    name?: string
+    email?: string
+    department?: string
+    role?: 'Admin' | 'ServiceAdmin'
+    assignedServiceIds?: string[]
+  }) =>
     apiClient.put<any>(`/users/${userId}`, userData),
 
   deleteUser: (userId: string) =>
     apiClient.delete(`/users/${userId}`),
-
-  updateUserPermissions: (userId: string, permissions: any) =>
-    apiClient.put(`/users/${userId}/permissions`, permissions),
 }
 
 // Services API
@@ -184,42 +239,43 @@ export const servicesApi = {
   getService: (serviceId: string) =>
     apiClient.get<any>(`/services/${serviceId}`),
 
-  createService: (serviceData: any) =>
+  createService: (serviceData: { name: string; vendor?: string; productIds?: string[] }) =>
     apiClient.post<any>('/services', serviceData),
 
-  updateService: (serviceId: string, serviceData: any) =>
+  updateService: (serviceId: string, serviceData: { 
+    name?: string; 
+    vendor?: string;
+    associateProductIds?: string[];
+    disassociateProductIds?: string[];
+  }) =>
     apiClient.put<any>(`/services/${serviceId}`, serviceData),
 
   deleteService: (serviceId: string) =>
     apiClient.delete(`/services/${serviceId}`),
 
-  // Products within services
-  createProduct: (serviceId: string, productData: any) =>
-    apiClient.post<any>(`/services/${serviceId}/products`, productData),
-
-  updateProduct: (serviceId: string, productId: string, productData: any) =>
-    apiClient.put<any>(`/services/${serviceId}/products/${productId}`, productData),
-
-  deleteProduct: (serviceId: string, productId: string) =>
-    apiClient.delete(`/services/${serviceId}/products/${productId}`),
+  // Get unassociated products (for Add/Edit Service panel)
+  getUnassociatedProducts: () =>
+    apiClient.get<any[]>('/services/unassociated-products'),
 }
 
 // Products API
 export const productsApi = {
-  getProducts: () =>
-    apiClient.get<any[]>('/products'),
+  getProducts: (serviceId?: string) => {
+    const query = serviceId ? `?serviceId=${serviceId}` : ''
+    return apiClient.get<any[]>(`/products${query}`)
+  },
 
-  createProduct: (productData: { name: string; url?: string; serviceId: string }) =>
+  createProduct: (productData: { name: string; serviceId: string }) =>
     apiClient.post<any>('/products', productData),
 
-  updateProduct: (productId: string, productData: any) =>
+  updateProduct: (productId: string, productData: { name?: string; serviceId?: string }) =>
     apiClient.put<any>(`/products/${productId}`, productData),
 
   deleteProduct: (productId: string) =>
     apiClient.delete(`/products/${productId}`),
 }
 
-// Payment Register API
+// Payment Register API (Updated for v2.0 - multipart/form-data support)
 export const paymentApi = {
   getPaymentRegister: () =>
     apiClient.get<any[]>('/payment-register'),
@@ -227,16 +283,64 @@ export const paymentApi = {
   getPaymentSummary: () =>
     apiClient.get<{ incompleteCount: number }>('/payment-register/summary'),
 
-  createPaymentRegisterItem: (itemData: any) =>
-    apiClient.post<any>('/payment-register', itemData),
+  // Combined update with optional file upload
+  updatePaymentInfo: async (productId: string, paymentData: {
+    amount?: number
+    cardholderName?: string
+    expiryDate?: string
+    paymentMethod?: string
+    billAttachment?: File
+  }) => {
+    const formData = new FormData()
+    if (paymentData.amount !== undefined) formData.append('amount', paymentData.amount.toString())
+    if (paymentData.cardholderName) formData.append('cardholderName', paymentData.cardholderName)
+    if (paymentData.expiryDate) formData.append('expiryDate', paymentData.expiryDate)
+    if (paymentData.paymentMethod) formData.append('paymentMethod', paymentData.paymentMethod)
+    if (paymentData.billAttachment) formData.append('billAttachment', paymentData.billAttachment)
+    
+    const token = apiClient.getToken()
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api'}/payment-register/${productId}`, {
+      method: 'PUT',
+      headers: {
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+      },
+      body: formData
+    })
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ message: 'Failed to update payment info' }))
+      throw new Error(errorData.message || 'Failed to update payment info')
+    }
+    
+    return response.json()
+  },
 
-  updatePaymentInfo: (productId: string, paymentData: any) =>
-    apiClient.put(`/payment-register/${productId}`, paymentData),
+  // Upload bill attachment separately
+  uploadBillAttachment: async (productId: string, file: File) => {
+    const formData = new FormData()
+    formData.append('billAttachment', file)
+    
+    const token = apiClient.getToken()
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api'}/payment-register/${productId}/attachment`, {
+      method: 'POST',
+      headers: {
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+      },
+      body: formData
+    })
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ message: 'Failed to upload bill attachment' }))
+      throw new Error(errorData.message || 'Failed to upload bill attachment')
+    }
+    
+    return response.json()
+  },
 }
 
-// Workflow API
+// Workflow API (Inbox - Onboarding/Offboarding) - Updated for v2.0
 export const workflowApi = {
-  getTasks: (status?: string) => {
+  getTasks: (status?: 'pending' | 'completed') => {
     const query = status ? `?status=${status}` : ''
     return apiClient.get<any[]>(`/inbox/tasks${query}`)
   },
@@ -244,8 +348,26 @@ export const workflowApi = {
   getTask: (taskId: string) =>
     apiClient.get<any>(`/inbox/tasks/${taskId}`),
 
-  updateTask: (taskId: string, taskData: any) =>
-    apiClient.put(`/inbox/tasks/${taskId}`, taskData),
+  completeTask: (taskId: string, data?: {
+    role?: 'Admin' | 'ServiceAdmin'
+    assignedServiceIds?: string[]
+  }) =>
+    apiClient.post(`/inbox/tasks/${taskId}/complete`, data || {}),
+}
+
+// Master Files API (Bill Attachments) - Updated for v2.0
+export const masterFilesApi = {
+  getAttachments: () =>
+    apiClient.get<any[]>('/master-files/attachments'),
+
+  downloadAttachment: (fileId: string) => {
+    const token = apiClient.getToken()
+    return fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api'}/master-files/attachments/${fileId}`, {
+      headers: {
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+      }
+    })
+  },
 }
 
 // Audit Logs API

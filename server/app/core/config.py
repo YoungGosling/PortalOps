@@ -9,7 +9,7 @@ class Settings(BaseSettings):
     # JWT Configuration
     JWT_SECRET_KEY: str = "your-super-secret-jwt-key-change-this-in-production"
     JWT_ALGORITHM: str = "HS256"
-    JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = 15
+    JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = 180
 
     # API Configuration
     API_V1_STR: str = "/api"
@@ -38,6 +38,3 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
-
-
-

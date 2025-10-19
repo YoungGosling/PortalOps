@@ -1,0 +1,138 @@
+'use client';
+
+import { useState } from 'react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { apiClient } from '@/lib/api';
+import type { Service } from '@/types';
+import { toast } from 'sonner';
+import { AlertTriangle, Loader2, Info } from 'lucide-react';
+
+interface DeleteServiceDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  service: Service | null;
+  onSuccess: () => void;
+}
+
+export function DeleteServiceDialog({
+  open,
+  onOpenChange,
+  service,
+  onSuccess,
+}: DeleteServiceDialogProps) {
+  const [deleting, setDeleting] = useState(false);
+
+  const handleDelete = async () => {
+    if (!service) return;
+
+    try {
+      setDeleting(true);
+      await apiClient.deleteService(service.id);
+      toast.success('Service deleted successfully');
+      onSuccess();
+      onOpenChange(false);
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to delete service');
+      console.error(error);
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const handleCancel = () => {
+    if (!deleting) {
+      onOpenChange(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[500px]">
+        <DialogHeader>
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-full bg-destructive/20">
+              <AlertTriangle className="h-6 w-6 text-destructive" />
+            </div>
+            <DialogTitle className="text-2xl">Delete Service</DialogTitle>
+          </div>
+          <DialogDescription className="pt-2">
+            Are you sure you want to delete this service? This action cannot be undone.
+          </DialogDescription>
+        </DialogHeader>
+
+        {service && (
+          <div className="space-y-3 py-4">
+            <div className="p-4 rounded-lg border border-destructive/30 bg-destructive/5">
+              <div className="space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-sm font-medium text-muted-foreground">Service Name:</span>
+                  <span className="text-sm font-semibold">{service.name}</span>
+                </div>
+                {service.vendor && (
+                  <div className="flex justify-between">
+                    <span className="text-sm font-medium text-muted-foreground">Vendor:</span>
+                    <span className="text-sm font-semibold">{service.vendor}</span>
+                  </div>
+                )}
+                <div className="flex justify-between">
+                  <span className="text-sm font-medium text-muted-foreground">Products:</span>
+                  <span className="text-sm font-semibold">
+                    {service.product_count || 0} {service.product_count === 1 ? 'Product' : 'Products'}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-3 rounded-lg bg-info/10 border border-info/30">
+              <div className="flex gap-2">
+                <Info className="h-5 w-5 text-info shrink-0 mt-0.5" />
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-info">Non-destructive deletion</p>
+                  <p className="text-xs text-muted-foreground">
+                    Deleting this service will only remove the service itself. Associated products will become 
+                    "unassociated" and remain in the system. They can be reassigned to other services later.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <DialogFooter>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleCancel}
+            disabled={deleting}
+          >
+            Cancel
+          </Button>
+          <Button
+            type="button"
+            variant="destructive"
+            onClick={handleDelete}
+            disabled={deleting}
+          >
+            {deleting ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Deleting...
+              </>
+            ) : (
+              <>Delete Service</>
+            )}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+

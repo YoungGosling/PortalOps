@@ -24,13 +24,17 @@ class CRUDWorkflowTask(CRUDBase[WorkflowTask, WorkflowTaskCreate, WorkflowTaskUp
         return db.query(WorkflowTask).filter(WorkflowTask.status == 'pending').all()
 
     def create_onboarding_task(
-        self, db: Session, *, assignee_id: uuid.UUID, target_user_id: uuid.UUID, details: str
+        self, db: Session, *, assignee_id: uuid.UUID, employee_name: str, 
+        employee_email: str, employee_department: Optional[str] = None, details: str
     ) -> WorkflowTask:
-        """Create an onboarding task."""
+        """Create an onboarding task. No user record is created yet."""
         task = WorkflowTask(
             type="onboarding",
             assignee_user_id=assignee_id,
-            target_user_id=target_user_id,
+            target_user_id=None,  # No user exists yet
+            employee_name=employee_name,
+            employee_email=employee_email,
+            employee_department=employee_department,
             details=details,
             status="pending"
         )
@@ -40,13 +44,18 @@ class CRUDWorkflowTask(CRUDBase[WorkflowTask, WorkflowTaskCreate, WorkflowTaskUp
         return task
 
     def create_offboarding_task(
-        self, db: Session, *, assignee_id: uuid.UUID, target_user_id: uuid.UUID, details: str
+        self, db: Session, *, assignee_id: uuid.UUID, target_user_id: uuid.UUID,
+        employee_name: str, employee_email: str, employee_department: Optional[str] = None, 
+        details: str
     ) -> WorkflowTask:
-        """Create an offboarding task."""
+        """Create an offboarding task. User already exists."""
         task = WorkflowTask(
             type="offboarding",
             assignee_user_id=assignee_id,
             target_user_id=target_user_id,
+            employee_name=employee_name,
+            employee_email=employee_email,
+            employee_department=employee_department,
             details=details,
             status="pending"
         )
@@ -57,6 +66,3 @@ class CRUDWorkflowTask(CRUDBase[WorkflowTask, WorkflowTaskCreate, WorkflowTaskUp
 
 
 workflow_task = CRUDWorkflowTask(WorkflowTask)
-
-
-

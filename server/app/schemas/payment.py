@@ -11,6 +11,7 @@ class PaymentInfoBase(BaseModel):
     cardholderName: Optional[str] = None
     expiryDate: Optional[str] = None  # Changed to string for MM/DD/YYYY format
     paymentMethod: Optional[str] = None
+    billAttachmentPath: Optional[str] = None
 
 
 class PaymentInfoCreate(PaymentInfoBase):

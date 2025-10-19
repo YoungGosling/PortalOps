@@ -1,135 +1,108 @@
 # Product Requirements Document: PortalOps
 
-## Product Vision
-PortalOps is a centralized, secure SaaS platform for managing company webservices, granular user access, payment monitoring, and automating HR-triggered onboarding/offboarding using structured, auditable workflow tasks.
+- **Version:** 2.0
+- **Date:** 2025-10-17
+- **Status:** Final
 
-## Objectives
-- Enhance security and compliance by automating account provisioning and deprovisioning.
-- Reduce manual workload for IT/HR and improve staff onboarding/offboarding experience.
-- Provide detailed tracking of services, payments, and product-level user assignments.
+## 1. Vision & Core Principles
 
-## Stakeholders
-- IT Administrators
-- HR Managers
-- Finance/Accounting Staff
-- All Employees (System Users)
+### 1.1. Product Vision
+PortalOps is a centralized, secure SaaS platform for managing company web services, products, and user access. It provides fine-grained permission controls, tracks billing information via a payment inventory, and automates user onboarding and offboarding workflows triggered by external HR systems.
 
----
+### 1.2. Core UI/UX Principles
+- **Reusable Components:** A single, unified "Add/Edit" panel shall be used for all create and update operations across different modules to ensure a consistent user experience.
+- **Real-Time Data Synchronization:** After any successful create, edit, or delete action, the UI must automatically re-fetch data and refresh the relevant view to display the most current information.
 
-## Functional Requirements
+## 2. Roles and Permissions (RBAC)
 
-### Service Inventory Module
-- Add, update, and delete webservice records, storing attributes: name, vendor, URL, renewal/payment details.
-- Each webservice record supports multiple assignable products/modules (e.g., Gmail, Drive for Google Workspace).
-- Administrators can manage user access per product, not just at the overall service level.
+The system will feature a hierarchical, two-role structure.
 
-### User Management Module
-- Maintain a directory mapping users to service and product/module access, including access expiry.
-- Allow bulk onboarding/offboarding and assignment/reassignment of service/product administrators.
+### 2.1. Admin (Super Administrator)
+- **Access:** Unrestricted read/write access to all pages and modules within the application.
+- **Permissions:**
+    - Full CRUD (Create, Read, Update, Delete) capabilities for all Services and Products.
+    - Can assign or revoke the `ServiceAdmin` role for any user in the User Directory.
 
-### Payment Tracking Module
-- Store payment info per service (cardholder, renewal frequency, expiry).
-- Automated notifications for upcoming expirations/renewals, visible in the inbox and dashboard.
+### 2.2. ServiceAdmin (Service Administrator)
+- **Access:** Limited to the modules and data relevant to their assigned services.
+- **Permissions:**
+    - Full CRUD capabilities for all **Products** that fall under the specific services they are assigned to manage.
 
----
+## 3. Functional Modules (NAVIGATION)
 
-## Onboarding & Offboarding Workflows
+### 3.1. Service Inventory
+- **Display:** Services are rendered as individual cards. Each card must display the total count of products associated with it.
+- **Functionality:**
+    - **Add Service:**
+        - The Add/Edit panel will require a **Service Name** (mandatory).
+        - The panel will display a list of all *unassociated* products. The user can select multiple products to bind them to the new service. Product selection is optional.
+    - **Edit Service:**
+        - The user can modify the **Service Name**.
+        - The user can associate additional products or disassociate currently linked products.
+    - **Delete Service:**
+        - Deleting a service that has products associated with it will only sever the link between the service and the products. The products themselves will not be deleted and will become "unassociated."
 
-### Onboarding Workflow
+### 3.2. Product Inventory
+- **Display:** Products are displayed in a list or table, with each product occupying a single row showing its **Name** and its parent **Service**.
+- **Functionality:**
+    - **CRUD:** Full CRUD operations for products are supported.
+    - **Add/Edit Product:**
+        - The Add/Edit panel will require a **Product Name** (mandatory, must be unique) and a **Service** (mandatory, single-choice dropdown of existing services).
+    - **Filtering:** The page will include a dropdown menu to filter the product list by service. The default view will show all products.
+- **Data Synchronization:**
+    - On successful creation of a new product, a corresponding billing record **must** be automatically created in the **Payment Register**.
+    - On deletion of a product, its association with any service is removed, and its corresponding billing record in the **Payment Register** is also deleted.
 
-- **API Trigger:**  
-  Initiated automatically by the HR system sending new staff data to PortalOps via API.
+### 3.3. Payment Register
+- **Data Integrity:** The total number of billing records in the Payment Register must always be identical to the total number of products in the Product Inventory.
+- **Display:**
+    - Each record is displayed on a single row, showing read-only **Service** and **Product** names, followed by the editable billing fields.
+    - Records with all required fields filled are marked with a **green** indicator.
+    - Records with one or more missing fields are marked with a **red** indicator and are always sorted to the top of the list.
+- **Functionality:**
+    - **No Add/Edit Panel:** This page does not use the standard Add/Edit panel. Billing information is edited directly inline on the page.
+    - **Editable Fields (All Mandatory):**
+        1.  Amount
+        2.  Cardholder Name
+        3.  Expiry Date (YYYY-MM-DD format)
+        4.  Payment Method
+        5.  Bill Attachment (File Upload)
+- **Navigation Badge:**
+    - A numerical badge will be displayed next to the "Payment Register" navigation link, showing the count of incomplete billing records.
+    - The badge is hidden if the count is zero.
+- **Data Synchronization:**
+    - Upon successfully saving an update to any billing record, the page data and the navigation badge count must be immediately re-fetched and updated.
 
-- **Access Discovery:**  
-  PortalOps determines all webservices and products/modules required for the new staff member, based on role/department/templates.
+### 3.4. User Directory
+- **Access:** This page is accessible only to users with the `Admin` role.
+- **Functionality:**
+    - **CRUD:** Full CRUD operations for users are supported.
+    - **Add/Edit User:**
+        - The Add/Edit panel will manage the user's **Name**, **Email**, and **Department**.
+        - The panel will include an optional dropdown to assign a role (`Admin` or `ServiceAdmin`).
+        - The panel will allow the assignment of specific **Services** or **Products**. If a service is assigned, the user implicitly gains access to all products under that service.
+    - **Delete User:** Deleting a user will also remove all of their associated product and service assignments.
+    - **Filtering:** The page will provide a mechanism to filter the user list to show only users associated with a selected product.
 
-- **Task Generation:**  
-  For each required webservice/product, generate an inbox task for the responsible admin/owner. Each task specifies:
-    - Staff name and profile
-    - Service/product/module to provision
-    - Configuration details (role, access level, etc.)
+### 3.5. Inbox
+- **Access:** This page is accessible only to users with the `Admin` role.
+- **Display:** Incomplete tasks are always sorted to appear before completed tasks.
+- **API Triggers:** The system exposes two webhook endpoints for an external HR system: one for onboarding and one for offboarding.
+- **Onboarding Workflow:**
+    - The API receives the new employee's **Name**, **Department**, and **Email**.
+    - An "Onboarding" task is created. Clicking "Start Task" opens the **User Directory's "Add" panel**.
+    - The `Name`, `Department`, and `Email` fields are pre-filled and are **read-only**.
+    - The admin must assign at least one service or product to the user before submission is allowed.
+    - On successful submission, a new user is created in the User Directory, and the onboarding task is automatically marked as "Completed."
+- **Offboarding Workflow:**
+    - The API receives the departing employee's **Name**, **Department**, and **Email**.
+    - An "Offboarding" task is created. Clicking "Start Task" opens the **User Directory's "Edit" panel** for the specified user.
+    - The user's `Name`, `Department`, and `Email` are **read-only**.
+    - The user's currently assigned services and products are prominently displayed and are also **read-only**.
+    - Successful submission of the panel confirms the offboarding action. The user is deleted from the User Directory, all associations are removed, and the offboarding task is automatically marked as "Completed."
 
-- **Manual Action & Completion:**  
-  Responsible personnel manually create accounts in external webservices, then mark the task as "created," "invited," or with a custom status/comment.
+## 4. Administration
 
-- **Reminders & Escalation:**  
-  Automatic notifications for pending tasks; support for reassignment or escalation as needed.
-
-- **Audit Logging & Reporting:**  
-  All actions/statuses are audit-logged. HR/IT can generate onboarding progress and completion reports.
-
-- **Staff Notification:**  
-  Optionally, new hires receive a welcome message and service summary.
-
----
-
-### Offboarding Workflow
-
-- **API Trigger:**  
-  HR system signals the staff departure via API integration.
-
-- **Access Discovery:**  
-  PortalOps searches all webservices and products/modules where the user holds access.
-
-- **Task Generation:**  
-  For each assigned service/product, an inbox task is generated for the responsible admin/service owner with:
-    - Staff name and former access
-    - Service/product/module
-    - Recommended action (delete, suspend, password change, etc.)
-
-- **Manual Action & Completion Status:**  
-  Admins or owners take required actions in the relevant 3rd-party system. Afterward, they update the inbox task with the actual status (e.g., "deleted", "suspended", "password changed", or custom), and can leave a comment.
-
-- **Reminders & Escalation:**  
-  Pending offboarding tasks generate reminders and may be escalated/reassigned.
-
-- **Audit Logging & Reporting:**  
-  All actions/resolutions are fully audit-logged. Management can view offboarding status, outstanding items, and compliance history.
-
----
-
-### Inbox-Driven Workflow Module
-
-- All onboarding and offboarding checklist tasks are managed and confirmed through the PortalOps inbox (personal or team).
-- Tasks can be marked complete, commented on, queried, or reassigned.
-- Admins and users can track/manage pending/completed tasks, with full audit trails and timestamped status updates.
-
----
-
-### HR System API Integration
-
-- Seamless connection to HR platform via API for automated event triggers, onboarding, and offboarding.
-- Initiates relevant workflow tasks and updates user/service/product records accordingly.
-
----
-
-### Dashboard & Reporting
-
-- Central dashboard with navigation to all functional areas: Service Inventory, User Management, Payment Tracking, Inbox (workflows), and Reports.
-- Live overview: active services, user+product access, payment status, onboarding/offboarding progress, and workflow/compliance stats.
-- Exportable and filterable reports; scheduled email summaries.
-
----
-
-### Security & Compliance
-
-- OAuth/JWT authentication, encrypted data storage/transit, granular role-based access.
-- Access logs and alerts for suspicious, failed, or unauthorized actions.
-- Complete audit trail for all workflow and administrative actions.
-
----
-
-## Non-Functional Requirements
-
-- Scalable architecture for future integrations and product expansion.
-- Responsive, intuitive UI/UX for admins and all other roles.
-- Resilient error handling and consistent system activity logging.
-
----
-
-## Success Metrics
-
-- Reduction in manual onboarding/offboarding errors.
-- Fast workflow completion times.
-- Accurate mapping of service-product-user relationships.
-- High admin/user satisfaction with workflow and inbox usability.
+### 4.1. Master Files
+- **Access:** This page is accessible only to users with the `Admin` role.
+- **Content:** This module serves as a central repository, listing all files that have been uploaded as "Bill Attachments" via the **Payment Register**.

@@ -11,13 +11,15 @@ class ServiceBase(BaseModel):
 
 
 class ServiceCreate(ServiceBase):
-    pass
+    productIds: Optional[List[uuid.UUID]] = []
 
 
 class ServiceUpdate(BaseModel):
     name: Optional[str] = None
     vendor: Optional[str] = None
     url: Optional[str] = None
+    associateProductIds: Optional[List[uuid.UUID]] = []
+    disassociateProductIds: Optional[List[uuid.UUID]] = []
 
 
 class Service(ServiceBase):
@@ -37,7 +39,7 @@ class ProductBase(BaseModel):
 
 
 class ProductCreate(ProductBase):
-    service_id: uuid.UUID
+    service_id: Optional[uuid.UUID] = None
 
 
 class ProductCreateWithUrl(BaseModel):
@@ -55,6 +57,7 @@ class ProductUpdate(BaseModel):
 class Product(ProductBase):
     id: uuid.UUID
     service_id: uuid.UUID
+    service_name: Optional[str] = None
     created_at: datetime
     updated_at: datetime
 
@@ -62,5 +65,14 @@ class Product(ProductBase):
         from_attributes = True
 
 
+class ProductSimple(BaseModel):
+    """Simplified product info for service listings"""
+    id: uuid.UUID
+    name: str
+
+    class Config:
+        from_attributes = True
+
+
 class ServiceWithProducts(Service):
-    products: List[Product] = []
+    products: List[ProductSimple] = []

@@ -12,6 +12,8 @@ class UserBase(BaseModel):
 
 class UserCreate(UserBase):
     password: Optional[str] = None
+    role: Optional[str] = None  # Single role: "Admin" or "ServiceAdmin"
+    assignedProductIds: Optional[List[uuid.UUID]] = []
 
 
 class UserUpdate(BaseModel):
@@ -45,4 +47,10 @@ class UserPermissionUpdate(BaseModel):
     assignments: Dict[str, Dict[str, List[str]]]
 
 
-
+class UserUpdateV2(BaseModel):
+    """Unified update schema for v2 - combines basic info and permissions."""
+    name: Optional[str] = None
+    email: Optional[EmailStr] = None
+    department: Optional[str] = None
+    role: Optional[str] = None  # Single role: "Admin" or "ServiceAdmin"
+    assignedProductIds: Optional[List[uuid.UUID]] = []

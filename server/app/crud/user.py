@@ -44,7 +44,7 @@ class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
         return user
 
     def search_users(
-        self, db: Session, *, search: Optional[str] = None, skip: int = 0, limit: int = 100
+        self, db: Session, *, search: Optional[str] = None, product_id: Optional[uuid.UUID] = None, skip: int = 0, limit: int = 100
     ) -> List[User]:
         query = db.query(User)
         if search:
@@ -54,6 +54,14 @@ class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
                     User.email.ilike(f"%{search}%"),
                     User.department.ilike(f"%{search}%")
                 )
+            )
+        if product_id:
+            # Filter users assigned to the specific product
+            query = query.join(
+                PermissionAssignment,
+                User.id == PermissionAssignment.user_id
+            ).filter(
+                PermissionAssignment.product_id == product_id
             )
         return query.offset(skip).limit(limit).all()
 
@@ -144,6 +152,3 @@ class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
 
 
 user = CRUDUser(User)
-
-
-

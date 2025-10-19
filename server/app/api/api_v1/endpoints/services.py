@@ -11,13 +11,13 @@ import uuid
 router = APIRouter()
 
 
-@router.get("", response_model=List[Service])
+@router.get("", response_model=List[ServiceWithProducts])
 def read_services(
     current_user: User = Depends(require_any_admin_role),
     db: Session = Depends(get_db)
 ):
     """
-    Retrieve services filtered by user permissions.
+    Retrieve services filtered by user permissions with their products.
     """
     user_roles = get_user_roles(current_user.id, db)
     is_admin = "Admin" in user_roles
@@ -30,13 +30,21 @@ def read_services(
 @router.post("", response_model=Service, status_code=201)
 def create_service(
     service_in: ServiceCreate,
-    current_user: User = Depends(require_service_admin_or_higher),
+    current_user: User = Depends(require_any_admin_role),
     db: Session = Depends(get_db)
 ):
     """
-    Create new service.
+    Create new service and optionally associate products.
     """
-    new_service = service.create(db, obj_in=service_in)
+    # Check if user is Admin (only Admin can create services)
+    user_roles = get_user_roles(current_user.id, db)
+    if "Admin" not in user_roles:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only Admin can create services"
+        )
+
+    new_service = service.create_with_products(db, obj_in=service_in)
 
     # Log the action
     audit_log.log_action(
@@ -79,12 +87,20 @@ def read_service(
 def update_service(
     service_id: uuid.UUID,
     service_update: ServiceUpdate,
-    current_user: User = Depends(require_service_admin_or_higher),
+    current_user: User = Depends(require_any_admin_role),
     db: Session = Depends(get_db)
 ):
     """
-    Update service.
+    Update service and manage product associations.
     """
+    # Check if user is Admin (only Admin can update services)
+    user_roles = get_user_roles(current_user.id, db)
+    if "Admin" not in user_roles:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only Admin can update services"
+        )
+
     existing_service = service.get(db, service_id)
     if not existing_service:
         raise HTTPException(
@@ -92,7 +108,7 @@ def update_service(
             detail="Service not found"
         )
 
-    updated_service = service.update(
+    updated_service = service.update_with_products(
         db, db_obj=existing_service, obj_in=service_update)
 
     # Log the action
@@ -101,7 +117,7 @@ def update_service(
         actor_user_id=current_user.id,
         action="service.update",
         target_id=str(service_id),
-        details=service_update.dict(exclude_unset=True)
+        details=service_update.model_dump(exclude_unset=True)
     )
 
     return updated_service
@@ -110,12 +126,20 @@ def update_service(
 @router.delete("/{service_id}", status_code=204)
 def delete_service(
     service_id: uuid.UUID,
-    current_user: User = Depends(require_service_admin_or_higher),
+    current_user: User = Depends(require_any_admin_role),
     db: Session = Depends(get_db)
 ):
     """
-    Delete service.
+    Delete service (non-destructive - products become unassociated).
     """
+    # Check if user is Admin (only Admin can delete services)
+    user_roles = get_user_roles(current_user.id, db)
+    if "Admin" not in user_roles:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only Admin can delete services"
+        )
+
     existing_service = service.get(db, service_id)
     if not existing_service:
         raise HTTPException(
@@ -123,7 +147,7 @@ def delete_service(
             detail="Service not found"
         )
 
-    service.remove(db, id=service_id)
+    service.remove_non_destructive(db, id=service_id)
 
     # Log the action
     audit_log.log_action(
@@ -260,6 +284,3 @@ def delete_product(
         target_id=str(product_id),
         details={"name": existing_product.name}
     )
-
-
-

@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { ThemeProvider } from './contexts/ThemeContext'
 import { PaymentSummaryProvider } from './contexts/PaymentSummaryContext'
@@ -64,6 +64,14 @@ function ConfigPage() {
 function AppContent() {
   const { user, isLoading } = useAuth()
   const [currentPath, setCurrentPath] = useState('/dashboard')
+  const [showAuthPage, setShowAuthPage] = useState(false)
+
+  // Automatically hide auth page when user logs in
+  useEffect(() => {
+    if (user) {
+      setShowAuthPage(false)
+    }
+  }, [user])
 
   if (isLoading) {
     return (
@@ -73,8 +81,9 @@ function AppContent() {
     )
   }
 
-  if (!user) {
-    return <AuthPage />
+  // Show auth page only if explicitly requested
+  if (showAuthPage && !user) {
+    return <AuthPage onBack={() => setShowAuthPage(false)} />
   }
 
   const renderPage = () => {
@@ -107,7 +116,11 @@ function AppContent() {
   }
 
   return (
-    <Layout currentPath={currentPath} onNavigate={setCurrentPath}>
+    <Layout 
+      currentPath={currentPath} 
+      onNavigate={setCurrentPath}
+      onShowAuth={() => setShowAuthPage(true)}
+    >
       {renderPage()}
     </Layout>
   )

@@ -14,10 +14,15 @@ class WorkflowTask(Base):
     status = Column(String(20), nullable=False, default="pending")
     assignee_user_id = Column(UUID(as_uuid=True), ForeignKey(
         "users.id", ondelete="CASCADE"), nullable=False)
+    # target_user_id is nullable for onboarding (user doesn't exist yet)
     target_user_id = Column(UUID(as_uuid=True), ForeignKey(
-        "users.id", ondelete="CASCADE"), nullable=False)
+        "users.id", ondelete="SET NULL"), nullable=True)
     details = Column(Text, nullable=True)
     due_date = Column(DateTime(timezone=True), nullable=True)
+    # Employee metadata from HR system (stored directly in task)
+    employee_name = Column(String(255), nullable=True)
+    employee_email = Column(String(255), nullable=True)
+    employee_department = Column(String(255), nullable=True)
     created_at = Column(DateTime(timezone=True),
                         server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), server_default=func.now(
@@ -36,6 +41,3 @@ class WorkflowTask(Base):
                             assignee_user_id], back_populates="assigned_tasks")
     target_user = relationship("User", foreign_keys=[
                                target_user_id], back_populates="target_tasks")
-
-
-

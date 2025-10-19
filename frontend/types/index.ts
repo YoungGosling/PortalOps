@@ -1,53 +1,28 @@
-// User Types
+// User Types (Updated for v2.0)
 export interface User {
   id: string
   email: string
-  firstName: string
-  lastName: string
-  title?: string
-  department?: string
-  roles: UserRole[]
-  servicePermissions?: ServicePermission[]
-  productPermissions?: ProductPermission[]
+  name: string // Combined name field
+  department: string
+  role?: UserRole // Single role (optional)
+  assignedServiceIds?: string[] // Service IDs the user manages (for ServiceAdmin)
   avatar?: string
   isActive: boolean
-  canLogin: boolean // New field to indicate if user can log in
   createdAt: string
   updatedAt: string
 }
 
-export type UserRole = 'Admin' | 'ServiceAdministrator' | 'ProductAdministrator' | 'User'
+export type UserRole = 'Admin' | 'ServiceAdmin'
 
-// Permission Types
-export interface ServicePermission {
-  id: string
-  userId: string
-  serviceId: string
-  assignedBy: string
-  assignedAt: string
-  isActive: boolean
-}
+// Service and Product Types (Simplified)
 
-export interface ProductPermission {
-  id: string
-  userId: string
-  serviceId: string
-  productId: string
-  assignedBy: string
-  assignedAt: string
-  isActive: boolean
-}
-
-// Service Types
+// Service Types (Updated for v2.0)
 export interface WebService {
   id: string
   name: string
-  vendor: string
-  url: string
-  description?: string
-  products: ServiceProduct[]
-  paymentInfo: PaymentInfo
-  administrators: string[] // User IDs
+  vendor?: string
+  products?: ServiceProduct[] // Products associated with this service (optional)
+  productCount: number // Total count of products
   isActive: boolean
   createdAt: string
   updatedAt: string
@@ -55,79 +30,62 @@ export interface WebService {
 
 export interface ServiceProduct {
   id: string
-  name: string
-  description?: string
-  serviceId: string
+  name: string // Must be unique
+  serviceId: string | null // Parent service (can be null for unassociated products)
+  serviceName?: string // For display purposes
   isActive: boolean
-  billingInfo?: ProductBillingInfo
-}
-
-// Product Billing Types
-export interface ProductBillingInfo {
-  id: string
-  productId: string
-  billAmount?: number
-  cardholderName?: string
-  expirationDate?: string
-  paymentMethod?: string
-  isComplete: boolean
   createdAt: string
   updatedAt: string
 }
 
-// Payment Types
-export interface PaymentInfo {
+// Payment Register Types (Billing Information) - Updated for v2.0
+export interface PaymentRegisterItem {
   id: string
-  serviceId: string
-  cardholder: string
-  renewalFrequency: 'monthly' | 'quarterly' | 'annually'
-  nextRenewalDate: string
-  amount: number
-  currency: string
-  isActive: boolean
-}
-
-// User Access Types
-export interface UserAccess {
-  id: string
-  userId: string
-  serviceId: string
   productId: string
-  accessLevel: 'read' | 'write' | 'admin'
-  expiryDate?: string
-  assignedBy: string
-  assignedAt: string
-  isActive: boolean
+  productName: string // Read-only
+  serviceName: string // Read-only
+  amount?: number // Editable, mandatory
+  cardholderName?: string // Editable, mandatory
+  expiryDate?: string // Editable, mandatory (YYYY-MM-DD)
+  paymentMethod?: string // Editable, mandatory
+  billAttachment?: string // File upload path, mandatory (also accepts billAttachmentPath from backend)
+  billAttachmentPath?: string // Alias for backward compatibility
+  isComplete: boolean // True if all fields filled
+  createdAt: string
+  updatedAt: string
 }
 
-// Workflow Types
+
+// Workflow Types (Inbox - Onboarding/Offboarding)
 export interface WorkflowTask {
   id: string
   type: 'onboarding' | 'offboarding'
-  title: string
-  description: string
-  assignedTo: string
-  targetUserId: string
-  serviceId: string
-  productId?: string
-  status: TaskStatus
-  priority: 'low' | 'medium' | 'high'
-  dueDate?: string
+  status: 'pending' | 'completed'
+  // Employee information from HR system
+  employeeName: string
+  employeeDepartment: string
+  employeeEmail: string
+  // For offboarding: existing user info
+  userId?: string
+  assignedServices?: string[]
+  assignedProducts?: string[]
   completedAt?: string
   completedBy?: string
-  comments: TaskComment[]
   createdAt: string
   updatedAt: string
 }
 
-export type TaskStatus = 'pending' | 'in_progress' | 'completed' | 'cancelled' | 'escalated'
-
-export interface TaskComment {
+// Master Files Types (Bill Attachments)
+export interface MasterFile {
   id: string
-  taskId: string
-  userId: string
-  content: string
-  createdAt: string
+  fileName: string
+  fileUrl: string
+  productId: string
+  productName: string
+  serviceName: string
+  uploadedAt: string
+  fileSize?: number
+  mimeType?: string
 }
 
 // Dashboard Types

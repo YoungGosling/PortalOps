@@ -66,7 +66,8 @@ class CRUDPaymentInfo(CRUDBase[PaymentInfo, PaymentInfoCreate, PaymentInfoUpdate
                 "amount": payment_info.amount if payment_info else None,
                 "cardholderName": payment_info.cardholder_name if payment_info else None,
                 "expiryDate": formatted_expiry_date,
-                "paymentMethod": payment_info.payment_method if payment_info else None
+                "paymentMethod": payment_info.payment_method if payment_info else None,
+                "billAttachmentPath": payment_info.bill_attachment_path if payment_info else None
             }
 
             payment_register.append({

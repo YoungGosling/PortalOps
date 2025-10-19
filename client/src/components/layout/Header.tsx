@@ -20,9 +20,10 @@ import { Button } from '../ui/Button'
 
 interface HeaderProps {
   onToggleSidebar: () => void
+  onShowAuth: () => void
 }
 
-export function Header({ onToggleSidebar }: HeaderProps) {
+export function Header({ onToggleSidebar, onShowAuth }: HeaderProps) {
   const { user, logout, hasRole } = useAuth()
   const { theme, setTheme } = useTheme()
   const [showUserMenu, setShowUserMenu] = useState(false)
@@ -122,45 +123,46 @@ export function Header({ onToggleSidebar }: HeaderProps) {
 
           <div className="h-6 w-px bg-border" />
 
-          {/* User Menu */}
-          <div className="relative">
-            <Button
-              variant="ghost"
-              className="h-9 px-2"
-              onClick={() => setShowUserMenu(!showUserMenu)}
-            >
-              <div className="flex items-center space-x-2">
-                <div className="h-7 w-7 rounded-full bg-primary text-white flex items-center justify-center text-sm font-medium">
-                  {user?.firstName?.[0]}{user?.lastName?.[0]}
-                </div>
-                <div className="hidden sm:block text-left">
-                  <div className="text-sm font-medium">{user?.firstName}</div>
-                  <div className="text-xs text-muted-foreground">
-                    {user?.roles.includes('Admin') && (
-                      <span className="inline-flex items-center">
-                        <Shield className="h-3 w-3 mr-1" />
-                        Admin
-                      </span>
-                    )}
-                    {user?.roles.includes('ServiceAdministrator') && (
-                      <span className="inline-flex items-center">
-                        <Shield className="h-3 w-3 mr-1" />
-                        Service Admin
-                      </span>
-                    )}
-                    {user?.roles.includes('ProductAdministrator') && (
-                      <span className="inline-flex items-center">
-                        <Shield className="h-3 w-3 mr-1" />
-                        Product Admin
-                      </span>
-                    )}
-                    {user?.roles.includes('User') && !user?.roles.includes('Admin') && 
-                     !user?.roles.includes('ServiceAdministrator') && !user?.roles.includes('ProductAdministrator') && 'User'}
+          {/* User Menu or Sign In Button */}
+          {user ? (
+            <div className="relative">
+              <Button
+                variant="ghost"
+                className="h-9 px-2"
+                onClick={() => setShowUserMenu(!showUserMenu)}
+              >
+                <div className="flex items-center space-x-2">
+                  <div className="h-7 w-7 rounded-full bg-primary text-white flex items-center justify-center text-sm font-medium">
+                    {user?.firstName?.[0]}{user?.lastName?.[0]}
                   </div>
+                  <div className="hidden sm:block text-left">
+                    <div className="text-sm font-medium">{user?.firstName}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {user?.roles.includes('Admin') && (
+                        <span className="inline-flex items-center">
+                          <Shield className="h-3 w-3 mr-1" />
+                          Admin
+                        </span>
+                      )}
+                      {user?.roles.includes('ServiceAdministrator') && (
+                        <span className="inline-flex items-center">
+                          <Shield className="h-3 w-3 mr-1" />
+                          Service Admin
+                        </span>
+                      )}
+                      {user?.roles.includes('ProductAdministrator') && (
+                        <span className="inline-flex items-center">
+                          <Shield className="h-3 w-3 mr-1" />
+                          Product Admin
+                        </span>
+                      )}
+                      {user?.roles.includes('User') && !user?.roles.includes('Admin') && 
+                       !user?.roles.includes('ServiceAdministrator') && !user?.roles.includes('ProductAdministrator') && 'User'}
+                    </div>
+                  </div>
+                  <ChevronDown className="h-4 w-4" />
                 </div>
-                <ChevronDown className="h-4 w-4" />
-              </div>
-            </Button>
+              </Button>
 
             {showUserMenu && (
               <div className="absolute right-0 mt-2 w-72 bg-background border rounded-lg shadow-lg backdrop-blur-sm">
@@ -264,7 +266,16 @@ export function Header({ onToggleSidebar }: HeaderProps) {
                 </div>
               </div>
             )}
-          </div>
+            </div>
+          ) : (
+            <Button
+              onClick={onShowAuth}
+              className="h-9"
+            >
+              <User className="h-4 w-4 mr-2" />
+              Sign In
+            </Button>
+          )}
         </div>
       </div>
     </header>

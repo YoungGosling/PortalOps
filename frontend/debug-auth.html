@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PortalOps 认证诊断工具</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      max-width: 800px;
+      margin: 50px auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    .card {
+      background: white;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    h1 {
+      color: #2563eb;
+      margin-top: 0;
+    }
+    h2 {
+      color: #334155;
+      border-bottom: 2px solid #e2e8f0;
+      padding-bottom: 10px;
+    }
+    .status {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 4px;
+      font-weight: 600;
+      margin-left: 10px;
+    }
+    .status.success {
+      background: #dcfce7;
+      color: #166534;
+    }
+    .status.error {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+    .status.warning {
+      background: #fef3c7;
+      color: #92400e;
+    }
+    .info {
+      background: #f8fafc;
+      border-left: 4px solid #2563eb;
+      padding: 12px;
+      margin: 10px 0;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      overflow-x: auto;
+    }
+    button {
+      background: #2563eb;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      margin-right: 10px;
+    }
+    button:hover {
+      background: #1d4ed8;
+    }
+    button.danger {
+      background: #dc2626;
+    }
+    button.danger:hover {
+      background: #b91c1c;
+    }
+    .action-section {
+      margin-top: 20px;
+      padding-top: 20px;
+      border-top: 1px solid #e2e8f0;
+    }
+    pre {
+      background: #1e293b;
+      color: #e2e8f0;
+      padding: 15px;
+      border-radius: 6px;
+      overflow-x: auto;
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>🔐 PortalOps 认证诊断工具</h1>
+    <p>此工具帮助您诊断和修复认证相关的问题</p>
+  </div>
+
+  <div class="card">
+    <h2>📊 当前状态</h2>
+    <div id="status"></div>
+  </div>
+
+  <div class="card">
+    <h2>🔍 详细信息</h2>
+    <div id="details"></div>
+  </div>
+
+  <div class="card">
+    <h2>🛠️ 操作</h2>
+    <div class="action-section">
+      <button onclick="checkStatus()">🔄 刷新状态</button>
+      <button onclick="testApiRequest()">🧪 测试 API 请求</button>
+      <button onclick="clearAuth()" class="danger">🗑️ 清除所有认证数据</button>
+    </div>
+  </div>
+
+  <div class="card" id="test-result" style="display: none;">
+    <h2>🧪 API 测试结果</h2>
+    <div id="test-output"></div>
+  </div>
+
+  <script>
+    function checkStatus() {
+      const statusDiv = document.getElementById('status')
+      const detailsDiv = document.getElementById('details')
+      
+      // Check localStorage
+      const token = localStorage.getItem('portalops_token')
+      const userStr = localStorage.getItem('portalops_user')
+      const user = userStr ? JSON.parse(userStr) : null
+      
+      // Check cookies
+      const cookies = document.cookie
+      const hasAuthCookie = cookies.includes('auth_token')
+      
+      // Build status HTML
+      let statusHtml = '<div>'
+      
+      if (token) {
+        statusHtml += '<p>✅ Token 存在 <span class="status success">正常</span></p>'
+      } else {
+        statusHtml += '<p>❌ Token 不存在 <span class="status error">错误</span></p>'
+      }
+      
+      if (user) {
+        statusHtml += '<p>✅ 用户数据存在 <span class="status success">正常</span></p>'
+      } else {
+        statusHtml += '<p>❌ 用户数据不存在 <span class="status error">错误</span></p>'
+      }
+      
+      if (hasAuthCookie) {
+        statusHtml += '<p>✅ 认证 Cookie 存在 <span class="status success">正常</span></p>'
+      } else {
+        statusHtml += '<p>⚠️ 认证 Cookie 不存在 <span class="status warning">警告</span></p>'
+      }
+      
+      statusHtml += '</div>'
+      statusDiv.innerHTML = statusHtml
+      
+      // Build details HTML
+      let detailsHtml = ''
+      
+      if (token) {
+        detailsHtml += '<h3>🔑 Token</h3>'
+        detailsHtml += `<div class="info">${token.substring(0, 50)}...${token.substring(token.length - 20)}</div>`
+        
+        // Try to decode JWT
+        try {
+          const parts = token.split('.')
+          if (parts.length === 3) {
+            const payload = JSON.parse(atob(parts[1]))
+            detailsHtml += '<h4>Token Payload:</h4>'
+            detailsHtml += `<pre>${JSON.stringify(payload, null, 2)}</pre>`
+            
+            // Check expiration
+            if (payload.exp) {
+              const expDate = new Date(payload.exp * 1000)
+              const now = new Date()
+              const isExpired = expDate < now
+              
+              detailsHtml += '<p><strong>过期时间:</strong> ' + expDate.toLocaleString('zh-CN')
+              if (isExpired) {
+                detailsHtml += ' <span class="status error">已过期</span></p>'
+              } else {
+                detailsHtml += ' <span class="status success">有效</span></p>'
+              }
+            }
+          }
+        } catch (e) {
+          detailsHtml += '<p class="status error">⚠️ Token 解析失败</p>'
+        }
+      }
+      
+      if (user) {
+        detailsHtml += '<h3>👤 用户信息</h3>'
+        detailsHtml += `<pre>${JSON.stringify(user, null, 2)}</pre>`
+      }
+      
+      if (hasAuthCookie) {
+        detailsHtml += '<h3>🍪 Cookies</h3>'
+        detailsHtml += `<div class="info">${cookies}</div>`
+      }
+      
+      if (!token && !user) {
+        detailsHtml += '<div class="info" style="background: #fee2e2; border-left-color: #dc2626;">'
+        detailsHtml += '<strong>❌ 未登录</strong><br>'
+        detailsHtml += '请先访问 <a href="http://localhost:3000/signin" target="_blank">http://localhost:3000/signin</a> 登录'
+        detailsHtml += '</div>'
+      }
+      
+      detailsDiv.innerHTML = detailsHtml
+    }
+    
+    async function testApiRequest() {
+      const token = localStorage.getItem('portalops_token')
+      const testResultDiv = document.getElementById('test-result')
+      const testOutputDiv = document.getElementById('test-output')
+      
+      testResultDiv.style.display = 'block'
+      testOutputDiv.innerHTML = '<p>⏳ 正在测试...</p>'
+      
+      if (!token) {
+        testOutputDiv.innerHTML = '<p class="status error">❌ 没有 token，无法测试</p>'
+        return
+      }
+      
+      try {
+        const response = await fetch('http://127.0.0.1:8000/api/services', {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        })
+        
+        const data = await response.json()
+        
+        let html = '<h3>请求结果</h3>'
+        html += `<p><strong>状态码:</strong> ${response.status} ${response.statusText}`
+        
+        if (response.ok) {
+          html += ' <span class="status success">成功</span></p>'
+          html += '<h4>响应数据:</h4>'
+          html += `<pre>${JSON.stringify(data, null, 2)}</pre>`
+        } else {
+          html += ' <span class="status error">失败</span></p>'
+          html += '<h4>错误信息:</h4>'
+          html += `<pre>${JSON.stringify(data, null, 2)}</pre>`
+          
+          if (response.status === 403) {
+            html += '<div class="info" style="background: #fee2e2; border-left-color: #dc2626;">'
+            html += '<strong>🔴 403 Forbidden</strong><br>'
+            html += '这意味着：<br>'
+            html += '1. Token 无效或已过期<br>'
+            html += '2. 后端无法验证 token<br>'
+            html += '3. 用户没有权限访问此资源<br><br>'
+            html += '<strong>建议操作：</strong><br>'
+            html += '1. 清除认证数据并重新登录<br>'
+            html += '2. 检查后端日志<br>'
+            html += '3. 确认 JWT 密钥配置正确'
+            html += '</div>'
+          }
+        }
+        
+        testOutputDiv.innerHTML = html
+      } catch (error) {
+        let html = '<p class="status error">❌ 请求失败</p>'
+        html += `<div class="info" style="background: #fee2e2; border-left-color: #dc2626;">`
+        html += `<strong>错误:</strong> ${error.message}<br><br>`
+        html += '<strong>可能原因：</strong><br>'
+        html += '1. 后端服务未启动<br>'
+        html += '2. CORS 配置问题<br>'
+        html += '3. 网络连接问题'
+        html += '</div>'
+        testOutputDiv.innerHTML = html
+      }
+    }
+    
+    function clearAuth() {
+      if (!confirm('确定要清除所有认证数据吗？这将登出您的账号。')) {
+        return
+      }
+      
+      localStorage.removeItem('portalops_token')
+      localStorage.removeItem('portalops_user')
+      document.cookie = 'auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+      
+      alert('✅ 认证数据已清除！请重新登录。')
+      checkStatus()
+    }
+    
+    // Initial check
+    checkStatus()
+  </script>
+</body>
+</html>
+

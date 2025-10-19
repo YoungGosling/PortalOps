@@ -77,12 +77,12 @@ def require_service_admin_or_higher(
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db)
 ) -> User:
-    """Require ServiceAdministrator or Admin role."""
+    """Require ServiceAdmin or Admin role (v2 - simplified)."""
     user_roles = db.query(Role.name).join(UserRole).filter(
         UserRole.user_id == current_user.id).all()
     role_names = [role.name for role in user_roles]
 
-    if not any(role in role_names for role in ["Admin", "ServiceAdministrator"]):
+    if not any(role in role_names for role in ["Admin", "ServiceAdmin"]):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Service Administrator or Admin access required",
@@ -95,12 +95,12 @@ def require_any_admin_role(
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db)
 ) -> User:
-    """Require any admin role (Admin, ServiceAdministrator, or ProductAdministrator)."""
+    """Require any admin role (Admin or ServiceAdmin) - v2 simplified."""
     user_roles = db.query(Role.name).join(UserRole).filter(
         UserRole.user_id == current_user.id).all()
     role_names = [role.name for role in user_roles]
 
-    if not any(role in role_names for role in ["Admin", "ServiceAdministrator", "ProductAdministrator"]):
+    if not any(role in role_names for role in ["Admin", "ServiceAdmin"]):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Administrator access required",
@@ -145,6 +145,3 @@ def get_user_roles(user_id: uuid.UUID, db: Session) -> list:
     user_roles = db.query(Role.name).join(
         UserRole).filter(UserRole.user_id == user_id).all()
     return [role.name for role in user_roles]
-
-
-

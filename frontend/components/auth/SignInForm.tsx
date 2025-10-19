@@ -1,11 +1,13 @@
 'use client'
 
 import React, { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { useAuth } from '@/providers/auth-provider'
 import { Button } from '@/components/ui/button'
 import { InputWithLabel } from '@/components/ui/input-with-label'
 
 export function SignInForm() {
+  const router = useRouter()
   const { login, isLoading } = useAuth()
   const [formData, setFormData] = useState({
     email: '',
@@ -30,6 +32,9 @@ export function SignInForm() {
     const success = await login(formData.email, formData.password)
     if (!success) {
       setErrors({ general: 'Invalid email or password' })
+    } else {
+      // Redirect to dashboard after successful login
+      router.push('/dashboard')
     }
   }
 
@@ -43,9 +48,9 @@ export function SignInForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-5">
       {errors.general && (
-        <div className="p-3 text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-md">
+        <div className="p-3 text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-lg">
           {errors.general}
         </div>
       )}
@@ -74,7 +79,7 @@ export function SignInForm() {
 
       <Button
         type="submit"
-        className="w-full"
+        className="w-full h-11 text-base font-medium"
         disabled={isLoading}
       >
         {isLoading ? 'Signing in...' : 'Sign In'}

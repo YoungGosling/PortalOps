@@ -1,6 +1,7 @@
-import { Dashboard } from '@/components/dashboard/Dashboard'
+import { redirect } from 'next/navigation'
 
-export default function DashboardPage() {
-  return <Dashboard />
+export default function InternalRootPage() {
+  // Redirect to dashboard as the default internal page
+  redirect('/dashboard')
 }
 

@@ -9,30 +9,91 @@ import uuid
 
 
 class CRUDService(CRUDBase[Service, ServiceCreate, ServiceUpdate]):
+    def create_with_products(self, db: Session, *, obj_in: ServiceCreate) -> Service:
+        """Create a service and optionally associate products."""
+        # Create service without productIds
+        service_data = obj_in.model_dump(exclude={'productIds'})
+        db_obj = Service(**service_data)
+        db.add(db_obj)
+        db.flush()
+
+        # Associate products if provided
+        if obj_in.productIds:
+            for product_id in obj_in.productIds:
+                product = db.query(Product).filter(
+                    Product.id == product_id).first()
+                if product:
+                    product.service_id = db_obj.id
+
+        db.commit()
+        db.refresh(db_obj)
+        return db_obj
+
+    def update_with_products(self, db: Session, *, db_obj: Service, obj_in: ServiceUpdate) -> Service:
+        """Update service and manage product associations."""
+        # Update basic fields
+        update_data = obj_in.model_dump(
+            exclude={'associateProductIds', 'disassociateProductIds'}, exclude_unset=True)
+        for field, value in update_data.items():
+            setattr(db_obj, field, value)
+
+        # Associate products
+        if obj_in.associateProductIds:
+            for product_id in obj_in.associateProductIds:
+                product = db.query(Product).filter(
+                    Product.id == product_id).first()
+                if product:
+                    product.service_id = db_obj.id
+
+        # Disassociate products
+        if obj_in.disassociateProductIds:
+            for product_id in obj_in.disassociateProductIds:
+                product = db.query(Product).filter(
+                    Product.id == product_id).first()
+                if product and product.service_id == db_obj.id:
+                    product.service_id = None
+
+        db.commit()
+        db.refresh(db_obj)
+        return db_obj
+
+    def remove_non_destructive(self, db: Session, *, id: uuid.UUID) -> bool:
+        """Remove service without deleting associated products (set service_id to NULL)."""
+        # Set all products' service_id to NULL
+        db.query(Product).filter(Product.service_id ==
+                                 id).update({"service_id": None})
+
+        # Delete the service
+        obj = db.query(Service).filter(Service.id == id).first()
+        if obj:
+            db.delete(obj)
+            db.commit()
+            return True
+        return False
+
     def get_services_for_user(
         self, db: Session, *, user_id: uuid.UUID, is_admin: bool = False
     ) -> List[Service]:
-        """Get services filtered by user permissions."""
+        """Get services filtered by user permissions with their products."""
         if is_admin:
             # Admin can see all services
-            query = db.query(Service, func.count(Product.id).label(
-                'product_count')).outerjoin(Product)
+            services = db.query(Service).all()
         else:
             # Non-admin users see only services they have permission for
-            query = db.query(Service, func.count(Product.id).label('product_count')).join(
+            services = db.query(Service).join(
                 PermissionAssignment,
                 Service.id == PermissionAssignment.service_id
-            ).outerjoin(Product).filter(
+            ).filter(
                 PermissionAssignment.user_id == user_id
-            )
+            ).distinct().all()
 
-        results = query.group_by(Service.id).all()
-
-        # Add product count to service objects
-        services = []
-        for service, product_count in results:
-            service.productCount = product_count
-            services.append(service)
+        # Add products and product count to each service
+        for service in services:
+            products = db.query(Product).filter(
+                Product.service_id == service.id
+            ).all()
+            service.products = products
+            service.productCount = len(products)
 
         return services
 
@@ -63,6 +124,3 @@ class CRUDService(CRUDBase[Service, ServiceCreate, ServiceUpdate]):
 
 
 service = CRUDService(Service)
-
-
-

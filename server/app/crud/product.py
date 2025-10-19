@@ -1,5 +1,5 @@
 from typing import List, Optional
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from app.crud.base import CRUDBase
 from app.models.service import Product
 from app.models.permission import PermissionAssignment
@@ -14,9 +14,11 @@ class CRUDProduct(CRUDBase[Product, ProductCreate, ProductUpdate]):
     ) -> List[Product]:
         """Get products filtered by user permissions."""
         if is_admin:
-            return db.query(Product).all()
+            return db.query(Product).options(joinedload(Product.service)).all()
         else:
-            return db.query(Product).join(
+            return db.query(Product).options(
+                joinedload(Product.service)
+            ).join(
                 PermissionAssignment,
                 Product.id == PermissionAssignment.product_id
             ).filter(
@@ -28,9 +30,13 @@ class CRUDProduct(CRUDBase[Product, ProductCreate, ProductUpdate]):
     ) -> List[Product]:
         """Get products by service, filtered by user permissions."""
         if is_admin:
-            return db.query(Product).filter(Product.service_id == service_id).all()
+            return db.query(Product).options(
+                joinedload(Product.service)
+            ).filter(Product.service_id == service_id).all()
         else:
-            return db.query(Product).join(
+            return db.query(Product).options(
+                joinedload(Product.service)
+            ).join(
                 PermissionAssignment,
                 Product.id == PermissionAssignment.product_id
             ).filter(

@@ -53,11 +53,11 @@ export function Sidebar({ isCollapsed }: SidebarProps) {
       label: 'Navigation',
       items: [
         { id: 'dashboard', label: 'Dashboard', icon: BarChart3, path: '/dashboard' },
-        { id: 'inbox', label: 'Inbox', icon: Inbox, path: '/inbox' },
-        { id: 'services', label: 'Service Inventory', icon: Building, path: '/services', roles: ['Admin', 'ServiceAdministrator', 'ProductAdministrator'] },
-        { id: 'products', label: 'Product Inventory', icon: Package, path: '/products', roles: ['Admin', 'ServiceAdministrator'] },
+        { id: 'inbox', label: 'Inbox', icon: Inbox, path: '/inbox', roles: ['Admin'] },
+        { id: 'services', label: 'Service Inventory', icon: Building, path: '/services', roles: ['Admin'] },
+        { id: 'products', label: 'Product Inventory', icon: Package, path: '/products', roles: ['Admin', 'ServiceAdmin'] },
         { id: 'payment-register', label: 'Payment Register', icon: CreditCard, path: '/payment-register', roles: ['Admin'] },
-        { id: 'users', label: 'User Directory', icon: Users, path: '/users', roles: ['Admin', 'ServiceAdministrator', 'ProductAdministrator'] },
+        { id: 'users', label: 'User Directory', icon: Users, path: '/users', roles: ['Admin'] },
       ]
     },
     {
@@ -66,19 +66,7 @@ export function Sidebar({ isCollapsed }: SidebarProps) {
       collapsible: true,
       roles: ['Admin'],
       items: [
-        { id: 'system-dashboard', label: 'System Dashboard', icon: BarChart3, path: '/admin/dashboard' },
-        { id: 'security', label: 'Security & Compliance', icon: Shield, path: '/admin/security' },
-        { id: 'permission-manager', label: 'Permission Management', icon: UserCheck, path: '/admin/permissions' },
         { id: 'master-files', label: 'Master Files', icon: Archive, path: '/admin/files' },
-      ]
-    },
-    {
-      id: 'system-setup',
-      label: 'System Setup',
-      collapsible: true,
-      roles: ['Admin'],
-      items: [
-        { id: 'config', label: 'System Configuration', icon: Settings, path: '/admin/config' },
       ]
     }
   ]
@@ -182,7 +170,7 @@ export function Sidebar({ isCollapsed }: SidebarProps) {
   return (
     <aside 
       className={cn(
-        'fixed left-0 top-14 bottom-0 z-40 bg-background border-r transition-all duration-300',
+        'fixed left-0 top-14 bottom-0 z-40 bg-white dark:bg-background border-r transition-all duration-300',
         isCollapsed ? 'w-14' : 'w-64'
       )}
     >

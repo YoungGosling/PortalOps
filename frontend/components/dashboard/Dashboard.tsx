@@ -13,7 +13,9 @@ import {
 } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useAuth } from '@/providers/auth-provider'
+import { useAzureAuth } from '@/hooks/use-azure-auth'
 import { servicesApi, usersApi, workflowApi, paymentApi } from '@/lib/api'
+import { toast } from 'sonner'
 
 interface StatCardProps {
   title: string
@@ -29,24 +31,24 @@ interface StatCardProps {
 
 function StatCard({ title, value, description, icon: Icon, trend, color = 'blue' }: StatCardProps) {
   const colorClasses = {
-    blue: 'text-blue-600 bg-blue-100 dark:bg-blue-900/20',
-    green: 'text-green-600 bg-green-100 dark:bg-green-900/20',
-    yellow: 'text-yellow-600 bg-yellow-100 dark:bg-yellow-900/20',
-    red: 'text-red-600 bg-red-100 dark:bg-red-900/20',
+    blue: 'text-blue-600 bg-blue-50 dark:bg-blue-900/20',
+    green: 'text-green-600 bg-green-50 dark:bg-green-900/20',
+    yellow: 'text-yellow-600 bg-yellow-50 dark:bg-yellow-900/20',
+    red: 'text-red-600 bg-red-50 dark:bg-red-900/20',
   }
 
   return (
-    <Card>
+    <Card className="border-l-4" style={{ borderLeftColor: color === 'blue' ? '#3b82f6' : color === 'green' ? '#10b981' : color === 'yellow' ? '#f59e0b' : '#ef4444' }}>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium">{title}</CardTitle>
-        <div className={`p-2 rounded-md ${colorClasses[color]}`}>
-          <Icon className="h-4 w-4" />
+        <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
+        <div className={`p-2.5 rounded-lg ${colorClasses[color]}`}>
+          <Icon className="h-5 w-5" />
         </div>
       </CardHeader>
       <CardContent>
-        <div className="text-2xl font-bold">{value}</div>
+        <div className="text-3xl font-bold">{value}</div>
         {description && (
-          <p className="text-xs text-muted-foreground">{description}</p>
+          <p className="text-xs text-muted-foreground mt-1">{description}</p>
         )}
         {trend && (
           <div className="flex items-center mt-2">
@@ -55,7 +57,7 @@ function StatCard({ title, value, description, icon: Icon, trend, color = 'blue'
             ) : (
               <TrendingDown className="h-3 w-3 text-red-600 mr-1" />
             )}
-            <span className={`text-xs ${trend.isPositive ? 'text-green-600' : 'text-red-600'}`}>
+            <span className={`text-xs font-medium ${trend.isPositive ? 'text-green-600' : 'text-red-600'}`}>
               {trend.value}%
             </span>
             <span className="text-xs text-muted-foreground ml-1">from last month</span>
@@ -214,7 +216,18 @@ function UpcomingRenewals() {
 }
 
 export function Dashboard() {
-  const { user, hasAnyRole } = useAuth()
+  const { user: legacyUser, hasAnyRole: legacyHasAnyRole } = useAuth()
+  const { user: azureUser, isLoading: azureLoading, backendToken } = useAzureAuth()
+  
+  // Use Azure user if available, otherwise fall back to legacy auth
+  const user = azureUser || legacyUser
+  const hasAnyRole = (roles: any[]) => {
+    if (azureUser && azureUser.role) {
+      return roles.includes(azureUser.role)
+    }
+    return legacyHasAnyRole(roles)
+  }
+
   const [stats, setStats] = useState({
     services: 0,
     users: 0,
@@ -226,17 +239,29 @@ export function Dashboard() {
 
   // Load dashboard statistics from API
   useEffect(() => {
+    // Don't load data if Azure auth is still loading
+    if (azureLoading) {
+      return
+    }
+
     const loadDashboardStats = async () => {
       try {
         setLoading(true)
         setError(null)
         
+        // If using Azure auth but no backend token yet, skip API calls
+        if (azureUser && !backendToken) {
+          console.log('Waiting for backend token...')
+          setLoading(false)
+          return
+        }
+        
         // Load data from multiple APIs in parallel
         const [services, users, tasks, paymentSummary] = await Promise.all([
-          servicesApi.getServices().catch(() => []),
-          usersApi.getUsers().catch(() => ({ data: [] })),
-          workflowApi.getTasks('pending').catch(() => []),
-          paymentApi.getPaymentSummary().catch(() => ({ incompleteCount: 0 }))
+          servicesApi.getServices().catch((err) => { console.error('Services API error:', err); return [] }),
+          usersApi.getUsers().catch((err) => { console.error('Users API error:', err); return { data: [] } }),
+          workflowApi.getTasks('pending').catch((err) => { console.error('Workflow API error:', err); return [] }),
+          paymentApi.getPaymentSummary().catch((err) => { console.error('Payment API error:', err); return { incompleteCount: 0 } })
         ])
         
         setStats({
@@ -264,14 +289,14 @@ export function Dashboard() {
     }
 
     loadDashboardStats()
-  }, [])
+  }, [azureLoading, azureUser, backendToken])
 
   return (
     <div className="space-y-6">
       {/* Welcome Header */}
       <div>
         <h1 className="text-3xl font-bold tracking-tight">
-          Welcome back, {user?.firstName}!
+          Welcome back, {user?.name?.split(' ')[0] || user?.name || 'User'}!
         </h1>
         <p className="text-muted-foreground">
           Here&apos;s what&apos;s happening with your enterprise services today.

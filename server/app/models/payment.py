@@ -15,6 +15,7 @@ class PaymentInfo(Base):
     cardholder_name = Column(String(255), nullable=True)
     expiry_date = Column(Date, nullable=True)
     payment_method = Column(String(50), nullable=True)
+    bill_attachment_path = Column(String(500), nullable=True)
     updated_at = Column(DateTime(timezone=True), server_default=func.now(
     ), onupdate=func.now(), nullable=False)
 

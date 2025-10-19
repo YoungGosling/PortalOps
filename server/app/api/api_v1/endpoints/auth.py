@@ -53,7 +53,7 @@ def read_users_me(
     db: Session = Depends(get_db)
 ):
     """
-    Get current user profile with roles and permissions.
+    Get current user profile with roles and assigned services (v2).
     """
     user_roles = get_user_roles(current_user.id, db)
     user_permissions = get_user_permissions(current_user.id, db)
@@ -63,8 +63,5 @@ def read_users_me(
         "name": current_user.name,
         "email": current_user.email,
         "roles": user_roles,
-        "permissions": user_permissions
+        "assignedServiceIds": user_permissions["services"]
     }
-
-
-

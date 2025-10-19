@@ -1,15 +1,32 @@
 import React, { useState } from 'react'
-import { Shield } from 'lucide-react'
+import { Shield, ArrowLeft } from 'lucide-react'
 import { Card, CardContent, CardHeader } from '../ui/Card'
 import { SignInForm } from './SignInForm'
 import { SignUpForm } from './SignUpForm'
+import { Button } from '../ui/Button'
 
-export function AuthPage() {
+interface AuthPageProps {
+  onBack?: () => void
+}
+
+export function AuthPage({ onBack }: AuthPageProps) {
   const [activeTab, setActiveTab] = useState<'signin' | 'signup'>('signin')
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
+        {onBack && (
+          <div className="text-left">
+            <Button
+              variant="ghost"
+              onClick={onBack}
+              className="inline-flex items-center"
+            >
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Continue as Guest
+            </Button>
+          </div>
+        )}
         <div className="text-center">
           <div className="flex justify-center">
             <Shield className="h-12 w-12 text-primary" />

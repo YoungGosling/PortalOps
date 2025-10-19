@@ -1,3 +1,5 @@
+'use client'
+
 import React from 'react'
 import { cn } from '@/lib/utils'
 import { Input } from './input'
@@ -17,7 +19,9 @@ export function InputWithLabel({
   id,
   ...props
 }: InputWithLabelProps) {
-  const inputId = id || `input-${Math.random().toString(36).substr(2, 9)}`
+  // Use React.useId() for stable, unique IDs that match on server and client
+  const generatedId = React.useId()
+  const inputId = id || generatedId
 
   return (
     <div className="space-y-2">

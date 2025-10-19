@@ -7,9 +7,10 @@ interface LayoutProps {
   children: React.ReactNode
   currentPath: string
   onNavigate: (path: string) => void
+  onShowAuth: () => void
 }
 
-export function Layout({ children, currentPath, onNavigate }: LayoutProps) {
+export function Layout({ children, currentPath, onNavigate, onShowAuth }: LayoutProps) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
 
   const toggleSidebar = () => {
@@ -18,7 +19,7 @@ export function Layout({ children, currentPath, onNavigate }: LayoutProps) {
 
   return (
     <div className="min-h-screen bg-background">
-      <Header onToggleSidebar={toggleSidebar} />
+      <Header onToggleSidebar={toggleSidebar} onShowAuth={onShowAuth} />
       <Sidebar 
         isCollapsed={sidebarCollapsed}
         currentPath={currentPath}

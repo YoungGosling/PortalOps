@@ -1,6 +1,7 @@
 -- PortalOps Database Schema
 -- PostgreSQL Database Creation Script
 -- Based on Database_Design.md
+-- Updated for PRD v2.0 (2025-10-17)
 
 -- Enable UUID extension
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
@@ -53,18 +54,24 @@ CREATE TABLE services (
 );
 
 -- Create products table
+-- PRD v2.0 Changes:
+-- - service_id is nullable (products can be unassociated)
+-- - ON DELETE SET NULL for service deletion
+-- - name must be unique
 CREATE TABLE products (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    service_id UUID NOT NULL,
-    name VARCHAR(255) NOT NULL,
+    service_id UUID,
+    name VARCHAR(255) NOT NULL UNIQUE,
     url TEXT,
     description TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    FOREIGN KEY (service_id) REFERENCES services(id) ON DELETE CASCADE
+    FOREIGN KEY (service_id) REFERENCES services(id) ON DELETE SET NULL
 );
 
 -- Create payment_info table
+-- PRD v2.0 Changes:
+-- - Added bill_attachment_path for file uploads
 CREATE TABLE payment_info (
     product_id UUID PRIMARY KEY,
     status VARCHAR(20) NOT NULL DEFAULT 'incomplete',
@@ -72,6 +79,7 @@ CREATE TABLE payment_info (
     cardholder_name VARCHAR(255),
     expiry_date DATE,
     payment_method VARCHAR(50),
+    bill_attachment_path TEXT,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
     CHECK (status IN ('incomplete', 'complete'))
@@ -141,10 +149,11 @@ CREATE INDEX idx_users_email ON users(email);
 CREATE INDEX idx_users_department ON users(department);
 
 -- Insert initial roles data
+-- PRD v2.0 Changes:
+-- - Removed ProductAdministrator role (only Admin and ServiceAdministrator remain)
 INSERT INTO roles (name) VALUES 
     ('Admin'),
-    ('ServiceAdministrator'),
-    ('ProductAdministrator');
+    ('ServiceAdministrator');
 
 -- Create function to update updated_at timestamp
 CREATE OR REPLACE FUNCTION update_updated_at_column()
@@ -187,6 +196,8 @@ LEFT JOIN user_roles ur ON u.id = ur.user_id
 LEFT JOIN roles r ON ur.role_id = r.id;
 
 -- View for products with service information
+-- PRD v2.0 Changes:
+-- - Changed to LEFT JOIN to include unassociated products (service_id can be NULL)
 CREATE VIEW products_with_services AS
 SELECT 
     p.id,
@@ -198,7 +209,7 @@ SELECT
     p.created_at,
     p.updated_at
 FROM products p
-JOIN services s ON p.service_id = s.id;
+LEFT JOIN services s ON p.service_id = s.id;
 
 -- View for permission assignments with details
 CREATE VIEW permission_details AS

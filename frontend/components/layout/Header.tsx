@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react'
 import { useTheme } from 'next-themes'
+import { signOut, useSession } from 'next-auth/react'
 import { 
   Menu, 
   Search, 
@@ -18,6 +19,7 @@ import {
   Key
 } from 'lucide-react'
 import { useAuth } from '@/providers/auth-provider'
+import { apiClient } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { 
   DropdownMenu,
@@ -39,19 +41,46 @@ interface HeaderProps {
 
 export function Header({ onToggleSidebar }: HeaderProps) {
   const { user, logout, hasRole } = useAuth()
+  const { data: session } = useSession()
   const { theme, setTheme } = useTheme()
   const [showNotifications, setShowNotifications] = useState(false)
 
-  const handleLogout = () => {
-    logout()
+  const handleLogout = async () => {
+    console.log('[Header] Logging out...')
+    
+    // Clear API client token
+    apiClient.clearToken()
+    
+    // Clear localStorage
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('portalops_user')
+      localStorage.removeItem('portalops_token')
+      
+      // Clear auth cookie
+      document.cookie = 'auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+    }
+
+    // If using Azure/NextAuth, sign out from NextAuth
+    if (session) {
+      console.log('[Header] Signing out from Azure/NextAuth')
+      await signOut({ callbackUrl: '/signin' })
+    } else {
+      // Otherwise use legacy logout
+      console.log('[Header] Using legacy logout')
+      logout()
+    }
   }
 
   const getUserInitials = () => {
-    return `${user?.firstName?.[0] || ''}${user?.lastName?.[0] || ''}`
+    const nameParts = user?.name?.split(' ') || []
+    if (nameParts.length >= 2) {
+      return `${nameParts[0][0]}${nameParts[1][0]}`
+    }
+    return user?.name?.[0] || 'U'
   }
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 h-14 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
+    <header className="fixed top-0 left-0 right-0 z-50 h-14 bg-white/95 dark:bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-white/60 dark:supports-[backdrop-filter]:bg-background/60 border-b">
       <div className="flex h-14 items-center px-4">
         {/* Left Section */}
         <div className="flex items-center space-x-4">
@@ -140,13 +169,11 @@ export function Header({ onToggleSidebar }: HeaderProps) {
                     </AvatarFallback>
                   </Avatar>
                   <div className="hidden sm:block text-left">
-                    <div className="text-sm font-medium">{user?.firstName}</div>
+                    <div className="text-sm font-medium">{user?.name?.split(' ')[0] || user?.name}</div>
                     <div className="text-xs text-muted-foreground">
-                      {user?.roles.includes('Admin') && 'Admin'}
-                      {user?.roles.includes('ServiceAdministrator') && !user?.roles.includes('Admin') && 'Service Admin'}
-                      {user?.roles.includes('ProductAdministrator') && !user?.roles.includes('Admin') && !user?.roles.includes('ServiceAdministrator') && 'Product Admin'}
-                      {user?.roles.includes('User') && !user?.roles.includes('Admin') && 
-                       !user?.roles.includes('ServiceAdministrator') && !user?.roles.includes('ProductAdministrator') && 'User'}
+                      {user?.role === 'Admin' && 'Admin'}
+                      {user?.role === 'ServiceAdmin' && 'Service Admin'}
+                      {!user?.role && 'User'}
                     </div>
                   </div>
                   <ChevronDown className="h-4 w-4" />
@@ -163,25 +190,19 @@ export function Header({ onToggleSidebar }: HeaderProps) {
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex-1">
-                    <div className="font-medium">{user?.firstName} {user?.lastName}</div>
+                    <div className="font-medium">{user?.name}</div>
                     <div className="text-sm text-muted-foreground">{user?.email}</div>
                     <div className="flex flex-wrap items-center mt-1 gap-1">
-                      {user?.roles.includes('Admin') && (
+                      {user?.role === 'Admin' && (
                         <Badge variant="destructive" className="text-xs">
                           <Shield className="h-3 w-3 mr-1" />
                           Admin
                         </Badge>
                       )}
-                      {user?.roles.includes('ServiceAdministrator') && (
+                      {user?.role === 'ServiceAdmin' && (
                         <Badge variant="secondary" className="text-xs">
                           <Shield className="h-3 w-3 mr-1" />
                           Service Admin
-                        </Badge>
-                      )}
-                      {user?.roles.includes('ProductAdministrator') && (
-                        <Badge variant="secondary" className="text-xs">
-                          <Shield className="h-3 w-3 mr-1" />
-                          Product Admin
                         </Badge>
                       )}
                     </div>

@@ -1,0 +1,424 @@
+{
+  "info": {
+    "name": "PortalOps HR Webhooks",
+    "description": "Collection for testing PortalOps HR onboarding and offboarding webhooks",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8000",
+      "type": "string"
+    },
+    {
+      "key": "api_key",
+      "value": "your-hr-webhook-secret-key",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "HR Webhooks",
+      "item": [
+        {
+          "name": "Onboarding - 员工入职",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "X-API-Key",
+                "value": "{{api_key}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"employee\": {\n    \"name\": \"张三\",\n    \"email\": \"zhangsan@example.com\",\n    \"department\": \"工程部\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/webhooks/hr/onboarding",
+              "host": ["{{base_url}}"],
+              "path": ["api", "webhooks", "hr", "onboarding"]
+            },
+            "description": "触发员工入职工作流。系统会创建一个待办任务并预创建用户账号（无权限）。\n\n**必需字段:**\n- name: 员工姓名\n- email: 员工邮箱（唯一标识）\n- department: 部门名称（可选）\n\n**预期响应:** 202 Accepted\n```json\n{\n  \"message\": \"Onboarding workflow triggered\"\n}\n```"
+          },
+          "response": [
+            {
+              "name": "成功响应",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "X-API-Key",
+                    "value": "{{api_key}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"employee\": {\n    \"name\": \"张三\",\n    \"email\": \"zhangsan@example.com\",\n    \"department\": \"工程部\"\n  }\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/api/webhooks/hr/onboarding",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "webhooks", "hr", "onboarding"]
+                }
+              },
+              "status": "Accepted",
+              "code": 202,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"message\": \"Onboarding workflow triggered\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Offboarding - 员工离职",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "X-API-Key",
+                "value": "{{api_key}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"employee\": {\n    \"name\": \"张三\",\n    \"email\": \"zhangsan@example.com\",\n    \"department\": \"工程部\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/webhooks/hr/offboarding",
+              "host": ["{{base_url}}"],
+              "path": ["api", "webhooks", "hr", "offboarding"]
+            },
+            "description": "触发员工离职工作流。系统会为已存在的用户创建一个离职待办任务。\n\n**必需字段:**\n- email: 员工邮箱（用于查找用户）\n\n**可选字段:**\n- name: 员工姓名\n- department: 部门名称\n\n**预期响应:** 202 Accepted\n```json\n{\n  \"message\": \"Offboarding workflow triggered\"\n}\n```\n\n**注意:** 用户必须在系统中存在，否则返回 404 错误。"
+          },
+          "response": [
+            {
+              "name": "成功响应",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "X-API-Key",
+                    "value": "{{api_key}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"employee\": {\n    \"name\": \"张三\",\n    \"email\": \"zhangsan@example.com\",\n    \"department\": \"工程部\"\n  }\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/api/webhooks/hr/offboarding",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "webhooks", "hr", "offboarding"]
+                }
+              },
+              "status": "Accepted",
+              "code": 202,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"message\": \"Offboarding workflow triggered\"\n}"
+            },
+            {
+              "name": "用户不存在",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "X-API-Key",
+                    "value": "{{api_key}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"employee\": {\n    \"email\": \"notexist@example.com\"\n  }\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/api/webhooks/hr/offboarding",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "webhooks", "hr", "offboarding"]
+                }
+              },
+              "status": "Not Found",
+              "code": 404,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"detail\": \"User not found\"\n}"
+            }
+          ]
+        }
+      ],
+      "description": "HR 系统集成接口，用于触发员工入职和离职工作流"
+    },
+    {
+      "name": "测试样例",
+      "item": [
+        {
+          "name": "Example 1: 工程部新员工入职",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-API-Key",
+                "value": "{{api_key}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"employee\": {\n    \"name\": \"李四\",\n    \"email\": \"lisi@example.com\",\n    \"department\": \"工程部\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/webhooks/hr/onboarding",
+              "host": ["{{base_url}}"],
+              "path": ["api", "webhooks", "hr", "onboarding"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Example 2: 销售部新员工入职",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-API-Key",
+                "value": "{{api_key}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"employee\": {\n    \"name\": \"王五\",\n    \"email\": \"wangwu@example.com\",\n    \"department\": \"销售部\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/webhooks/hr/onboarding",
+              "host": ["{{base_url}}"],
+              "path": ["api", "webhooks", "hr", "onboarding"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Example 3: 员工离职",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-API-Key",
+                "value": "{{api_key}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"employee\": {\n    \"name\": \"李四\",\n    \"email\": \"lisi@example.com\",\n    \"department\": \"工程部\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/webhooks/hr/offboarding",
+              "host": ["{{base_url}}"],
+              "path": ["api", "webhooks", "hr", "offboarding"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Example 4: 批量入职（测试数据）",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-API-Key",
+                "value": "{{api_key}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"employee\": {\n    \"name\": \"赵六\",\n    \"email\": \"zhaoliu@example.com\",\n    \"department\": \"市场部\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/webhooks/hr/onboarding",
+              "host": ["{{base_url}}"],
+              "path": ["api", "webhooks", "hr", "onboarding"]
+            },
+            "description": "可以通过 Collection Runner 批量运行此类请求，测试多个员工入职"
+          },
+          "response": []
+        }
+      ],
+      "description": "预定义的测试样例，可以直接运行"
+    },
+    {
+      "name": "错误场景测试",
+      "item": [
+        {
+          "name": "Error 1: 缺少 API Key",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"employee\": {\n    \"name\": \"测试\",\n    \"email\": \"test@example.com\",\n    \"department\": \"测试部\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/webhooks/hr/onboarding",
+              "host": ["{{base_url}}"],
+              "path": ["api", "webhooks", "hr", "onboarding"]
+            },
+            "description": "测试缺少 X-API-Key header 的情况\n\n**预期:** 401 Unauthorized"
+          },
+          "response": []
+        },
+        {
+          "name": "Error 2: 错误的 API Key",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-API-Key",
+                "value": "wrong-api-key"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"employee\": {\n    \"name\": \"测试\",\n    \"email\": \"test@example.com\",\n    \"department\": \"测试部\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/webhooks/hr/onboarding",
+              "host": ["{{base_url}}"],
+              "path": ["api", "webhooks", "hr", "onboarding"]
+            },
+            "description": "测试使用错误的 API Key\n\n**预期:** 401 Unauthorized"
+          },
+          "response": []
+        },
+        {
+          "name": "Error 3: 离职不存在的用户",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-API-Key",
+                "value": "{{api_key}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"employee\": {\n    \"email\": \"notexist@example.com\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/webhooks/hr/offboarding",
+              "host": ["{{base_url}}"],
+              "path": ["api", "webhooks", "hr", "offboarding"]
+            },
+            "description": "测试离职一个不存在的用户\n\n**预期:** 404 Not Found"
+          },
+          "response": []
+        },
+        {
+          "name": "Error 4: 缺少必需字段",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-API-Key",
+                "value": "{{api_key}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"employee\": {\n    \"name\": \"测试\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/webhooks/hr/onboarding",
+              "host": ["{{base_url}}"],
+              "path": ["api", "webhooks", "hr", "onboarding"]
+            },
+            "description": "测试缺少必需的 email 字段\n\n**预期:** 422 Unprocessable Entity"
+          },
+          "response": []
+        }
+      ],
+      "description": "各种错误场景的测试用例"
+    }
+  ]
+}
+

@@ -1,350 +1,170 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { 
-  CheckCircle, 
-  Clock, 
-  AlertTriangle, 
-  User, 
-  Calendar,
-  MessageSquare,
-  Search,
-  UserPlus,
-  UserMinus
-} from 'lucide-react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { UserPlus, UserMinus, CheckCircle, Clock, AlertCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
-import { mockTasks, mockUsers, mockServices } from '@/data/mockData'
-import { WorkflowTask, TaskStatus } from '@/types'
-import { formatDateTime } from '@/lib/utils'
-import { workflowApi } from '@/lib/api'
-
-interface TaskCardProps {
-  task: WorkflowTask
-  onStatusChange: (taskId: string, status: TaskStatus) => void
-  onAddComment: (taskId: string, comment: string) => void
-}
-
-function TaskCard({ task, onStatusChange, onAddComment }: TaskCardProps) {
-  const [showComments, setShowComments] = useState(false)
-  const [newComment, setNewComment] = useState('')
-
-  const user = mockUsers.find(u => u.id === task.targetUserId)
-  const service = mockServices.find(s => s.id === task.serviceId)
-  const assignee = mockUsers.find(u => u.id === task.assignedTo)
-
-  const getStatusColor = (status: TaskStatus) => {
-    switch (status) {
-      case 'completed':
-        return 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400'
-      case 'in_progress':
-        return 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400'
-      case 'pending':
-        return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400'
-      case 'escalated':
-        return 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400'
-      case 'cancelled':
-        return 'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-400'
-      default:
-        return 'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-400'
-    }
-  }
-
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case 'high':
-        return 'text-red-600'
-      case 'medium':
-        return 'text-yellow-600'
-      case 'low':
-        return 'text-green-600'
-      default:
-        return 'text-gray-600'
-    }
-  }
-
-  const getTaskIcon = (type: string) => {
-    return type === 'onboarding' ? (
-      <UserPlus className="h-4 w-4 text-green-600" />
-    ) : (
-      <UserMinus className="h-4 w-4 text-red-600" />
-    )
-  }
-
-  const handleSubmitComment = () => {
-    if (newComment.trim()) {
-      onAddComment(task.id, newComment.trim())
-      setNewComment('')
-    }
-  }
-
-  return (
-    <Card className="hover:shadow-md transition-shadow">
-      <CardHeader className="pb-3">
-        <div className="flex items-start justify-between">
-          <div className="flex items-start space-x-3">
-            {getTaskIcon(task.type)}
-            <div className="flex-1">
-              <CardTitle className="text-lg">{task.title}</CardTitle>
-              <CardDescription className="mt-1">
-                {task.description}
-              </CardDescription>
-            </div>
-          </div>
-          <div className="flex items-center space-x-2">
-            <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(task.status)}`}>
-              {task.status.replace('_', ' ')}
-            </span>
-            <AlertTriangle className={`h-4 w-4 ${getPriorityColor(task.priority)}`} />
-          </div>
-        </div>
-      </CardHeader>
-      
-      <CardContent className="space-y-4">
-        <div className="grid grid-cols-2 gap-4 text-sm">
-          <div className="flex items-center space-x-2">
-            <User className="h-4 w-4 text-gray-500" />
-            <span>
-              {task.type === 'onboarding' ? 'New User: ' : 'User: '}
-              {user ? `${user.firstName} ${user.lastName}` : 'Unknown User'}
-            </span>
-          </div>
-          <div className="flex items-center space-x-2">
-            <Calendar className="h-4 w-4 text-gray-500" />
-            <span>
-              Due: {task.dueDate ? new Date(task.dueDate).toLocaleDateString() : 'No due date'}
-            </span>
-          </div>
-        </div>
-
-        <div className="text-sm">
-          <div className="font-medium text-gray-700 dark:text-gray-300">Service Details:</div>
-          <div className="text-gray-600 dark:text-gray-400">
-            {service?.name} - {service?.vendor}
-          </div>
-        </div>
-
-        <div className="text-sm">
-          <div className="font-medium text-gray-700 dark:text-gray-300">Assigned to:</div>
-          <div className="text-gray-600 dark:text-gray-400">
-            {assignee ? `${assignee.firstName} ${assignee.lastName}` : 'Unassigned'}
-          </div>
-        </div>
-
-        {task.status !== 'completed' && task.status !== 'cancelled' && (
-          <div className="flex space-x-2 pt-2 border-t">
-            {task.status === 'pending' && (
-              <Button
-                size="sm"
-                onClick={() => onStatusChange(task.id, 'in_progress')}
-              >
-                Start Task
-              </Button>
-            )}
-            {task.status === 'in_progress' && (
-              <Button
-                size="sm"
-                onClick={() => onStatusChange(task.id, 'completed')}
-              >
-                <CheckCircle className="h-4 w-4 mr-1" />
-                Complete
-              </Button>
-            )}
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => setShowComments(!showComments)}
-            >
-              <MessageSquare className="h-4 w-4 mr-1" />
-              Comments ({task.comments.length})
-            </Button>
-          </div>
-        )}
-
-        {task.completedAt && (
-          <div className="text-sm text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 p-2 rounded">
-            Completed on {formatDateTime(task.completedAt)}
-            {task.completedBy && (
-              <span> by {mockUsers.find(u => u.id === task.completedBy)?.firstName}</span>
-            )}
-          </div>
-        )}
-
-        {showComments && (
-          <div className="space-y-3 pt-3 border-t">
-            <div className="space-y-2">
-              {task.comments.map((comment) => {
-                const commentUser = mockUsers.find(u => u.id === comment.userId)
-                return (
-                  <div key={comment.id} className="bg-gray-50 dark:bg-gray-800 p-3 rounded">
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-sm font-medium">
-                        {commentUser ? `${commentUser.firstName} ${commentUser.lastName}` : 'Unknown User'}
-                      </span>
-                      <span className="text-xs text-gray-500">
-                        {formatDateTime(comment.createdAt)}
-                      </span>
-                    </div>
-                    <p className="text-sm text-gray-700 dark:text-gray-300">{comment.content}</p>
-                  </div>
-                )
-              })}
-            </div>
-            
-            <div className="flex space-x-2">
-              <Input
-                placeholder="Add a comment..."
-                value={newComment}
-                onChange={(e) => setNewComment(e.target.value)}
-                className="flex-1"
-                onKeyPress={(e) => e.key === 'Enter' && handleSubmitComment()}
-              />
-              <Button size="sm" onClick={handleSubmitComment}>
-                Add
-              </Button>
-            </div>
-          </div>
-        )}
-      </CardContent>
-    </Card>
-  )
-}
+import { Label } from '@/components/ui/label'
+import { Checkbox } from '@/components/ui/checkbox'
+import { EditPanel } from '@/components/shared/EditPanel'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Search } from 'lucide-react'
+import { workflowApi, servicesApi, productsApi } from '@/lib/api'
+import { toast } from 'sonner'
+import type { WorkflowTask, WebService, ServiceProduct } from '@/types'
 
 export function Inbox() {
   const [tasks, setTasks] = useState<WorkflowTask[]>([])
-  const [searchTerm, setSearchTerm] = useState('')
-  const [statusFilter, setStatusFilter] = useState<TaskStatus | 'all'>('all')
+  const [services, setServices] = useState<WebService[]>([])
+  const [products, setProducts] = useState<ServiceProduct[]>([])
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [isPanelOpen, setIsPanelOpen] = useState(false)
+  const [currentTask, setCurrentTask] = useState<WorkflowTask | null>(null)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [statusFilter, setStatusFilter] = useState<string>('all')
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    department: '',
+    selectedServices: [] as string[],
+    selectedProducts: [] as string[],
+  })
+  const [submitting, setSubmitting] = useState(false)
 
-  // Load tasks from API
   useEffect(() => {
-    const loadTasks = async () => {
-      try {
-        setLoading(true)
-        setError(null)
-        
-        // Try to load from API first
-        const apiTasks = await workflowApi.getTasks()
-        
-        // Convert API response to WorkflowTask format
-        const convertedTasks: WorkflowTask[] = apiTasks.map((apiTask: any) => ({
-          id: apiTask.id,
-          type: apiTask.type || 'onboarding',
-          title: apiTask.title,
-          description: apiTask.description || '',
-          assignedTo: apiTask.assignedTo,
-          targetUserId: apiTask.targetUserId,
-          serviceId: apiTask.serviceId,
-          productId: apiTask.productId,
-          status: apiTask.status,
-          priority: apiTask.priority || 'medium',
-          dueDate: apiTask.dueDate,
-          completedAt: apiTask.completedAt,
-          completedBy: apiTask.completedBy,
-          comments: apiTask.comments || [],
-          createdAt: apiTask.createdAt,
-          updatedAt: apiTask.updatedAt,
-        }))
-        
-        setTasks(convertedTasks)
-        console.log('✅ Tasks loaded from API:', convertedTasks.length)
-      } catch (err) {
-        console.error('❌ Failed to load tasks from API:', err)
-        setError('API connection failed. Using mock data for demonstration.')
-        
-        // Fallback to mock data
-        setTasks(mockTasks)
-        console.log('📋 Using mock data:', mockTasks.length, 'tasks')
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    loadTasks()
+    loadData()
   }, [])
 
-  const filteredTasks = tasks.filter(task => {
-    const matchesSearch = task.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         task.description?.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesStatus = statusFilter === 'all' || task.status === statusFilter
-    return matchesSearch && matchesStatus
-  })
-
-  const handleStatusChange = async (taskId: string, newStatus: TaskStatus) => {
+  const loadData = async () => {
     try {
-      // Call API to update task status
-      await workflowApi.updateTask(taskId, { 
-        status: newStatus,
-        completedAt: newStatus === 'completed' ? new Date().toISOString() : undefined
+      setLoading(true)
+      const [tasksData, servicesData, productsData] = await Promise.all([
+        workflowApi.getTasks(),
+        servicesApi.getServices(),
+        productsApi.getProducts(),
+      ])
+      // Sort: pending tasks first, then completed tasks
+      const sorted = tasksData.sort((a, b) => {
+        if (a.status === b.status) return 0
+        return a.status === 'pending' ? -1 : 1
       })
-      
-      // Update local state
-      setTasks(tasks.map(task => 
-        task.id === taskId 
-          ? { 
-              ...task, 
-              status: newStatus,
-              completedAt: newStatus === 'completed' ? new Date().toISOString() : task.completedAt,
-              completedBy: newStatus === 'completed' ? '1' : task.completedBy, // Current user
-              updatedAt: new Date().toISOString()
-            }
-          : task
-      ))
-      
-      console.log('✅ Task status updated successfully')
-    } catch (err) {
-      console.error('❌ Failed to update task status:', err)
-      alert('Failed to update task status. Please try again.')
+      setTasks(sorted)
+      setServices(servicesData)
+      setProducts(productsData)
+    } catch (error) {
+      toast.error('Failed to load tasks')
+      console.error(error)
+    } finally {
+      setLoading(false)
     }
   }
 
-  const handleAddComment = (taskId: string, content: string) => {
-    setTasks(tasks.map(task => 
-      task.id === taskId 
-        ? {
-            ...task,
-            comments: [
-              ...task.comments,
-              {
-                id: `c${Date.now()}`,
-                taskId,
-                userId: '1', // Current user
-                content,
-                createdAt: new Date().toISOString()
-              }
-            ],
-            updatedAt: new Date().toISOString()
-          }
-        : task
-    ))
+  const handleStartTask = (task: WorkflowTask) => {
+    setCurrentTask(task)
+    
+    if (task.type === 'onboarding') {
+      // Pre-fill form with HR data (read-only)
+      setFormData({
+        name: task.employeeName,
+        email: task.employeeEmail,
+        department: task.employeeDepartment,
+        selectedServices: [],
+        selectedProducts: [],
+      })
+    } else if (task.type === 'offboarding') {
+      // Pre-fill form with user data (all read-only)
+      setFormData({
+        name: task.employeeName,
+        email: task.employeeEmail,
+        department: task.employeeDepartment,
+        selectedServices: task.assignedServices || [],
+        selectedProducts: task.assignedProducts || [],
+      })
+    }
+    
+    setIsPanelOpen(true)
   }
 
-  const getStatusCounts = () => {
-    return {
-      pending: tasks.filter(t => t.status === 'pending').length,
-      in_progress: tasks.filter(t => t.status === 'in_progress').length,
-      completed: tasks.filter(t => t.status === 'completed').length,
-      escalated: tasks.filter(t => t.status === 'escalated').length,
+  const handleOnboardingSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+
+    if (!currentTask) return
+
+    // Must assign at least one service or product
+    if (formData.selectedServices.length === 0 && formData.selectedProducts.length === 0) {
+      toast.error('Please assign at least one service or product to the new user')
+      return
+    }
+
+    try {
+      setSubmitting(true)
+      await workflowApi.completeOnboarding(currentTask.id, {
+        name: formData.name,
+        email: formData.email,
+        department: formData.department,
+        assignedServices: formData.selectedServices,
+        assignedProducts: formData.selectedProducts,
+      })
+      toast.success('Onboarding completed! User created successfully.')
+      setIsPanelOpen(false)
+      await loadData()
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to complete onboarding')
+      console.error(error)
+    } finally {
+      setSubmitting(false)
     }
   }
 
-  const statusCounts = getStatusCounts()
+  const handleOffboardingSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+
+    if (!currentTask) return
+
+    if (!confirm('Are you sure you want to offboard this user? This will delete the user and remove all their access.')) {
+      return
+    }
+
+    try {
+      setSubmitting(true)
+      await workflowApi.completeOffboarding(currentTask.id)
+      toast.success('Offboarding completed! User deleted and access revoked.')
+      setIsPanelOpen(false)
+      await loadData()
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to complete offboarding')
+      console.error(error)
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  const toggleServiceSelection = (serviceId: string) => {
+    setFormData(prev => ({
+      ...prev,
+      selectedServices: prev.selectedServices.includes(serviceId)
+        ? prev.selectedServices.filter(id => id !== serviceId)
+        : [...prev.selectedServices, serviceId],
+    }))
+  }
+
+  const toggleProductSelection = (productId: string) => {
+    setFormData(prev => ({
+      ...prev,
+      selectedProducts: prev.selectedProducts.includes(productId)
+        ? prev.selectedProducts.filter(id => id !== productId)
+        : [...prev.selectedProducts, productId],
+    }))
+  }
+
+  const isOnboarding = currentTask?.type === 'onboarding'
 
   if (loading) {
     return (
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Inbox</h1>
-          <p className="text-gray-600 dark:text-gray-400">
-            Manage onboarding and offboarding workflow tasks
-          </p>
-        </div>
-        <div className="flex items-center justify-center py-12">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-          <span className="ml-2">Loading tasks...</span>
-        </div>
+      <div className="flex items-center justify-center h-64">
+        <div className="text-muted-foreground">Loading tasks...</div>
       </div>
     )
   }
@@ -354,115 +174,343 @@ export function Inbox() {
       {/* Header */}
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Inbox</h1>
-        <p className="text-gray-600 dark:text-gray-400">
+        <p className="text-muted-foreground">
           Manage onboarding and offboarding workflow tasks
         </p>
-        {error && (
-          <p className="text-yellow-600 text-sm mt-1">
-            ⚠️ {error}
-          </p>
-        )}
       </div>
 
-      {/* Stats */}
+      {/* Status Summary Cards */}
       <div className="grid gap-4 md:grid-cols-4">
         <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center space-x-2">
-              <Clock className="h-5 w-5 text-yellow-600" />
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-yellow-50 dark:bg-yellow-900/20">
+                <Clock className="h-5 w-5 text-yellow-600" />
+              </div>
               <div>
-                <div className="text-2xl font-bold">{statusCounts.pending}</div>
-                <div className="text-sm text-gray-600 dark:text-gray-400">Pending</div>
+                <div className="text-2xl font-bold">{tasks.filter(t => t.status === 'pending').length}</div>
+                <div className="text-sm text-muted-foreground">Pending</div>
               </div>
             </div>
           </CardContent>
         </Card>
+        
         <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center space-x-2">
-              <Clock className="h-5 w-5 text-blue-600" />
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-blue-50 dark:bg-blue-900/20">
+                <Clock className="h-5 w-5 text-blue-600" />
+              </div>
               <div>
-                <div className="text-2xl font-bold">{statusCounts.in_progress}</div>
-                <div className="text-sm text-gray-600 dark:text-gray-400">In Progress</div>
+                <div className="text-2xl font-bold">0</div>
+                <div className="text-sm text-muted-foreground">In Progress</div>
               </div>
             </div>
           </CardContent>
         </Card>
+        
         <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center space-x-2">
-              <CheckCircle className="h-5 w-5 text-green-600" />
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-green-50 dark:bg-green-900/20">
+                <CheckCircle className="h-5 w-5 text-green-600" />
+              </div>
               <div>
-                <div className="text-2xl font-bold">{statusCounts.completed}</div>
-                <div className="text-sm text-gray-600 dark:text-gray-400">Completed</div>
+                <div className="text-2xl font-bold">{tasks.filter(t => t.status === 'completed').length}</div>
+                <div className="text-sm text-muted-foreground">Completed</div>
               </div>
             </div>
           </CardContent>
         </Card>
+        
         <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center space-x-2">
-              <AlertTriangle className="h-5 w-5 text-red-600" />
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-red-50 dark:bg-red-900/20">
+                <AlertCircle className="h-5 w-5 text-red-600" />
+              </div>
               <div>
-                <div className="text-2xl font-bold">{statusCounts.escalated}</div>
-                <div className="text-sm text-gray-600 dark:text-gray-400">Escalated</div>
+                <div className="text-2xl font-bold">0</div>
+                <div className="text-sm text-muted-foreground">Escalated</div>
               </div>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Search and Filters */}
-      <div className="flex items-center space-x-4">
-        <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+      {/* Search and Filter */}
+      <div className="flex gap-4">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search tasks..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-10"
           />
         </div>
-        <select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value as TaskStatus | 'all')}
-          className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-sm"
-        >
-          <option value="all">All Status</option>
-          <option value="pending">Pending</option>
-          <option value="in_progress">In Progress</option>
-          <option value="completed">Completed</option>
-          <option value="escalated">Escalated</option>
-          <option value="cancelled">Cancelled</option>
-        </select>
+        <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="All Status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Status</SelectItem>
+            <SelectItem value="pending">Pending</SelectItem>
+            <SelectItem value="completed">Completed</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
-      {/* Tasks List */}
-      <div className="space-y-4">
-        {filteredTasks.map((task) => (
-          <TaskCard
-            key={task.id}
-            task={task}
-            onStatusChange={handleStatusChange}
-            onAddComment={handleAddComment}
-          />
-        ))}
-      </div>
-
-      {filteredTasks.length === 0 && (
-        <div className="text-center py-12">
-          <CheckCircle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
-            No tasks found
-          </h3>
-          <p className="text-gray-600 dark:text-gray-400">
-            {searchTerm || statusFilter !== 'all' 
-              ? 'Try adjusting your search or filter criteria.' 
-              : 'All caught up! No pending workflow tasks.'}
-          </p>
+      {/* Tasks */}
+      {tasks.length === 0 ? (
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <CheckCircle className="h-12 w-12 text-muted-foreground mb-4" />
+            <p className="text-muted-foreground">No tasks at this time</p>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="space-y-4">
+          {tasks
+            .filter(task => {
+              if (statusFilter !== 'all' && task.status !== statusFilter) return false
+              if (searchQuery && !task.employeeName.toLowerCase().includes(searchQuery.toLowerCase())) return false
+              return true
+            })
+            .map(task => (
+            <Card key={task.id}>
+              <CardHeader className="pb-3">
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className={`p-2 rounded-lg ${task.type === 'onboarding' ? 'bg-green-50 dark:bg-green-900/20' : 'bg-red-50 dark:bg-red-900/20'}`}>
+                      {task.type === 'onboarding' ? (
+                        <UserPlus className="h-5 w-5 text-green-600" />
+                      ) : (
+                        <UserMinus className="h-5 w-5 text-red-600" />
+                      )}
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium text-muted-foreground">
+                          {task.type === 'onboarding' ? 'New User:' : 'User:'}
+                        </span>
+                        <span className="font-semibold">{task.employeeName}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="text-right mr-2">
+                      <div className="text-sm text-muted-foreground flex items-center gap-1">
+                        <Clock className="h-3 w-3" />
+                        <span>Due: No due date</span>
+                      </div>
+                    </div>
+                    {task.status === 'pending' ? (
+                      <>
+                        <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100 dark:bg-yellow-900/30 dark:text-yellow-500">
+                          pending
+                        </Badge>
+                        <AlertCircle className="h-4 w-4 text-yellow-600" />
+                      </>
+                    ) : (
+                      <>
+                        <Badge className="bg-green-100 text-green-800 hover:bg-green-100 dark:bg-green-900/30 dark:text-green-500">
+                          completed
+                        </Badge>
+                        <AlertCircle className="h-4 w-4 text-green-600" />
+                      </>
+                    )}
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <div className="space-y-2">
+                  <div className="text-sm">
+                    <span className="font-medium">Service Details:</span>
+                    <div className="text-muted-foreground">-</div>
+                  </div>
+                  <div className="text-sm">
+                    <span className="font-medium">Assigned to:</span>
+                    <div className="text-muted-foreground">Unassigned</div>
+                  </div>
+                  {task.status === 'pending' && (
+                    <div className="flex gap-2 mt-4">
+                      <Button onClick={() => handleStartTask(task)}>
+                        Start Task
+                      </Button>
+                      <Button variant="ghost" className="flex items-center gap-1">
+                        <span>💬</span> Comments (0)
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          ))}
         </div>
       )}
+
+      {/* Task Panel (Onboarding or Offboarding) */}
+      <EditPanel
+        isOpen={isPanelOpen}
+        onClose={() => setIsPanelOpen(false)}
+        title={isOnboarding ? 'Complete Onboarding' : 'Complete Offboarding'}
+        description={
+          isOnboarding
+            ? 'Assign services and products to the new employee'
+            : 'Review user assignments before offboarding'
+        }
+        onSubmit={isOnboarding ? handleOnboardingSubmit : handleOffboardingSubmit}
+        isLoading={submitting}
+        submitLabel={isOnboarding ? 'Create User & Complete' : 'Delete User & Complete'}
+      >
+        <div className="space-y-4">
+          {/* Employee Info (Read-only) */}
+          <div className="bg-accent/50 rounded-md p-4 space-y-3">
+            <p className="text-sm font-semibold text-muted-foreground">Employee Information (From HR System)</p>
+            <div className="space-y-2">
+              <div>
+                <Label>Name</Label>
+                <Input value={formData.name} disabled className="bg-background" />
+              </div>
+              <div>
+                <Label>Email</Label>
+                <Input value={formData.email} disabled className="bg-background" />
+              </div>
+              <div>
+                <Label>Department</Label>
+                <Input value={formData.department} disabled className="bg-background" />
+              </div>
+            </div>
+          </div>
+
+          {isOnboarding ? (
+            <>
+              {/* Onboarding: Assign Services */}
+              <div className="space-y-2">
+                <Label>Assign Services *</Label>
+                <p className="text-sm text-muted-foreground mb-2">
+                  Users assigned to a service have access to all products under that service
+                </p>
+                {services.length === 0 ? (
+                  <p className="text-sm text-muted-foreground py-4 text-center border rounded-md">
+                    No services available
+                  </p>
+                ) : (
+                  <div className="border rounded-md p-4 space-y-2 max-h-48 overflow-y-auto">
+                    {services.map(service => (
+                      <div key={service.id} className="flex items-center space-x-2">
+                        <Checkbox
+                          id={`service-${service.id}`}
+                          checked={formData.selectedServices.includes(service.id)}
+                          onCheckedChange={() => toggleServiceSelection(service.id)}
+                        />
+                        <label
+                          htmlFor={`service-${service.id}`}
+                          className="text-sm font-medium leading-none cursor-pointer"
+                        >
+                          {service.name}
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Onboarding: Assign Products */}
+              <div className="space-y-2">
+                <Label>Assign Products *</Label>
+                <p className="text-sm text-muted-foreground mb-2">
+                  Or assign specific products
+                </p>
+                {products.length === 0 ? (
+                  <p className="text-sm text-muted-foreground py-4 text-center border rounded-md">
+                    No products available
+                  </p>
+                ) : (
+                  <div className="border rounded-md p-4 space-y-2 max-h-48 overflow-y-auto">
+                    {products.map(product => (
+                      <div key={product.id} className="flex items-center space-x-2">
+                        <Checkbox
+                          id={`product-${product.id}`}
+                          checked={formData.selectedProducts.includes(product.id)}
+                          onCheckedChange={() => toggleProductSelection(product.id)}
+                        />
+                        <label
+                          htmlFor={`product-${product.id}`}
+                          className="text-sm font-medium leading-none cursor-pointer"
+                        >
+                          {product.name}
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="flex items-start gap-2 p-3 bg-blue-50 dark:bg-blue-950/30 rounded-md">
+                <AlertCircle className="h-4 w-4 text-blue-500 mt-0.5" />
+                <p className="text-sm text-blue-700 dark:text-blue-400">
+                  At least one service or product must be assigned before submission
+                </p>
+              </div>
+            </>
+          ) : (
+            <>
+              {/* Offboarding: Show current assignments (Read-only) */}
+              <div className="space-y-4">
+                <div className="bg-orange-50 dark:bg-orange-950/30 rounded-md p-4">
+                  <div className="flex items-start gap-2 mb-3">
+                    <AlertCircle className="h-4 w-4 text-orange-500 mt-0.5" />
+                    <p className="text-sm text-orange-700 dark:text-orange-400 font-medium">
+                      Warning: This action cannot be undone
+                    </p>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    Completing this offboarding will permanently delete the user and remove all access to the following services and products.
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Current Assigned Services</Label>
+                  <div className="border rounded-md p-4">
+                    {formData.selectedServices.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">No services assigned</p>
+                    ) : (
+                      <div className="space-y-1">
+                        {formData.selectedServices.map(serviceId => {
+                          const service = services.find(s => s.id === serviceId)
+                          return service ? (
+                            <div key={serviceId} className="text-sm">• {service.name}</div>
+                          ) : null
+                        })}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Current Assigned Products</Label>
+                  <div className="border rounded-md p-4">
+                    {formData.selectedProducts.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">No products assigned</p>
+                    ) : (
+                      <div className="space-y-1">
+                        {formData.selectedProducts.map(productId => {
+                          const product = products.find(p => p.id === productId)
+                          return product ? (
+                            <div key={productId} className="text-sm">• {product.name}</div>
+                          ) : null
+                        })}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+      </EditPanel>
     </div>
   )
 }
-
