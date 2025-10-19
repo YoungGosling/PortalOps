@@ -14,50 +14,69 @@ import {
 } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
-import { Shield } from 'lucide-react';
+import { Shield, Building, Lock, Mail } from 'lucide-react';
 
 export default function SignInPage() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-4">
-      <Card className="w-full max-w-md shadow-2xl border-0">
-        <CardHeader className="text-center space-y-4 pb-8">
-          <div className="flex justify-center">
-            <div className="p-3 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl shadow-lg">
-              <Shield className="h-10 w-10 text-white" />
+    <div className="flex min-h-screen items-center justify-center bg-background p-4 relative overflow-hidden">
+      {/* Background decorative elements */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-0 left-1/4 w-96 h-96 bg-blue-500/5 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-primary/5 rounded-full blur-3xl animate-pulse delay-1000"></div>
+      </div>
+
+      {/* Main login card */}
+      <div className="w-full max-w-md relative z-10 animate-fade-in">
+        <Card className="border-0 shadow-sm hover:shadow-md transition-shadow duration-300">
+          <CardHeader className="text-center space-y-4 pb-6">
+            <div className="flex justify-center">
+              <div className="p-4 rounded-2xl bg-blue-50 dark:bg-blue-950 group-hover:bg-blue-100 dark:group-hover:bg-blue-900 transition-colors">
+                <Shield className="h-12 w-12 text-blue-600 dark:text-blue-400" />
+              </div>
             </div>
-          </div>
-          <CardTitle className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-            PortalOps
-          </CardTitle>
-          <CardDescription className="text-base text-slate-600">
-            Secure access to your enterprise services
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Tabs defaultValue="signin" className="w-full">
-            <TabsList className="grid w-full grid-cols-2 bg-slate-100 p-1">
-              <TabsTrigger 
-                value="signin"
-                className="data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow-sm"
-              >
-                Sign In
-              </TabsTrigger>
-              <TabsTrigger 
-                value="signup"
-                className="data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow-sm"
-              >
-                Sign Up
-              </TabsTrigger>
-            </TabsList>
-            <TabsContent value="signin">
-              <SignInForm />
-            </TabsContent>
-            <TabsContent value="signup">
-              <SignUpForm />
-            </TabsContent>
-          </Tabs>
-        </CardContent>
-      </Card>
+            <div>
+              <CardTitle className="text-3xl font-bold tracking-tight mb-2">
+                PortalOps
+              </CardTitle>
+              <CardDescription className="text-base">
+                Secure access to your enterprise services
+              </CardDescription>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <Tabs defaultValue="signin" className="w-full">
+              <TabsList className="grid w-full grid-cols-2 h-11 bg-muted/30">
+                <TabsTrigger 
+                  value="signin"
+                  className="data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm"
+                >
+                  Sign In
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="signup"
+                  className="data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm"
+                >
+                  Sign Up
+                </TabsTrigger>
+              </TabsList>
+              <TabsContent value="signin" className="mt-6">
+                <SignInForm />
+              </TabsContent>
+              <TabsContent value="signup" className="mt-6">
+                <SignUpForm />
+              </TabsContent>
+            </Tabs>
+          </CardContent>
+        </Card>
+
+        {/* Footer text */}
+        <div className="mt-6 text-center">
+          <p className="text-xs text-muted-foreground flex items-center justify-center gap-1.5">
+            <Building className="h-3.5 w-3.5" />
+            Enterprise Service Management Platform
+          </p>
+        </div>
+      </div>
     </div>
   );
 }
@@ -89,45 +108,64 @@ function SignInForm() {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-5 mt-6">
+    <form onSubmit={handleSubmit} className="space-y-5">
       <div className="space-y-2">
-        <Label htmlFor="signin-email" className="text-sm font-medium text-slate-700">
-          Email
+        <Label htmlFor="signin-email" className="text-sm font-medium">
+          Email Address
         </Label>
-        <Input
-          id="signin-email"
-          type="email"
-          placeholder="Enter your email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          disabled={loading}
-          className="h-11 border-slate-200 focus:border-blue-500 focus:ring-blue-500"
-        />
+        <div className="relative">
+          <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            id="signin-email"
+            type="email"
+            placeholder="name@example.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            disabled={loading}
+            className="h-11 pl-10"
+          />
+        </div>
       </div>
       <div className="space-y-2">
-        <Label htmlFor="signin-password" className="text-sm font-medium text-slate-700">
+        <Label htmlFor="signin-password" className="text-sm font-medium">
           Password
         </Label>
-        <Input
-          id="signin-password"
-          type="password"
-          placeholder="Enter your password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          disabled={loading}
-          className="h-11 border-slate-200 focus:border-blue-500 focus:ring-blue-500"
-        />
+        <div className="relative">
+          <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            id="signin-password"
+            type="password"
+            placeholder="Enter your password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            disabled={loading}
+            className="h-11 pl-10"
+          />
+        </div>
       </div>
       <Button 
         type="submit" 
-        className="w-full h-11 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-medium shadow-lg hover:shadow-xl transition-all duration-200" 
+        className="w-full h-11 gap-2" 
         disabled={loading}
       >
-        {loading ? 'Signing in...' : 'Sign In'}
+        {loading ? (
+          <>
+            <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            Signing in...
+          </>
+        ) : (
+          <>
+            <Shield className="h-4 w-4" />
+            Sign In
+          </>
+        )}
       </Button>
-      <div className="text-center pt-2">
-        <p className="text-sm text-slate-500">
-          Demo credentials: <span className="font-medium text-slate-700">admin@portalops.com</span> / <span className="font-medium text-slate-700">password</span>
+      <div className="pt-2 px-4 py-3 rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900">
+        <p className="text-xs text-center text-muted-foreground">
+          <span className="font-medium text-foreground block mb-1">Demo Credentials</span>
+          <span className="font-mono text-primary">admin@portalops.com</span>
+          {' / '}
+          <span className="font-mono text-primary">password</span>
         </p>
       </div>
     </form>
@@ -162,10 +200,10 @@ function SignUpForm() {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-5 mt-6">
+    <form onSubmit={handleSubmit} className="space-y-5">
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label htmlFor="signup-firstname" className="text-sm font-medium text-slate-700">
+          <Label htmlFor="signup-firstname" className="text-sm font-medium">
             First Name
           </Label>
           <Input
@@ -175,11 +213,11 @@ function SignUpForm() {
             value={firstName}
             onChange={(e) => setFirstName(e.target.value)}
             disabled={loading}
-            className="h-11 border-slate-200 focus:border-blue-500 focus:ring-blue-500"
+            className="h-11"
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="signup-lastname" className="text-sm font-medium text-slate-700">
+          <Label htmlFor="signup-lastname" className="text-sm font-medium">
             Last Name
           </Label>
           <Input
@@ -189,45 +227,67 @@ function SignUpForm() {
             value={lastName}
             onChange={(e) => setLastName(e.target.value)}
             disabled={loading}
-            className="h-11 border-slate-200 focus:border-blue-500 focus:ring-blue-500"
+            className="h-11"
           />
         </div>
       </div>
       <div className="space-y-2">
-        <Label htmlFor="signup-email" className="text-sm font-medium text-slate-700">
-          Email
+        <Label htmlFor="signup-email" className="text-sm font-medium">
+          Email Address
         </Label>
-        <Input
-          id="signup-email"
-          type="email"
-          placeholder="name@example.com"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          disabled={loading}
-          className="h-11 border-slate-200 focus:border-blue-500 focus:ring-blue-500"
-        />
+        <div className="relative">
+          <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            id="signup-email"
+            type="email"
+            placeholder="name@example.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            disabled={loading}
+            className="h-11 pl-10"
+          />
+        </div>
       </div>
       <div className="space-y-2">
-        <Label htmlFor="signup-password" className="text-sm font-medium text-slate-700">
+        <Label htmlFor="signup-password" className="text-sm font-medium">
           Password
         </Label>
-        <Input
-          id="signup-password"
-          type="password"
-          placeholder="Create a password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          disabled={loading}
-          className="h-11 border-slate-200 focus:border-blue-500 focus:ring-blue-500"
-        />
+        <div className="relative">
+          <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            id="signup-password"
+            type="password"
+            placeholder="Create a password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            disabled={loading}
+            className="h-11 pl-10"
+          />
+        </div>
       </div>
       <Button 
         type="submit" 
-        className="w-full h-11 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-medium shadow-lg hover:shadow-xl transition-all duration-200" 
+        className="w-full h-11 gap-2" 
         disabled={loading}
       >
-        {loading ? 'Creating account...' : 'Sign Up'}
+        {loading ? (
+          <>
+            <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            Creating account...
+          </>
+        ) : (
+          <>
+            <Shield className="h-4 w-4" />
+            Create Account
+          </>
+        )}
       </Button>
+      <div className="pt-2 px-4 py-3 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-100 dark:border-amber-900">
+        <p className="text-xs text-center text-muted-foreground">
+          <span className="font-medium text-foreground block mb-1">⚠️ Coming Soon</span>
+          Self-registration is not available yet. Contact your administrator for account setup.
+        </p>
+      </div>
     </form>
   );
 }
