@@ -33,6 +33,12 @@ export interface Product {
   updated_at?: string;
 }
 
+export interface PaymentInvoice {
+  id: string;
+  original_file_name: string;
+  url: string;
+}
+
 export interface PaymentInfo {
   product_id: string;
   product_name: string;
@@ -42,6 +48,7 @@ export interface PaymentInfo {
   expiry_date?: string;
   payment_method?: string;
   bill_attachment_path?: string;
+  invoices?: PaymentInvoice[];
   is_complete: boolean;
   created_at?: string;
   updated_at?: string;
@@ -67,6 +74,16 @@ export interface BillAttachment {
   service_name: string;
   upload_date: string;
   file_size?: number;
+}
+
+export interface MasterFileInvoice {
+  id: string;
+  file_name: string;
+  original_file_name: string;
+  product_id: string;
+  product_name: string;
+  service_name: string;
+  created_at: string;
 }
 
 export interface PaymentSummary {

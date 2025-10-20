@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { apiClient } from '@/lib/api';
-import type { PaymentInfo } from '@/types';
+import type { PaymentInfo, PaymentInvoice } from '@/types';
 import { sortPaymentsByCompleteness } from '@/lib/billingUtils';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -15,6 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { FileUpload } from '@/components/ui/file-upload';
 import { CreditCard, CheckCircle2, AlertCircle, Edit, Check, X } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -36,6 +37,8 @@ export default function PaymentsPage() {
     payment_method: '',
   });
   const [submitting, setSubmitting] = useState(false);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [uploadedInvoices, setUploadedInvoices] = useState<PaymentInvoice[]>([]);
 
   const fetchPayments = async () => {
     try {
@@ -88,6 +91,8 @@ export default function PaymentsPage() {
       expiry_date: convertToDateInput(payment.expiry_date || ''),
       payment_method: payment.payment_method || '',
     });
+    setSelectedFiles([]);
+    setUploadedInvoices(payment.invoices || []);
   };
 
   const handleCancel = () => {
@@ -98,6 +103,8 @@ export default function PaymentsPage() {
       expiry_date: '',
       payment_method: '',
     });
+    setSelectedFiles([]);
+    setUploadedInvoices([]);
   };
 
   const handleSave = async (productId: string) => {
@@ -114,10 +121,16 @@ export default function PaymentsPage() {
       return;
     }
 
+    // Validate that at least one invoice is present (either uploaded or selected)
+    if (uploadedInvoices.length === 0 && selectedFiles.length === 0) {
+      toast.error('At least one invoice file is required');
+      return;
+    }
+
     try {
       setSubmitting(true);
       
-      // Create FormData for multipart/form-data submission
+      // Update payment information
       const formDataToSubmit = new FormData();
       formDataToSubmit.append('amount', amount.toString());
       formDataToSubmit.append('cardholder_name', formData.cardholder_name);
@@ -126,6 +139,12 @@ export default function PaymentsPage() {
       formDataToSubmit.append('payment_method', formData.payment_method);
       
       await apiClient.updatePaymentInfo(productId, formDataToSubmit);
+
+      // Upload new invoice files if any
+      if (selectedFiles.length > 0) {
+        await apiClient.uploadInvoices(productId, selectedFiles);
+      }
+
       toast.success('Payment information updated successfully');
       handleCancel();
       fetchPayments();
@@ -134,6 +153,33 @@ export default function PaymentsPage() {
       console.error(error);
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleFilesChange = (files: File[]) => {
+    setSelectedFiles(files);
+  };
+
+  const handleDeleteInvoice = async (invoiceId: string) => {
+    try {
+      await apiClient.deleteInvoice(invoiceId);
+      setUploadedInvoices(prev => prev.filter(invoice => invoice.id !== invoiceId));
+      toast.success('Invoice deleted successfully');
+    } catch (error) {
+      toast.error('Failed to delete invoice');
+      console.error(error);
+    }
+  };
+
+  const handlePreviewInvoice = async (invoiceId: string) => {
+    try {
+      const blob = await apiClient.downloadInvoice(invoiceId);
+      const url = window.URL.createObjectURL(blob);
+      window.open(url, '_blank');
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      toast.error('Failed to preview invoice');
+      console.error(error);
     }
   };
 
@@ -270,6 +316,22 @@ export default function PaymentsPage() {
                               </Select>
                             </div>
                           </div>
+                          
+                          {/* Invoice Upload Section */}
+                          <div className="mt-6">
+                            <label className="text-sm font-medium text-muted-foreground mb-3 block">
+                              Invoice Files <span className="text-red-500">*</span>
+                            </label>
+                            <FileUpload
+                              files={selectedFiles}
+                              uploadedInvoices={uploadedInvoices}
+                              onFilesChange={handleFilesChange}
+                              onDeleteInvoice={handleDeleteInvoice}
+                              onPreviewInvoice={handlePreviewInvoice}
+                              disabled={submitting}
+                              className="mt-2"
+                            />
+                          </div>
                         </div>
                         
                         <div className="flex-shrink-0 flex gap-2">
@@ -348,6 +410,20 @@ export default function PaymentsPage() {
                               )}
                             </div>
                           </div>
+                          
+                          {/* Invoice Information */}
+                          {payment.invoices && payment.invoices.length > 0 && (
+                            <div className="mt-4">
+                              <p className="text-xs text-muted-foreground mb-2">Invoices ({payment.invoices.length})</p>
+                              <div className="flex flex-wrap gap-2">
+                                {payment.invoices.map((invoice) => (
+                                  <Badge key={invoice.id} variant="outline" className="text-xs">
+                                    {invoice.original_file_name}
+                                  </Badge>
+                                ))}
+                              </div>
+                            </div>
+                          )}
                         </div>
                         
                         <div className="flex-shrink-0">

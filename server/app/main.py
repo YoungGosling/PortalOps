@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from sqlalchemy.exc import SQLAlchemyError
 from app.api.api_v1.api import api_router
+from app.api.api_v2.api import api_router as api_v2_router
 from app.core.config import settings
 from app.core.scheduler import start_scheduler, stop_scheduler
 
@@ -102,8 +103,9 @@ async def health_check():
     return {"status": "healthy", "service": settings.PROJECT_NAME}
 
 
-# Include API router
+# Include API routers
 app.include_router(api_router, prefix=settings.API_V1_STR)
+app.include_router(api_v2_router, prefix="/api/v2")
 
 
 # Root endpoint
@@ -126,6 +128,3 @@ if __name__ == "__main__":
         port=8000,
         reload=settings.DEBUG
     )
-
-
-

@@ -1,0 +1,173 @@
+from typing import List
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form
+from fastapi.responses import FileResponse
+from sqlalchemy.orm import Session
+from app.db.database import get_db
+from app.crud import payment_invoice, audit_log
+from app.core.deps import require_admin
+from app.schemas.payment_invoice import PaymentInvoiceResponse
+from app.models.user import User
+import uuid
+import os
+import aiofiles
+from pathlib import Path
+
+router = APIRouter()
+
+# Storage directory for invoice files
+STORAGE_DIR = "/home/evanzhang/EnterpriseProjects/PortalOpsStorage/bills"
+os.makedirs(STORAGE_DIR, exist_ok=True)
+
+
+@router.post("/{product_id}/invoices", response_model=List[PaymentInvoiceResponse])
+async def upload_invoices(
+    product_id: uuid.UUID,
+    files: List[UploadFile] = File(...),
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """
+    Upload one or more invoice files for a specific product's payment record.
+    """
+    if not files:
+        raise HTTPException(
+            status_code=400,
+            detail="At least one file must be uploaded"
+        )
+
+    uploaded_invoices = []
+
+    for file in files:
+        if not file.filename:
+            continue
+
+        # Generate unique filename
+        file_extension = os.path.splitext(file.filename)[1]
+        unique_filename = f"{uuid.uuid4()}{file_extension}"
+        file_path = os.path.join(STORAGE_DIR, unique_filename)
+
+        # Save file
+        try:
+            async with aiofiles.open(file_path, 'wb') as f:
+                content = await file.read()
+                await f.write(content)
+        except Exception as e:
+            raise HTTPException(
+                status_code=500,
+                detail=f"Failed to save file: {str(e)}"
+            )
+
+        # Create database record
+        try:
+            invoice = payment_invoice.create_with_file(
+                db,
+                product_id=product_id,
+                file_name=unique_filename,
+                original_file_name=file.filename,
+                file_path=file_path
+            )
+
+            uploaded_invoices.append(PaymentInvoiceResponse(
+                id=invoice.id,
+                original_file_name=invoice.original_file_name,
+                url=f"/api/v2/invoices/{invoice.id}"
+            ))
+
+        except Exception as e:
+            # Clean up file if database operation fails
+            if os.path.exists(file_path):
+                os.remove(file_path)
+            raise HTTPException(
+                status_code=500,
+                detail=f"Failed to create invoice record: {str(e)}"
+            )
+
+    # Log the action
+    try:
+        audit_log.log_action(
+            db,
+            actor_user_id=current_user.id,
+            action="invoice.upload",
+            target_id=str(product_id),
+            details={"files_uploaded": len(uploaded_invoices)}
+        )
+    except Exception as e:
+        print(f"Audit log error: {e}")
+
+    return uploaded_invoices
+
+
+@router.get("/{invoice_id}")
+async def get_invoice(
+    invoice_id: uuid.UUID,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """
+    Retrieve a specific invoice file for preview or download.
+    """
+    invoice = payment_invoice.get(db, invoice_id)
+    if not invoice:
+        raise HTTPException(
+            status_code=404,
+            detail="Invoice not found"
+        )
+
+    if not os.path.exists(invoice.file_path):
+        raise HTTPException(
+            status_code=404,
+            detail="Invoice file not found on disk"
+        )
+
+    # Determine content type based on file extension
+    file_extension = os.path.splitext(invoice.file_path)[1].lower()
+    media_type = "application/octet-stream"
+    if file_extension == ".pdf":
+        media_type = "application/pdf"
+    elif file_extension in [".jpg", ".jpeg"]:
+        media_type = "image/jpeg"
+    elif file_extension == ".png":
+        media_type = "image/png"
+
+    return FileResponse(
+        path=invoice.file_path,
+        filename=invoice.original_file_name,
+        media_type=media_type
+    )
+
+
+@router.delete("/{invoice_id}", status_code=204)
+def delete_invoice(
+    invoice_id: uuid.UUID,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """
+    Delete a specific invoice file.
+    """
+    invoice = payment_invoice.get(db, invoice_id)
+    if not invoice:
+        raise HTTPException(
+            status_code=404,
+            detail="Invoice not found"
+        )
+
+    # Delete file and database record
+    success = payment_invoice.delete_with_file(db, db_obj=invoice)
+    if not success:
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to delete invoice"
+        )
+
+    # Log the action
+    try:
+        audit_log.log_action(
+            db,
+            actor_user_id=current_user.id,
+            action="invoice.delete",
+            target_id=str(invoice_id),
+            details={"product_id": str(invoice.product_id)}
+        )
+    except Exception as e:
+        print(f"Audit log error: {e}")

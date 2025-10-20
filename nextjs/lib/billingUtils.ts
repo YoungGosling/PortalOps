@@ -6,7 +6,8 @@ export function isPaymentComplete(payment: PaymentInfo): boolean {
     payment.cardholder_name &&
     payment.expiry_date &&
     payment.payment_method &&
-    payment.bill_attachment_path
+    payment.invoices &&
+    payment.invoices.length > 0
   );
 }
 
@@ -20,7 +21,7 @@ export function getPaymentCompletionStatus(payment: PaymentInfo): {
   if (!payment.cardholder_name) missingFields.push('Cardholder Name');
   if (!payment.expiry_date) missingFields.push('Expiry Date');
   if (!payment.payment_method) missingFields.push('Payment Method');
-  if (!payment.bill_attachment_path) missingFields.push('Bill Attachment');
+  if (!payment.invoices || payment.invoices.length === 0) missingFields.push('Invoice');
 
   return {
     isComplete: missingFields.length === 0,

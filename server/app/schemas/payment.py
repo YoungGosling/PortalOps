@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, List
 from decimal import Decimal
 from datetime import datetime, date
 import uuid
@@ -12,6 +12,7 @@ class PaymentInfoBase(BaseModel):
     expiryDate: Optional[str] = None  # Changed to string for MM/DD/YYYY format
     paymentMethod: Optional[str] = None
     billAttachmentPath: Optional[str] = None
+    invoices: Optional[List[dict]] = None  # For v2 API with invoice support
 
 
 class PaymentInfoCreate(PaymentInfoBase):

@@ -43,5 +43,7 @@ class Product(Base):
     service = relationship("Service", back_populates="products")
     payment_info = relationship(
         "PaymentInfo", back_populates="product", uselist=False, cascade="all, delete-orphan")
+    payment_invoices = relationship(
+        "PaymentInvoice", back_populates="product", cascade="all, delete-orphan")
     permission_assignments = relationship(
         "PermissionAssignment", back_populates="product")

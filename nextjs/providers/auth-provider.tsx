@@ -73,9 +73,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           console.error('Failed to fetch Azure user from backend:', error);
           // Fallback: use Azure session data with empty roles
           const azureUser: User = {
-            id: session.user.email || '',
-            name: session.user.name || '',
-            email: session.user.email || '',
+            id: session.user?.email || '',
+            name: session.user?.name || '',
+            email: session.user?.email || '',
             department: undefined,
             roles: [], // Admin needs to assign roles in User Directory
             assignedProductIds: [],

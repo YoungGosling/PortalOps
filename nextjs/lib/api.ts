@@ -6,6 +6,7 @@ import type {
   PaymentSummary,
   WorkflowTask,
   BillAttachment,
+  MasterFileInvoice,
   LoginRequest,
   LoginResponse,
   ServiceCreateRequest,
@@ -179,7 +180,7 @@ class ApiClient {
 
   // Payment Register
   async getPaymentRegister(): Promise<PaymentInfo[]> {
-    const response = await this.request<any[]>('/api/payment-register');
+    const response = await this.request<any[]>('/api/v2/payment-register');
     // Transform camelCase nested API response to snake_case flat structure
     return response.map((item) => ({
       product_id: item.productId,
@@ -190,6 +191,7 @@ class ApiClient {
       expiry_date: item.paymentInfo.expiryDate,
       payment_method: item.paymentInfo.paymentMethod,
       bill_attachment_path: item.paymentInfo.billAttachmentPath,
+      invoices: item.paymentInfo.invoices || [],
       is_complete: item.paymentInfo.status === 'complete',
       created_at: item.paymentInfo.createdAt,
       updated_at: item.paymentInfo.updatedAt,
@@ -200,7 +202,7 @@ class ApiClient {
     productId: string,
     data: PaymentUpdateRequest | FormData
   ): Promise<void> {
-    return this.request<void>(`/api/payment-register/${productId}`, {
+    return this.request<void>(`/api/v2/payment-register/${productId}`, {
       method: 'PUT',
       body: data instanceof FormData ? data : JSON.stringify(data),
     });
@@ -208,6 +210,44 @@ class ApiClient {
 
   async getPaymentSummary(): Promise<PaymentSummary> {
     return this.request<PaymentSummary>('/api/payment-register/summary');
+  }
+
+  // Invoice Management
+  async uploadInvoices(productId: string, files: File[]): Promise<void> {
+    const formData = new FormData();
+    files.forEach((file) => {
+      formData.append('files', file);
+    });
+    
+    return this.request<void>(`/api/v2/invoices/${productId}/invoices`, {
+      method: 'POST',
+      body: formData,
+    });
+  }
+
+  async deleteInvoice(invoiceId: string): Promise<void> {
+    return this.request<void>(`/api/v2/invoices/${invoiceId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async downloadInvoice(invoiceId: string): Promise<Blob> {
+    const url = `${this.baseUrl}/api/v2/invoices/${invoiceId}`;
+    const headers = await this.getHeaders();
+    const response = await fetch(url, {
+      headers,
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to download invoice: ${response.status}`);
+    }
+
+    return response.blob();
+  }
+
+  async getMasterFileInvoices(productId?: string): Promise<MasterFileInvoice[]> {
+    const query = productId ? `?productId=${productId}` : '';
+    return this.request<MasterFileInvoice[]>(`/api/v2/master-files/invoices${query}`);
   }
 
   // Users
