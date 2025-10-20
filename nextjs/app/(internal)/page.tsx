@@ -67,8 +67,8 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="flex flex-col h-[calc(100vh-4rem)] overflow-hidden animate-fade-in">
-      <div className="flex-none pb-4">
+    <div className="space-y-4 animate-fade-in pb-6">
+      <div>
         <h1 className="text-2xl font-bold tracking-tight">
           Welcome back, {user?.name?.split(' ')[0] || 'User'}!
         </h1>
@@ -78,7 +78,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Top Section: Statistics Cards */}
-      <div className="flex-none grid gap-4 md:grid-cols-2 lg:grid-cols-4 pb-4">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-foreground">Total Services</CardTitle>
@@ -149,15 +149,15 @@ export default function DashboardPage() {
       </div>
 
       {/* Middle Section: Recent Activity and Upcoming Renewals */}
-      <div className="flex-1 grid gap-4 md:grid-cols-2 pb-4 min-h-0">
-        <Card className="border-0 shadow-sm flex flex-col">
-          <CardHeader className="pb-3 flex-none">
+      <div className="grid gap-4 md:grid-cols-2">
+        <Card className="border-0 shadow-sm">
+          <CardHeader className="pb-3">
             <CardTitle className="text-lg font-semibold">Recent Activity</CardTitle>
             <CardDescription className="text-xs">
               Latest system activities and updates
             </CardDescription>
           </CardHeader>
-          <CardContent className="flex-1 overflow-y-auto min-h-0 pb-0">
+          <CardContent className="pb-4">
             <div className="space-y-3">
               {activities.length === 0 ? (
                 <p className="text-sm text-muted-foreground text-center py-8">No recent activities</p>
@@ -214,14 +214,14 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
-        <Card className="border-0 shadow-sm flex flex-col">
-          <CardHeader className="pb-3 flex-none">
+        <Card className="border-0 shadow-sm">
+          <CardHeader className="pb-3">
             <CardTitle className="text-lg font-semibold">Upcoming Renewals</CardTitle>
             <CardDescription className="text-xs">
               Services requiring payment renewal
             </CardDescription>
           </CardHeader>
-          <CardContent className="flex-1 overflow-y-auto min-h-0 pb-0">
+          <CardContent className="pb-4">
             <div className="space-y-2.5">
               {renewals.length === 0 ? (
                 <p className="text-sm text-muted-foreground text-center py-8">No upcoming renewals</p>
@@ -260,7 +260,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Bottom Section: Quick Actions */}
-      <Card className="border-0 shadow-sm flex-none">
+      <Card className="border-0 shadow-sm">
         <CardHeader className="pb-3">
           <CardTitle className="text-lg font-semibold">Quick Actions</CardTitle>
           <CardDescription className="text-xs">
