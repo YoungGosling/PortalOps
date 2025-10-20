@@ -14,7 +14,6 @@ import {
   Users,
   CreditCard,
   FileText,
-  Shield,
   UserCheck,
   Archive,
   Settings,
@@ -83,16 +82,6 @@ export function Sidebar({ collapsed }: SidebarProps) {
   ];
 
   const adminItems = [
-    {
-      label: 'System Dashboard',
-      icon: BarChart3,
-      path: '/admin/dashboard',
-    },
-    {
-      label: 'Security & Compliance',
-      icon: Shield,
-      path: '/admin/security',
-    },
     {
       label: 'User Administration',
       icon: UserCheck,
@@ -223,8 +212,6 @@ export function Sidebar({ collapsed }: SidebarProps) {
                 {adminItems.map((item) => {
                   const Icon = item.icon;
                   const adminIconColors: Record<string, string> = {
-                    'System Dashboard': 'text-primary',
-                    'Security & Compliance': 'text-destructive',
                     'User Administration': 'text-success',
                     'Master Files': 'text-warning',
                   };
