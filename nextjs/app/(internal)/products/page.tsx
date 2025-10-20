@@ -116,9 +116,8 @@ export default function ProductsPage() {
         <CardContent className="py-4">
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-lg bg-blue-50 dark:bg-blue-950">
-              <Filter className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+              <Filter className="h-4 w-4" />
             </div>
-            <span className="text-sm font-medium">Filter by Service:</span>
             <Select value={selectedServiceFilter} onValueChange={handleServiceFilterChange}>
               <SelectTrigger className="w-[280px]">
                 <SelectValue placeholder="All Services" />
