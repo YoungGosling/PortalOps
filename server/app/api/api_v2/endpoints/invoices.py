@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File,
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from app.db.database import get_db
-from app.crud import payment_invoice, audit_log
+from app.crud import payment_invoice, payment_info, audit_log
 from app.core.deps import require_admin
 from app.schemas.payment_invoice import PaymentInvoiceResponse
 from app.models.user import User
@@ -82,6 +82,31 @@ async def upload_invoices(
                 detail=f"Failed to create invoice record: {str(e)}"
             )
 
+    # After successful uploads, update payment status based on completeness
+    try:
+        existing_payment_info = payment_info.get(db, product_id)
+        if existing_payment_info:
+            invoices = payment_invoice.get_by_product_id(
+                db, product_id=product_id)
+            has_invoices = len(invoices) > 0
+
+            if (
+                existing_payment_info.amount is not None and
+                existing_payment_info.cardholder_name and
+                existing_payment_info.expiry_date and
+                existing_payment_info.payment_method and
+                has_invoices
+            ):
+                if existing_payment_info.status != 'complete':
+                    payment_info.update(db, db_obj=existing_payment_info, obj_in={
+                                        "status": "complete"})
+            else:
+                if existing_payment_info.status != 'incomplete':
+                    payment_info.update(db, db_obj=existing_payment_info, obj_in={
+                                        "status": "incomplete"})
+    except Exception as e:
+        print(f"Payment status update error after upload: {e}")
+
     # Log the action
     try:
         audit_log.log_action(
@@ -159,6 +184,32 @@ def delete_invoice(
             status_code=500,
             detail="Failed to delete invoice"
         )
+
+    # Re-evaluate payment status after deletion
+    try:
+        product_id = invoice.product_id
+        existing_payment_info = payment_info.get(db, product_id)
+        if existing_payment_info:
+            invoices = payment_invoice.get_by_product_id(
+                db, product_id=product_id)
+            has_invoices = len(invoices) > 0
+
+            if (
+                existing_payment_info.amount is not None and
+                existing_payment_info.cardholder_name and
+                existing_payment_info.expiry_date and
+                existing_payment_info.payment_method and
+                has_invoices
+            ):
+                if existing_payment_info.status != 'complete':
+                    payment_info.update(db, db_obj=existing_payment_info, obj_in={
+                                        "status": "complete"})
+            else:
+                if existing_payment_info.status != 'incomplete':
+                    payment_info.update(db, db_obj=existing_payment_info, obj_in={
+                                        "status": "incomplete"})
+    except Exception as e:
+        print(f"Payment status update error after delete: {e}")
 
     # Log the action
     try:
