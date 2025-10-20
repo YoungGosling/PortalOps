@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { apiClient } from '@/lib/api';
-import type { User } from '@/types';
+import type { User, Product } from '@/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -15,6 +15,7 @@ import { useAuth } from '@/providers/auth-provider';
 export default function UsersPage() {
   const { isAdmin } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
@@ -34,9 +35,19 @@ export default function UsersPage() {
     }
   };
 
+  const fetchProducts = async () => {
+    try {
+      const data = await apiClient.getProducts();
+      setProducts(data);
+    } catch (error) {
+      console.error('Failed to load products:', error);
+    }
+  };
+
   useEffect(() => {
     if (isAdmin()) {
       fetchUsers();
+      fetchProducts();
     } else {
       setLoading(false);
     }
@@ -63,6 +74,14 @@ export default function UsersPage() {
   // Handle dialog success
   const handleDialogSuccess = () => {
     fetchUsers();
+  };
+
+  // Get user's assigned products
+  const getUserProducts = (user: User) => {
+    if (!user.assignedProductIds || user.assignedProductIds.length === 0) {
+      return [];
+    }
+    return products.filter(product => user.assignedProductIds.includes(product.id));
   };
 
   if (!isAdmin()) {
@@ -169,46 +188,62 @@ export default function UsersPage() {
                       </div>
                     )}
                     
-                    {user.assignedProductIds && user.assignedProductIds.length > 0 && (
+                    {/* Role Tags - moved to products position */}
+                    {user.roles && user.roles.length > 0 ? (
                       <div className="flex items-center gap-2 text-sm">
-                        <Building2 className="h-3.5 w-3.5 text-muted-foreground" />
-                        <span className="text-muted-foreground">
-                          {user.assignedProductIds.length} {user.assignedProductIds.length === 1 ? 'product' : 'products'} assigned
-                        </span>
+                        <Shield className="h-3.5 w-3.5 text-muted-foreground" />
+                        <div className="flex flex-wrap gap-1">
+                          {user.roles.map((role) => (
+                            <span
+                              key={role}
+                              className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium capitalize ${
+                                role === 'Admin' 
+                                  ? 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400'
+                                  : role === 'ServiceAdmin' 
+                                  ? 'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-400'
+                                  : 'bg-purple-100 text-purple-700 dark:bg-purple-950 dark:text-purple-400'
+                              }`}
+                            >
+                              {role}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2 text-sm">
+                        <Shield className="h-3.5 w-3.5 text-muted-foreground" />
+                        <span className="text-muted-foreground">No roles assigned yet</span>
                       </div>
                     )}
                   </div>
 
-                  {/* Role Tags */}
-                  {user.roles && user.roles.length > 0 ? (
-                    <div className="space-y-2">
-                      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                        Roles
-                      </p>
-                      <div className="flex flex-wrap gap-1.5">
-                        {user.roles.map((role) => (
-                          <span
-                            key={role}
-                            className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium capitalize transition-colors ${
-                              role === 'Admin' 
-                                ? 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400'
-                                : role === 'ServiceAdmin' 
-                                ? 'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-400'
-                                : 'bg-purple-100 text-purple-700 dark:bg-purple-950 dark:text-purple-400'
-                            }`}
-                          >
-                            {role}
-                          </span>
-                        ))}
+                  {/* Assigned Products - moved to roles position */}
+                  {(() => {
+                    const userProducts = getUserProducts(user);
+                    return userProducts.length > 0 ? (
+                      <div className="space-y-2">
+                        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                          Products
+                        </p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {userProducts.map((product) => (
+                            <span
+                              key={product.id}
+                              className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-400 transition-colors"
+                            >
+                              {product.name}
+                            </span>
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                  ) : (
-                    <div className="py-4 px-3 rounded-lg bg-muted/30 border border-dashed">
-                      <p className="text-xs text-muted-foreground text-center">
-                        No roles assigned yet
-                      </p>
-                    </div>
-                  )}
+                    ) : (
+                      <div className="py-4 px-3 rounded-lg bg-muted/30 border border-dashed">
+                        <p className="text-xs text-muted-foreground text-center">
+                          No products assigned yet
+                        </p>
+                      </div>
+                    );
+                  })()}
                   
                   {/* Action Buttons */}
                   <div className="flex gap-2 pt-2">
