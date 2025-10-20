@@ -146,11 +146,12 @@ def get_pending_tasks_count(
     db: Session = Depends(get_db)
 ):
     """
-    Get count of pending workflow tasks (onboarding/offboarding).
-    Returns the count of tasks with status='pending'.
+    Get count of pending workflow tasks (onboarding/offboarding) assigned to the current user.
+    Returns the count of tasks with status='pending' assigned to the current user.
     """
     pending_count = db.query(func.count(WorkflowTask.id)).filter(
-        WorkflowTask.status == 'pending'
+        WorkflowTask.status == 'pending',
+        WorkflowTask.assignee_user_id == current_user.id
     ).scalar()
 
     return {
