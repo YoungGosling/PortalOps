@@ -68,12 +68,6 @@ export function AuthPage({ onBack }: AuthPageProps) {
             {activeTab === 'signin' ? <SignInForm /> : <SignUpForm />}
           </CardContent>
         </Card>
-
-        <div className="text-center">
-          <p className="text-xs text-gray-500 dark:text-gray-400">
-            Demo credentials: admin@portalops.com / password
-          </p>
-        </div>
       </div>
     </div>
   )

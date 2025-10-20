@@ -237,7 +237,7 @@ export function Sidebar({ collapsed }: SidebarProps) {
         )}
 
         {/* System Setup Section (Admin Only) */}
-        {isAdmin() && (
+        {/* {isAdmin() && (
           <div className="space-y-1">
             <Collapsible open={setupOpen} onOpenChange={setSetupOpen}>
               <CollapsibleTrigger asChild>
@@ -275,7 +275,7 @@ export function Sidebar({ collapsed }: SidebarProps) {
               </CollapsibleContent>
             </Collapsible>
           </div>
-        )}
+        )} */}
       </nav>
     </aside>
   );

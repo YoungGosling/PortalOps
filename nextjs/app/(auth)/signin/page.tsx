@@ -178,14 +178,6 @@ function SignInForm() {
             </>
           )}
         </Button>
-        <div className="pt-2 px-4 py-3 rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900">
-          <p className="text-xs text-center text-muted-foreground">
-            <span className="font-medium text-foreground block mb-1">Demo Credentials</span>
-            <span className="font-mono text-primary">admin@portalops.com</span>
-            {' / '}
-            <span className="font-mono text-primary">password</span>
-          </p>
-        </div>
       </form>
     </div>
   );

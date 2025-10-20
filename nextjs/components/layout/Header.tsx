@@ -76,29 +76,6 @@ export function Header({ onToggleSidebar }: HeaderProps) {
 
         {/* Right Section */}
         <div className="ml-auto flex items-center gap-2">
-          <Button variant="ghost" size="icon" className="h-9 w-9 hover:bg-info/10 hover:text-info transition-colors">
-            <Search className="h-4 w-4" />
-          </Button>
-
-          {isAdmin() && (
-            <Button variant="ghost" size="icon" className="h-9 w-9 relative hover:bg-warning/10 hover:text-warning transition-colors">
-              <Settings className="h-4 w-4" />
-              <span className="absolute top-1 right-1 h-2 w-2 bg-warning rounded-full animate-pulse shadow-sm shadow-warning" />
-            </Button>
-          )}
-
-          <Separator orientation="vertical" className="h-6" />
-
-          <Button variant="ghost" size="icon" className="h-9 w-9 hover:bg-info/10 hover:text-info transition-colors">
-            <Bell className="h-4 w-4" />
-          </Button>
-
-          <Button variant="ghost" size="icon" className="h-9 w-9 hover:bg-success/10 hover:text-success transition-colors">
-            <HelpCircle className="h-4 w-4" />
-          </Button>
-
-          <Separator orientation="vertical" className="h-6" />
-
           {/* User Profile Dropdown */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
