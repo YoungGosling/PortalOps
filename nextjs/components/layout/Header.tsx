@@ -1,8 +1,6 @@
 'use client';
 
 import { useAuth } from '@/providers/auth-provider';
-import { usePaymentSummary } from '@/providers/payment-summary-provider';
-import { useTheme } from 'next-themes';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -22,10 +20,6 @@ import {
   Settings,
   Bell,
   HelpCircle,
-  User,
-  Sun,
-  Moon,
-  Monitor,
   LogOut,
   ChevronDown,
 } from 'lucide-react';
@@ -36,7 +30,6 @@ interface HeaderProps {
 
 export function Header({ onToggleSidebar }: HeaderProps) {
   const { user, logout, isAdmin } = useAuth();
-  const { theme, setTheme } = useTheme();
 
   const getInitials = (name: string) => {
     return name
@@ -45,17 +38,6 @@ export function Header({ onToggleSidebar }: HeaderProps) {
       .join('')
       .toUpperCase()
       .slice(0, 2);
-  };
-
-  const getThemeIcon = () => {
-    switch (theme) {
-      case 'light':
-        return <Sun className="h-4 w-4" />;
-      case 'dark':
-        return <Moon className="h-4 w-4" />;
-      default:
-        return <Monitor className="h-4 w-4" />;
-    }
   };
 
   return (
@@ -128,83 +110,42 @@ export function Header({ onToggleSidebar }: HeaderProps) {
                 <ChevronDown className="h-3 w-3 opacity-50" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-72 animate-scale-in" align="end">
-              <DropdownMenuLabel>
-                <div className="flex items-center gap-3 py-2">
-                  <Avatar className="h-10 w-10 ring-2 ring-primary/30">
-                    <AvatarFallback className="bg-gradient-to-br from-primary to-info text-primary-foreground font-bold">
+            <DropdownMenuContent className="w-80 bg-white dark:bg-slate-900 border-2 shadow-2xl" align="end" sideOffset={8}>
+              <div className="p-4 bg-gradient-to-br bg-gradient-to-r from-white to-white dark:from-slate-800 dark:to-slate-800 border-b-2 border-gray-200 dark:border-gray-700">
+                <div className="flex items-center gap-3">
+                  <Avatar className="h-14 w-14 ring-2 ring-primary/40 shadow-lg">
+                    <AvatarFallback className="bg-gradient-to-br from-primary to-info text-primary-foreground font-bold text-lg">
                       {user ? getInitials(user.name) : 'U'}
                     </AvatarFallback>
                   </Avatar>
-                  <div className="flex flex-col">
-                    <span className="font-semibold">{user?.name || 'User'}</span>
-                    <span className="text-xs text-muted-foreground">
+                  <div className="flex flex-col flex-1 min-w-0">
+                    <span className="font-bold text-base truncate text-gray-900 dark:text-white">{user?.name || 'User'}</span>
+                    <span className="text-xs text-gray-600 dark:text-gray-400 truncate">
                       {user?.email || ''}
                     </span>
-                    <div className="flex gap-1 mt-1">
+                    <div className="flex flex-wrap gap-1.5 mt-2">
                       {user?.roles?.map((role) => (
-                        <Badge key={role} variant={role === 'Admin' ? 'default' : 'secondary'} className="text-[10px]">
+                        <Badge 
+                          key={role} 
+                          variant={role === 'Admin' ? 'default' : 'secondary'} 
+                          className="text-[10px] px-2 py-0.5 shadow-sm font-semibold"
+                        >
                           {role}
                         </Badge>
                       ))}
                     </div>
                   </div>
                 </div>
-              </DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem>
-                <User className="mr-2 h-4 w-4" />
-                <span>Profile Settings</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <Bell className="mr-2 h-4 w-4" />
-                <span>Notification Preferences</span>
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">
-                Appearance
-              </DropdownMenuLabel>
-              <DropdownMenuItem onClick={() => setTheme('light')}>
-                <Sun className="mr-2 h-4 w-4 text-warning" />
-                <span>Light Theme</span>
-                {theme === 'light' && (
-                  <span className="ml-auto h-2 w-2 bg-success rounded-full animate-pulse" />
-                )}
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setTheme('dark')}>
-                <Moon className="mr-2 h-4 w-4 text-info" />
-                <span>Dark Theme</span>
-                {theme === 'dark' && (
-                  <span className="ml-auto h-2 w-2 bg-success rounded-full animate-pulse" />
-                )}
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setTheme('system')}>
-                <Monitor className="mr-2 h-4 w-4 text-primary" />
-                <span>System Theme</span>
-                {theme === 'system' && (
-                  <span className="ml-auto h-2 w-2 bg-success rounded-full animate-pulse" />
-                )}
-              </DropdownMenuItem>
-              {isAdmin() && (
-                <>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">
-                    Administration
-                  </DropdownMenuLabel>
-                  <DropdownMenuItem>
-                    <Settings className="mr-2 h-4 w-4" />
-                    <span>System Setup</span>
-                  </DropdownMenuItem>
-                </>
-              )}
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                onClick={logout}
-                className="text-destructive focus:text-destructive focus:bg-destructive/10"
-              >
-                <LogOut className="mr-2 h-4 w-4" />
-                <span>Sign Out</span>
-              </DropdownMenuItem>
+              </div>
+              <div className="p-2 bg-white dark:bg-slate-900">
+                <DropdownMenuItem
+                  onClick={logout}
+                  className="text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer rounded-md h-11 px-3 font-medium transition-colors hover:bg-destructive/5"
+                >
+                  <LogOut className="mr-3 h-4 w-4" />
+                  <span>Sign Out</span>
+                </DropdownMenuItem>
+              </div>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
