@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict 5VAAp5GNaBM0u5c8XZ5a7YG0GniHs8qfOANIDyHrUtXAhAS74dwiJGYIfzyvVpi
+\restrict ceD5BQMOoscskTkYv7J3CwrNkpBMToeERViKzJnQmkiv9RWGoZ7qXFgNaYT3OfI
 
 -- Dumped from database version 14.19 (Ubuntu 14.19-0ubuntu0.22.04.1)
 -- Dumped by pg_dump version 14.19 (Ubuntu 14.19-0ubuntu0.22.04.1)
@@ -87,7 +87,6 @@ CREATE TABLE public.payment_info (
     expiry_date date,
     payment_method character varying(50),
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
-    bill_attachment_path text,
     CONSTRAINT payment_info_status_check CHECK (((status)::text = ANY ((ARRAY['incomplete'::character varying, 'complete'::character varying])::text[])))
 );
 
@@ -98,7 +97,72 @@ ALTER TABLE public.payment_info OWNER TO postgres;
 -- Name: TABLE payment_info; Type: COMMENT; Schema: public; Owner: postgres
 --
 
-COMMENT ON TABLE public.payment_info IS 'Billing information for each product';
+COMMENT ON TABLE public.payment_info IS 'Billing information for each product - invoice files now stored in payment_invoices table';
+
+
+--
+-- Name: payment_invoices; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.payment_invoices (
+    id uuid DEFAULT public.uuid_generate_v4() NOT NULL,
+    product_id uuid NOT NULL,
+    file_name text NOT NULL,
+    original_file_name text NOT NULL,
+    file_path text NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+ALTER TABLE public.payment_invoices OWNER TO postgres;
+
+--
+-- Name: TABLE payment_invoices; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON TABLE public.payment_invoices IS 'Invoice files associated with payment records';
+
+
+--
+-- Name: COLUMN payment_invoices.id; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.payment_invoices.id IS 'Unique identifier for the invoice record';
+
+
+--
+-- Name: COLUMN payment_invoices.product_id; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.payment_invoices.product_id IS 'Links the invoice to a product/payment record';
+
+
+--
+-- Name: COLUMN payment_invoices.file_name; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.payment_invoices.file_name IS 'The stored file name on disk (e.g., uuid.pdf)';
+
+
+--
+-- Name: COLUMN payment_invoices.original_file_name; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.payment_invoices.original_file_name IS 'The original user-provided file name';
+
+
+--
+-- Name: COLUMN payment_invoices.file_path; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.payment_invoices.file_path IS 'The absolute path to the file in storage';
+
+
+--
+-- Name: COLUMN payment_invoices.created_at; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.payment_invoices.created_at IS 'Timestamp of the upload';
 
 
 --
@@ -188,7 +252,8 @@ CREATE TABLE public.users (
     password_hash character varying(255),
     department character varying(255),
     created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    azure_id character varying(255)
 );
 
 
@@ -199,6 +264,13 @@ ALTER TABLE public.users OWNER TO postgres;
 --
 
 COMMENT ON TABLE public.users IS 'Stores information about all individuals in the system';
+
+
+--
+-- Name: COLUMN users.azure_id; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.users.azure_id IS 'Azure AD Object ID (oid) for SSO authentication';
 
 
 --
@@ -331,11 +403,14 @@ CREATE TABLE public.workflow_tasks (
     type character varying(20) NOT NULL,
     status character varying(20) DEFAULT 'pending'::character varying NOT NULL,
     assignee_user_id uuid NOT NULL,
-    target_user_id uuid NOT NULL,
+    target_user_id uuid,
     details text,
     due_date timestamp with time zone,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    employee_name character varying(255),
+    employee_email character varying(255),
+    employee_department character varying(255),
     CONSTRAINT workflow_tasks_status_check CHECK (((status)::text = ANY ((ARRAY['pending'::character varying, 'completed'::character varying, 'invited'::character varying, 'in_progress'::character varying, 'cancelled'::character varying])::text[]))),
     CONSTRAINT workflow_tasks_type_check CHECK (((type)::text = ANY ((ARRAY['onboarding'::character varying, 'offboarding'::character varying])::text[])))
 );
@@ -348,6 +423,27 @@ ALTER TABLE public.workflow_tasks OWNER TO postgres;
 --
 
 COMMENT ON TABLE public.workflow_tasks IS 'Tasks for the inbox system';
+
+
+--
+-- Name: COLUMN workflow_tasks.employee_name; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.workflow_tasks.employee_name IS 'Employee name from HR system (may not have user record yet for onboarding)';
+
+
+--
+-- Name: COLUMN workflow_tasks.employee_email; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.workflow_tasks.employee_email IS 'Employee email from HR system (may not have user record yet for onboarding)';
+
+
+--
+-- Name: COLUMN workflow_tasks.employee_department; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.workflow_tasks.employee_department IS 'Employee department from HR system (may not have user record yet for onboarding)';
 
 
 --
@@ -371,6 +467,14 @@ ALTER TABLE ONLY public.audit_logs
 
 ALTER TABLE ONLY public.payment_info
     ADD CONSTRAINT payment_info_pkey PRIMARY KEY (product_id);
+
+
+--
+-- Name: payment_invoices payment_invoices_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.payment_invoices
+    ADD CONSTRAINT payment_invoices_pkey PRIMARY KEY (id);
 
 
 --
@@ -430,6 +534,14 @@ ALTER TABLE ONLY public.user_roles
 
 
 --
+-- Name: users users_azure_id_key; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.users
+    ADD CONSTRAINT users_azure_id_key UNIQUE (azure_id);
+
+
+--
 -- Name: users users_email_key; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -465,6 +577,20 @@ CREATE INDEX idx_audit_logs_action ON public.audit_logs USING btree (action);
 --
 
 CREATE INDEX idx_audit_logs_actor_user_id ON public.audit_logs USING btree (actor_user_id);
+
+
+--
+-- Name: idx_payment_invoices_created_at; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_payment_invoices_created_at ON public.payment_invoices USING btree (created_at);
+
+
+--
+-- Name: idx_payment_invoices_product_id; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_payment_invoices_product_id ON public.payment_invoices USING btree (product_id);
 
 
 --
@@ -524,6 +650,13 @@ CREATE INDEX idx_user_roles_user_id ON public.user_roles USING btree (user_id);
 
 
 --
+-- Name: idx_users_azure_id; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_users_azure_id ON public.users USING btree (azure_id);
+
+
+--
 -- Name: idx_users_department; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -549,6 +682,13 @@ CREATE INDEX idx_workflow_tasks_assignee_status ON public.workflow_tasks USING b
 --
 
 CREATE INDEX idx_workflow_tasks_assignee_user_id ON public.workflow_tasks USING btree (assignee_user_id);
+
+
+--
+-- Name: idx_workflow_tasks_employee_email; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_workflow_tasks_employee_email ON public.workflow_tasks USING btree (employee_email);
 
 
 --
@@ -617,6 +757,14 @@ ALTER TABLE ONLY public.payment_info
 
 
 --
+-- Name: payment_invoices payment_invoices_product_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.payment_invoices
+    ADD CONSTRAINT payment_invoices_product_id_fkey FOREIGN KEY (product_id) REFERENCES public.products(id) ON DELETE CASCADE;
+
+
+--
 -- Name: permission_assignments permission_assignments_product_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -677,12 +825,12 @@ ALTER TABLE ONLY public.workflow_tasks
 --
 
 ALTER TABLE ONLY public.workflow_tasks
-    ADD CONSTRAINT workflow_tasks_target_user_id_fkey FOREIGN KEY (target_user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+    ADD CONSTRAINT workflow_tasks_target_user_id_fkey FOREIGN KEY (target_user_id) REFERENCES public.users(id) ON DELETE SET NULL;
 
 
 --
 -- PostgreSQL database dump complete
 --
 
-\unrestrict 5VAAp5GNaBM0u5c8XZ5a7YG0GniHs8qfOANIDyHrUtXAhAS74dwiJGYIfzyvVpi
+\unrestrict ceD5BQMOoscskTkYv7J3CwrNkpBMToeERViKzJnQmkiv9RWGoZ7qXFgNaYT3OfI
 
