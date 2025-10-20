@@ -38,6 +38,7 @@ class CRUDPaymentInvoice(CRUDBase[PaymentInvoice, PaymentInvoiceCreate, PaymentI
                 "id": invoice.id,
                 "file_name": invoice.file_name,
                 "original_file_name": invoice.original_file_name,
+                "product_id": invoice.product_id,
                 "product_name": product_name,
                 "service_name": service_name,
                 "created_at": invoice.created_at

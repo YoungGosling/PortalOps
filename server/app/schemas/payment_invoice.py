@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import Optional, List
+from typing import Optional
 from datetime import datetime
 import uuid
 
@@ -42,6 +42,7 @@ class MasterFileInvoice(BaseModel):
     id: uuid.UUID
     file_name: str
     original_file_name: str
+    product_id: uuid.UUID
     product_name: str
     service_name: str
     created_at: datetime
