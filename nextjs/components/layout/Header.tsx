@@ -74,7 +74,7 @@ export function Header({ onToggleSidebar }: HeaderProps) {
           <Separator orientation="vertical" className="h-6" />
           <div className="flex items-center gap-2 px-2 py-1 rounded-md bg-gradient-to-r from-primary/10 to-info/10">
             <Shield className="h-6 w-6 text-primary" />
-            <span className="font-bold text-lg hidden sm:inline bg-gradient-to-r from-primary to-info bg-clip-text text-transparent">
+            <span className="font-bold text-lg hidden sm:inline text-foreground">
               PortalOps
             </span>
           </div>
