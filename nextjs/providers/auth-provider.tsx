@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import { apiClient } from '@/lib/api';
 import type { User, LoginRequest } from '@/types';
 
@@ -22,6 +23,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
+  const { data: session, status: sessionStatus } = useSession();
 
   const fetchUser = async () => {
     try {
@@ -51,9 +53,48 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  // Handle Azure AD session
   useEffect(() => {
-    fetchUser();
-  }, []);
+    if (sessionStatus === 'loading') {
+      setLoading(true);
+      return;
+    }
+
+    if (sessionStatus === 'authenticated' && session?.user) {
+      // User is authenticated via Azure AD
+      // Fetch user data from backend (which will sync Azure user automatically)
+      const fetchAzureUser = async () => {
+        try {
+          setLoading(true);
+          // Backend will recognize Azure ID token and sync user automatically
+          const userData = await apiClient.getCurrentUser();
+          setUser(userData);
+        } catch (error) {
+          console.error('Failed to fetch Azure user from backend:', error);
+          // Fallback: use Azure session data with empty roles
+          const azureUser: User = {
+            id: session.user.email || '',
+            name: session.user.name || '',
+            email: session.user.email || '',
+            department: undefined,
+            roles: [], // Admin needs to assign roles in User Directory
+            assignedProductIds: [],
+          };
+          setUser(azureUser);
+        } finally {
+          setLoading(false);
+        }
+      };
+      
+      fetchAzureUser();
+      return;
+    }
+
+    if (sessionStatus === 'unauthenticated') {
+      // No Azure session, check for regular token-based auth
+      fetchUser();
+    }
+  }, [session, sessionStatus]);
 
   const login = async (credentials: LoginRequest) => {
     try {

@@ -11,6 +11,11 @@ class Settings(BaseSettings):
     JWT_ALGORITHM: str = "HS256"
     JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = 180
 
+    # Azure AD Configuration
+    AZURE_AD_TENANT_ID: Optional[str] = None
+    AZURE_AD_CLIENT_ID: Optional[str] = None
+    AZURE_AD_ENABLED: bool = False  # Enable Azure AD authentication
+
     # API Configuration
     API_V1_STR: str = "/api"
     PROJECT_NAME: str = "PortalOps"

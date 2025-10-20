@@ -13,6 +13,8 @@ class User(Base):
     name = Column(String(255), nullable=False)
     email = Column(String(255), nullable=False, unique=True)
     password_hash = Column(String(255), nullable=True)
+    azure_id = Column(String(255), nullable=True,
+                      unique=True)  # Azure AD Object ID
     department = Column(String(255), nullable=True)
     created_at = Column(DateTime(timezone=True),
                         server_default=func.now(), nullable=False)
@@ -52,6 +54,3 @@ class UserRole(Base):
     # Relationships
     user = relationship("User", back_populates="user_roles")
     role = relationship("Role", back_populates="user_roles")
-
-
-

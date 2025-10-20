@@ -1,6 +1,7 @@
 'use client';
 
 import { useAuth } from '@/providers/auth-provider';
+import { useSession, signOut } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -30,6 +31,17 @@ interface HeaderProps {
 
 export function Header({ onToggleSidebar }: HeaderProps) {
   const { user, logout, isAdmin } = useAuth();
+  const { data: session } = useSession();
+
+  const handleLogout = async () => {
+    // If user is authenticated via Azure AD (NextAuth session exists)
+    if (session) {
+      await signOut({ callbackUrl: '/signin' });
+    } else {
+      // Use regular logout for email/password authentication
+      logout();
+    }
+  };
 
   const getInitials = (name: string) => {
     return name
@@ -139,7 +151,7 @@ export function Header({ onToggleSidebar }: HeaderProps) {
               </div>
               <div className="p-2 bg-white dark:bg-slate-900">
                 <DropdownMenuItem
-                  onClick={logout}
+                  onClick={handleLogout}
                   className="text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer rounded-md h-11 px-3 font-medium transition-colors hover:bg-destructive/5"
                 >
                   <LogOut className="mr-3 h-4 w-4" />

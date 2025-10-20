@@ -30,7 +30,7 @@ class ApiClient {
     this.baseUrl = baseUrl;
   }
 
-  private getHeaders(includeAuth: boolean = true, includeContentType: boolean = true): HeadersInit {
+  private async getHeaders(includeAuth: boolean = true, includeContentType: boolean = true): Promise<HeadersInit> {
     const headers: HeadersInit = {};
 
     if (includeContentType) {
@@ -38,7 +38,25 @@ class ApiClient {
     }
 
     if (includeAuth && typeof window !== 'undefined') {
-      const token = localStorage.getItem('access_token');
+      // First try to get token from localStorage (traditional login)
+      let token = localStorage.getItem('access_token');
+      
+      // If no traditional token, check for NextAuth session (Azure login)
+      if (!token) {
+        try {
+          const sessionResponse = await fetch('/api/auth/session');
+          if (sessionResponse.ok) {
+            const session = await sessionResponse.json();
+            // Use Azure ID token for backend authentication
+            if (session?.tokens?.id_token) {
+              token = session.tokens.id_token;
+            }
+          }
+        } catch (error) {
+          console.error('Failed to fetch NextAuth session:', error);
+        }
+      }
+      
       if (token) {
         headers['Authorization'] = `Bearer ${token}`;
       }
@@ -56,10 +74,13 @@ class ApiClient {
     // Check if body is FormData to avoid setting Content-Type
     const isFormData = options.body instanceof FormData;
     
+    // Get headers (now async to support NextAuth session check)
+    const authHeaders = await this.getHeaders(true, !isFormData);
+    
     const response = await fetch(url, {
       ...options,
       headers: {
-        ...this.getHeaders(true, !isFormData),
+        ...authHeaders,
         ...options.headers,
       },
     });
@@ -247,8 +268,9 @@ class ApiClient {
 
   async downloadAttachment(fileId: string): Promise<Blob> {
     const url = `${this.baseUrl}/api/master-files/attachments/${fileId}`;
+    const headers = await this.getHeaders();
     const response = await fetch(url, {
-      headers: this.getHeaders(),
+      headers,
     });
 
     if (!response.ok) {

@@ -15,6 +15,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { Shield, Building, Lock, Mail } from 'lucide-react';
+import { AzureSignInButton } from '@/components/auth/azure-signin-button';
 
 export default function SignInPage() {
   return (
@@ -108,67 +109,85 @@ function SignInForm() {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-5">
-      <div className="space-y-2">
-        <Label htmlFor="signin-email" className="text-sm font-medium">
-          Email Address
-        </Label>
-        <div className="relative">
-          <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            id="signin-email"
-            type="email"
-            placeholder="name@example.com"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            disabled={loading}
-            className="h-11 pl-10"
-          />
+    <div className="space-y-5">
+      {/* Azure Sign-in Button */}
+      <AzureSignInButton baseUrl={process.env.NEXT_PUBLIC_NEXTAUTH_URL || ''} />
+      
+      {/* Divider */}
+      <div className="relative">
+        <div className="absolute inset-0 flex items-center">
+          <span className="w-full border-t" />
+        </div>
+        <div className="relative flex justify-center text-xs uppercase">
+          <span className="bg-background px-2 text-muted-foreground">
+            Or continue with email
+          </span>
         </div>
       </div>
-      <div className="space-y-2">
-        <Label htmlFor="signin-password" className="text-sm font-medium">
-          Password
-        </Label>
-        <div className="relative">
-          <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            id="signin-password"
-            type="password"
-            placeholder="Enter your password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            disabled={loading}
-            className="h-11 pl-10"
-          />
+
+      {/* Email/Password Form */}
+      <form onSubmit={handleSubmit} className="space-y-5">
+        <div className="space-y-2">
+          <Label htmlFor="signin-email" className="text-sm font-medium">
+            Email Address
+          </Label>
+          <div className="relative">
+            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              id="signin-email"
+              type="email"
+              placeholder="name@example.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              disabled={loading}
+              className="h-11 pl-10"
+            />
+          </div>
         </div>
-      </div>
-      <Button 
-        type="submit" 
-        className="w-full h-11 gap-2" 
-        disabled={loading}
-      >
-        {loading ? (
-          <>
-            <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-            Signing in...
-          </>
-        ) : (
-          <>
-            <Shield className="h-4 w-4" />
-            Sign In
-          </>
-        )}
-      </Button>
-      <div className="pt-2 px-4 py-3 rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900">
-        <p className="text-xs text-center text-muted-foreground">
-          <span className="font-medium text-foreground block mb-1">Demo Credentials</span>
-          <span className="font-mono text-primary">admin@portalops.com</span>
-          {' / '}
-          <span className="font-mono text-primary">password</span>
-        </p>
-      </div>
-    </form>
+        <div className="space-y-2">
+          <Label htmlFor="signin-password" className="text-sm font-medium">
+            Password
+          </Label>
+          <div className="relative">
+            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              id="signin-password"
+              type="password"
+              placeholder="Enter your password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              disabled={loading}
+              className="h-11 pl-10"
+            />
+          </div>
+        </div>
+        <Button 
+          type="submit" 
+          className="w-full h-11 gap-2" 
+          disabled={loading}
+        >
+          {loading ? (
+            <>
+              <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              Signing in...
+            </>
+          ) : (
+            <>
+              <Shield className="h-4 w-4" />
+              Sign In
+            </>
+          )}
+        </Button>
+        <div className="pt-2 px-4 py-3 rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900">
+          <p className="text-xs text-center text-muted-foreground">
+            <span className="font-medium text-foreground block mb-1">Demo Credentials</span>
+            <span className="font-mono text-primary">admin@portalops.com</span>
+            {' / '}
+            <span className="font-mono text-primary">password</span>
+          </p>
+        </div>
+      </form>
+    </div>
   );
 }
 

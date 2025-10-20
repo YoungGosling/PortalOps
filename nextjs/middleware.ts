@@ -1,33 +1,39 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { isTokenValid } from '@/lib/jwt';
+import { getToken } from 'next-auth/jwt';
 
-export function middleware(request: NextRequest) {
-  const token = request.cookies.get('access_token')?.value ||
-    request.headers.get('authorization')?.replace('Bearer ', '');
-
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Public routes
+  // Public routes (including NextAuth callback routes)
   const isAuthPage = pathname.startsWith('/signin') || pathname.startsWith('/signup');
+  const isNextAuthCallback = pathname.startsWith('/api/auth');
+  
+  // Skip middleware for NextAuth API routes
+  if (isNextAuthCallback) {
+    return NextResponse.next();
+  }
+  
+  // Check for NextAuth session using getToken (proper way)
+  const token = await getToken({ 
+    req: request, 
+    secret: process.env.NEXTAUTH_SECRET 
+  });
+  
+  // Check for traditional JWT token (for email/password login)
+  const accessToken = request.cookies.get('access_token')?.value;
 
-  // Verify if token is valid and not expired
-  const hasValidToken = isTokenValid(token);
+  // User is authenticated if they have either NextAuth token or access token
+  const isAuthenticated = !!token || !!accessToken;
 
-  // If user has valid token and trying to access auth pages, redirect to dashboard
-  if (hasValidToken && isAuthPage) {
+  // If user is authenticated and trying to access auth pages, redirect to dashboard
+  if (isAuthenticated && isAuthPage) {
     return NextResponse.redirect(new URL('/', request.url));
   }
 
-  // If user doesn't have valid token (missing or expired) and trying to access protected pages, redirect to signin
-  if (!hasValidToken && !isAuthPage) {
-    // Clear the expired token cookie
-    const response = NextResponse.redirect(new URL('/signin', request.url));
-    response.cookies.set('access_token', '', {
-      path: '/',
-      expires: new Date(0),
-    });
-    return response;
+  // If user is not authenticated and trying to access protected pages, redirect to signin
+  if (!isAuthenticated && !isAuthPage) {
+    return NextResponse.redirect(new URL('/signin', request.url));
   }
 
   return NextResponse.next();
@@ -37,12 +43,12 @@ export const config = {
   matcher: [
     /*
      * Match all request paths except for the ones starting with:
-     * - api (API routes)
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
+     * Note: We handle API routes manually in the middleware function
      */
-    '/((?!api|_next/static|_next/image|favicon.ico).*)',
+    '/((?!_next/static|_next/image|favicon.ico).*)',
   ],
 };
 

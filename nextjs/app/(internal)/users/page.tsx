@@ -128,7 +128,7 @@ export default function UsersPage() {
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {users.map((user) => {
-            const hasAdminRole = user.roles?.includes('admin');
+            const hasAdminRole = user.roles?.includes('Admin');
             
             return (
               <Card 
@@ -169,11 +169,11 @@ export default function UsersPage() {
                       </div>
                     )}
                     
-                    {user.assignedServiceIds && user.assignedServiceIds.length > 0 && (
+                    {user.assignedProductIds && user.assignedProductIds.length > 0 && (
                       <div className="flex items-center gap-2 text-sm">
                         <Building2 className="h-3.5 w-3.5 text-muted-foreground" />
                         <span className="text-muted-foreground">
-                          {user.assignedServiceIds.length} {user.assignedServiceIds.length === 1 ? 'service' : 'services'} assigned
+                          {user.assignedProductIds.length} {user.assignedProductIds.length === 1 ? 'product' : 'products'} assigned
                         </span>
                       </div>
                     )}
@@ -190,12 +190,10 @@ export default function UsersPage() {
                           <span
                             key={role}
                             className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium capitalize transition-colors ${
-                              role === 'admin' 
+                              role === 'Admin' 
                                 ? 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400'
-                                : role === 'hr' 
+                                : role === 'ServiceAdmin' 
                                 ? 'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-400'
-                                : role === 'finance' 
-                                ? 'bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-400'
                                 : 'bg-purple-100 text-purple-700 dark:bg-purple-950 dark:text-purple-400'
                             }`}
                           >

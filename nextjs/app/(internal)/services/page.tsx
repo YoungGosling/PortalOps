@@ -109,7 +109,7 @@ export default function ServicesPage() {
                     </CardTitle>
                     <CardDescription className="text-xs flex items-center gap-1.5">
                       <Package className="h-3.5 w-3.5" />
-                      {service.productCount} {service.productCount === 1 ? 'Product' : 'Products'}
+                      {service.product_count} {service.product_count === 1 ? 'Product' : 'Products'}
                     </CardDescription>
                   </div>
                   <div className="flex-shrink-0 p-2.5 rounded-lg bg-blue-50 dark:bg-blue-950 group-hover:bg-blue-100 dark:group-hover:bg-blue-900 transition-colors">

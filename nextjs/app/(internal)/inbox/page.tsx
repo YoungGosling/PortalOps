@@ -59,7 +59,7 @@ export default function InboxPage() {
         email: task.employee_email,
         department: task.employee_department,
         roles: [],
-        assignedServiceIds: []
+        assignedProductIds: []
       };
       
       setEditingUser(tempUser);
