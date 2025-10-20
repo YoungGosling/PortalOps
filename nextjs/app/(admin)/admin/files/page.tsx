@@ -13,7 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Archive, Download, FileText, Search } from 'lucide-react';
+import { Archive, Download, FileText, Search, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/providers/auth-provider';
 
@@ -51,15 +51,19 @@ export default function MasterFilesPage() {
   useEffect(() => {
     let filtered = invoices;
 
-    if (searchTerm) {
+    // Apply search filter
+    if (searchTerm.trim()) {
+      const searchLower = searchTerm.toLowerCase().trim();
       filtered = filtered.filter(invoice =>
-        invoice.original_file_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        invoice.product_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        invoice.service_name.toLowerCase().includes(searchTerm.toLowerCase())
+        invoice.original_file_name.toLowerCase().includes(searchLower) ||
+        invoice.product_name.toLowerCase().includes(searchLower) ||
+        invoice.service_name.toLowerCase().includes(searchLower) ||
+        invoice.file_name.toLowerCase().includes(searchLower)
       );
     }
 
-    if (selectedProduct !== 'all') {
+    // Apply product filter
+    if (selectedProduct && selectedProduct !== 'all') {
       filtered = filtered.filter(invoice => invoice.product_id === selectedProduct);
     }
 
@@ -98,9 +102,16 @@ export default function MasterFilesPage() {
     }
   };
 
+  const clearFilters = () => {
+    setSearchTerm('');
+    setSelectedProduct('all');
+  };
+
+  const hasActiveFilters = searchTerm.trim() !== '' || selectedProduct !== 'all';
+
   // Get unique products for filter dropdown
   const uniqueProducts = Array.from(
-    new Set(invoices.map(invoice => ({ id: invoice.product_id, name: invoice.product_name })))
+    new Map(invoices.map(invoice => [invoice.product_id, { id: invoice.product_id, name: invoice.product_name }])).values()
   );
 
   return (
@@ -142,7 +153,23 @@ export default function MasterFilesPage() {
                 </SelectContent>
               </Select>
             </div>
+            {hasActiveFilters && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={clearFilters}
+                className="shrink-0"
+              >
+                <X className="h-4 w-4 mr-2" />
+                Clear Filters
+              </Button>
+            )}
           </div>
+          {hasActiveFilters && (
+            <div className="mt-3 text-sm text-muted-foreground">
+              Showing {filteredInvoices.length} of {invoices.length} invoices
+            </div>
+          )}
         </CardContent>
       </Card>
 
