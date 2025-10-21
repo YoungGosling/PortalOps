@@ -29,7 +29,7 @@ export default function SignInPage() {
       {/* Main login card */}
       <div className="w-full max-w-md relative z-10 animate-fade-in">
         <Card className="border-0 shadow-sm hover:shadow-md transition-shadow duration-300">
-          <CardHeader className="text-center space-y-4 pb-6">
+          <CardHeader className="text-center space-y-4 pb-3">
             <div className="flex justify-center">
               <div className="p-4 rounded-2xl bg-blue-50 dark:bg-blue-950 group-hover:bg-blue-100 dark:group-hover:bg-blue-900 transition-colors">
                 <Shield className="h-12 w-12 text-blue-600 dark:text-blue-400" />
@@ -46,7 +46,7 @@ export default function SignInPage() {
           </CardHeader>
           <CardContent className="space-y-6">
             <Tabs defaultValue="signin" className="w-full">
-              <TabsList className="grid w-full grid-cols-2 h-11 bg-muted/30">
+              {/* <TabsList className="grid w-full grid-cols-2 h-11 bg-muted/30">
                 <TabsTrigger 
                   value="signin"
                   className="data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm"
@@ -59,11 +59,11 @@ export default function SignInPage() {
                 >
                   Sign Up
                 </TabsTrigger>
-              </TabsList>
-              <TabsContent value="signin" className="mt-6">
+              </TabsList> */}
+              <TabsContent value="signin">
                 <SignInForm />
               </TabsContent>
-              <TabsContent value="signup" className="mt-6">
+              <TabsContent value="signup">
                 <SignUpForm />
               </TabsContent>
             </Tabs>
