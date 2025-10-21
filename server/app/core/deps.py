@@ -1,9 +1,9 @@
-from typing import Generator, Optional
+from typing import Optional
 from fastapi import Depends, HTTPException, status, Header
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 from app.db.database import get_db
-from app.core.security import verify_token, verify_token_flexible
+from app.core.security import verify_token_flexible
 from app.models.user import User, Role, UserRole
 from app.models.permission import PermissionAssignment
 from app.core.config import settings
@@ -42,6 +42,7 @@ def get_current_user(
             (User.email == email) | (User.azure_id == azure_id)
         ).first()
 
+        is_new_azure_user = False
         if user is None:
             # Auto-create Azure user
             logger.info(f"Auto-creating Azure AD user: {email}")
@@ -55,11 +56,37 @@ def get_current_user(
             db.commit()
             db.refresh(user)
             logger.info(f"Created Azure AD user with ID: {user.id}")
+            is_new_azure_user = True
         else:
             # Update azure_id if not set
-            if not user.azure_id and azure_id:
+            if user.azure_id is None and azure_id:
                 user.azure_id = azure_id
                 db.commit()
+                is_new_azure_user = True
+                logger.info(
+                    f"Updated existing user {user.id} with Azure ID: {azure_id}")
+
+        # Auto-assign Admin role to Azure users who successfully logged in
+        if is_new_azure_user or (user.azure_id is not None):
+            # Check if user already has Admin role
+            existing_admin_role = db.query(UserRole).join(Role).filter(
+                UserRole.user_id == user.id,
+                Role.name == "Admin"
+            ).first()
+
+            if not existing_admin_role:
+                # Get Admin role (id=1)
+                admin_role = db.query(Role).filter(
+                    Role.name == "Admin").first()
+                if admin_role:
+                    user_role = UserRole(
+                        user_id=user.id, role_id=admin_role.id)
+                    db.add(user_role)
+                    db.commit()
+                    logger.info(
+                        f"Assigned Admin role to Azure user {user.id} ({email})")
+                else:
+                    logger.warning(f"Admin role not found in database")
 
         return user
 
