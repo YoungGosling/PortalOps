@@ -275,7 +275,7 @@ export default function DashboardPage() {
                   onClick={() => router.push('/inbox')}
                   className={`relative p-4 rounded-xl border-2 transition-all duration-200 text-left ${
                     (pendingTasks?.pendingCount ?? 0) > 0 
-                      ? 'border-red-200 bg-red-50 dark:border-red-900 dark:bg-red-950/30 animate-shake shadow-md' 
+                      ? 'border-red-200 bg-red-50 dark:border-red-900 dark:bg-red-950/30 shadow-md' 
                       : 'border-transparent bg-muted/30 hover:bg-muted/50 hover:shadow-md'
                   }`}
                 >
@@ -300,7 +300,7 @@ export default function DashboardPage() {
                       </p>
                     </div>
                     {(pendingTasks?.pendingCount ?? 0) > 0 && (
-                      <span className="absolute -top-1.5 -right-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-red-500 text-white text-xs font-bold shadow-lg animate-pulse">
+                      <span className="absolute -top-1.5 -right-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-red-500 text-white text-xs font-bold shadow-lg">
                         {pendingTasks?.pendingCount}
                       </span>
                     )}
@@ -311,7 +311,7 @@ export default function DashboardPage() {
                   onClick={() => router.push('/payments')}
                   className={`relative p-4 rounded-xl border-2 transition-all duration-200 text-left ${
                     (stats?.incompletePayments ?? 0) > 0 
-                      ? 'border-red-200 bg-red-50 dark:border-red-900 dark:bg-red-950/30 animate-shake shadow-md' 
+                      ? 'border-red-200 bg-red-50 dark:border-red-900 dark:bg-red-950/30 shadow-md' 
                       : 'border-transparent bg-muted/30 hover:bg-muted/50 hover:shadow-md'
                   }`}
                 >
@@ -336,7 +336,7 @@ export default function DashboardPage() {
                       </p>
                     </div>
                     {(stats?.incompletePayments ?? 0) > 0 && (
-                      <span className="absolute -top-1.5 -right-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-red-500 text-white text-xs font-bold shadow-lg animate-pulse">
+                      <span className="absolute -top-1.5 -right-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-red-500 text-white text-xs font-bold shadow-lg">
                         {stats?.incompletePayments}
                       </span>
                     )}
