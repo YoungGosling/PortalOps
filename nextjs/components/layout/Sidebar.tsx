@@ -55,7 +55,7 @@ export function Sidebar({ collapsed }: SidebarProps) {
       show: isAdmin(),
     },
     {
-      label: 'Service Inventory',
+      label: 'Service Provider',
       icon: Building,
       path: '/services',
       show: true,
@@ -113,7 +113,7 @@ export function Sidebar({ collapsed }: SidebarProps) {
               const iconColors: Record<string, string> = {
                 'Dashboard': 'text-primary',
                 'Inbox': 'text-info',
-                'Service Inventory': 'text-success',
+                'Service Provider': 'text-success',
                 'Product Inventory': 'text-warning',
                 'Payment Register': 'text-chart-5',
                 'User Directory': 'text-chart-4',
@@ -163,7 +163,7 @@ export function Sidebar({ collapsed }: SidebarProps) {
               const iconColors: Record<string, string> = {
                 'Dashboard': 'text-primary',
                 'Inbox': 'text-info',
-                'Service Inventory': 'text-success',
+                'Service Provider': 'text-success',
                 'Product Inventory': 'text-warning',
                 'Payment Register': 'text-chart-5',
                 'User Directory': 'text-chart-4',
