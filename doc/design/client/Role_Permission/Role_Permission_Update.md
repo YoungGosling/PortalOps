@@ -9,7 +9,7 @@ Key changes include:
 * Removal of the existing `User` login role.
 * Introduction of two new roles: `Service Administrator` and `Product Administrator`.
 * Redefinition of permission assignment responsibilities for the `Admin` role.
-* Clarification of access rights to the **Service Inventory** and **User Directory** for different roles.
+* Clarification of access rights to the **Service Inventory** and **Employee Directory** for different roles.
 
 ## 2. User Role Definitions
 
@@ -24,7 +24,7 @@ The system will contain the following four roles, with three of them being login
 * **Full Access**: Can access and manage all modules in the system, including all services and all products under those services.
 * **User Management**:
 
-  * View all users in the **User Directory**.
+  * View all users in the **Employee Directory**.
   * Assign or revoke `Service Administrator` permissions for any user.
   * Assign or revoke `Product Administrator` permissions for any user.
 * **Service & Product Management**:
@@ -67,12 +67,12 @@ The system will contain the following four roles, with three of them being login
 
 ### 2.4. User (Non-login Role)
 
-The `User` role **cannot log in** to the system. Their information exists purely as data within the **User Directory**.
+The `User` role **cannot log in** to the system. Their information exists purely as data within the **Employee Directory**.
 
 **Key Responsibilities & Permissions:**
 
 * None. No login capability and no operational permissions.
-* Their account details (e.g., name, department, email) can be viewed by authorized roles under the **User Directory**.
+* Their account details (e.g., name, department, email) can be viewed by authorized roles under the **Employee Directory**.
 
 ## 3. Access Control Matrix
 
@@ -83,7 +83,7 @@ The `User` role **cannot log in** to the system. Their information exists purely
 | **Service Details**                 | Access all services | Access assigned services               | Access services containing assigned products |
 | **Product List (within a service)** | View all products   | View all products                      | View only assigned products                  |
 | **Add Service**                     | ✅                   | ✅                                      | ❌                                            |
-| **User Directory**                  | View all users      | View all users                         | View all users                               |
+| **Employee Directory**                  | View all users      | View all users                         | View all users                               |
 | **Assign Service Admin Role**       | ✅                   | ❌                                      | ❌                                            |
 | **Assign Product Admin Role**       | ✅                   | ✅ (within their managed services only) | ❌                                            |
 
@@ -104,7 +104,7 @@ The `User` role **cannot log in** to the system. Their information exists purely
 
    * For `Product Administrator`, the product list must be filtered to show **only** products they are authorized to manage.
 
-4. **User Directory / Role Assignment Page**:
+4. **Employee Directory / Role Assignment Page**:
 
    * A clear interface must be provided to allow `Admin` and `Service Administrator` to assign roles to users.
    * `Admin` should be able to:

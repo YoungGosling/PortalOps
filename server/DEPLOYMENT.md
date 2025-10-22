@@ -128,7 +128,7 @@ server/
 
 The application uses the database schema defined in `../database/schema.sql` with the following main tables:
 
-- `users` - User directory
+- `users` - Employee Directory
 - `roles` - System roles (Admin, ServiceAdministrator, ProductAdministrator)
 - `user_roles` - User-role assignments
 - `services` - Service inventory

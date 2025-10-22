@@ -126,6 +126,6 @@ echo ""
 echo "🔧 故障排除："
 echo "- 如果登录成功但停留在登录页，检查 middleware.ts"
 echo "- 如果后端返回 401，检查 .env 中的 AZURE_AD_ENABLED=true"
-echo "- 如果无权限访问，在 User Directory 中为用户分配角色"
+echo "- 如果无权限访问，在 Employee Directory 中为用户分配角色"
 echo ""
 

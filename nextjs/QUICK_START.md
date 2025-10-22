@@ -78,7 +78,7 @@ npm run dev
 
 ### 仅 Admin 用户
 - ✅ **Inbox** - 工作流任务（Onboarding/Offboarding）
-- ✅ **User Directory** - 用户管理
+- ✅ **Employee Directory** - 用户管理
 - ✅ **Admin Dashboard** - 系统仪表板
 - ✅ **Security & Compliance** - 安全与合规
 - ✅ **User Administration** - 用户权限管理

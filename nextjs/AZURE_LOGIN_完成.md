@@ -296,7 +296,7 @@ Response: {
 **解决**: 检查 `NEXT_PUBLIC_NEXTAUTH_URL` 是否设置
 
 **问题**: 登录后无法访问页面  
-**解决**: 在 User Directory 中为用户分配角色
+**解决**: 在 Employee Directory 中为用户分配角色
 
 ## 文档资源
 

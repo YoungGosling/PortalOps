@@ -37,7 +37,7 @@ nextjs/
 │   │   ├── services/        # Service Inventory (cards view)
 │   │   ├── products/        # Product Inventory (table view)
 │   │   ├── payments/        # Payment Register (inline edit)
-│   │   ├── users/           # User Directory (Admin only)
+│   │   ├── users/           # Employee Directory (Admin only)
 │   │   └── inbox/           # Workflow tasks (Admin only)
 │   ├── (admin)/             # Admin-only pages
 │   │   └── admin/
@@ -105,7 +105,7 @@ nextjs/
 - Required fields: Amount, Cardholder, Expiry, Method, Attachment
 - Badge counter in navigation for incomplete records
 
-### 7. User Directory (Admin Only)
+### 7. Employee Directory (Admin Only)
 
 - Full user CRUD operations
 - Role assignment

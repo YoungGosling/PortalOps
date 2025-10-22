@@ -4,9 +4,9 @@
 
 根据PRD v2.0的Inbox需求，完善了入职(Onboarding)和离职(Offboarding)工作流，确保：
 
-1. ✅ **入职流程**：HR系统调用入职接口后，**不会立即创建用户**，只创建待处理任务。只有当Admin在Inbox中点击"Start Task"处理完入职信息并成功提交后，才会在User Directory中创建用户。
-2. ✅ **离职流程**：HR系统调用离职接口后，**不会立即删除用户**，只创建待处理任务。只有当Admin在Inbox中点击"Start Task"处理完离职信息并成功提交后，才会从User Directory中删除用户。
-3. ✅ **数据一致性**：入职Task未处理完成前，User Directory中不会显示新员工。
+1. ✅ **入职流程**：HR系统调用入职接口后，**不会立即创建用户**，只创建待处理任务。只有当Admin在Inbox中点击"Start Task"处理完入职信息并成功提交后，才会在Employee Directory中创建用户。
+2. ✅ **离职流程**：HR系统调用离职接口后，**不会立即删除用户**，只创建待处理任务。只有当Admin在Inbox中点击"Start Task"处理完离职信息并成功提交后，才会从Employee Directory中删除用户。
+3. ✅ **数据一致性**：入职Task未处理完成前，Employee Directory中不会显示新员工。
 
 ## 核心变更
 
@@ -96,7 +96,7 @@ workflow_task.create_offboarding_task(
 **入职任务完成**:
 ```python
 if existing_task.type == "onboarding":
-    # 验证用户已通过User Directory API创建
+    # 验证用户已通过Employee Directory API创建
     created_user = user.get_by_email(db, email=existing_task.employee_email)
     if not created_user:
         raise HTTPException(
@@ -151,7 +151,7 @@ export interface WorkflowTask {
 
 **之前** ❌:
 ```typescript
-// 尝试从User Directory获取占位用户
+// 尝试从Employee Directory获取占位用户
 const users = await apiClient.getUsers();
 const placeholderUser = users.find(u => u.email === task.employee_email);
 ```
@@ -278,7 +278,7 @@ const handleSubmit = async (e: React.FormEvent) => {
 ┌─────────────────────────────────────────────────────────────┐
 │ 10. ✅ 完成                                                  │
 │     - Inbox任务标记为完成                                   │
-│     - User Directory显示新用户                              │
+│     - Employee Directory显示新用户                              │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -305,13 +305,13 @@ const handleSubmit = async (e: React.FormEvent) => {
 ┌─────────────────────────────────────────────────────────────┐
 │ 3. Admin访问Inbox，看到待处理的离职任务                     │
 │    显示：张三 (zhangsan@company.com) - Action Required      │
-│    ❗此时User Directory仍显示该用户                         │
+│    ❗此时Employee Directory仍显示该用户                         │
 └────────────────────┬────────────────────────────────────────┘
                      │
                      ▼
 ┌─────────────────────────────────────────────────────────────┐
 │ 4. Admin点击 "Start Task"                                   │
-│    前端从User Directory获取完整用户信息                     │
+│    前端从Employee Directory获取完整用户信息                     │
 └────────────────────┬────────────────────────────────────────┘
                      │
                      ▼
@@ -342,7 +342,7 @@ const handleSubmit = async (e: React.FormEvent) => {
 ┌─────────────────────────────────────────────────────────────┐
 │ 8. ✅ 完成                                                   │
 │     - Inbox任务标记为完成                                   │
-│     - User Directory不再显示该用户                          │
+│     - Employee Directory不再显示该用户                          │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -352,10 +352,10 @@ const handleSubmit = async (e: React.FormEvent) => {
 
 | 场景 | 期望行为 | 实现状态 |
 |------|---------|---------|
-| 调用入职Webhook | 只创建任务，User Directory无新用户 | ✅ |
-| Admin完成入职 | 用户出现在User Directory | ✅ |
-| 调用离职Webhook | 只创建任务，用户仍在User Directory | ✅ |
-| Admin完成离职 | 用户从User Directory消失 | ✅ |
+| 调用入职Webhook | 只创建任务，Employee Directory无新用户 | ✅ |
+| Admin完成入职 | 用户出现在Employee Directory | ✅ |
+| 调用离职Webhook | 只创建任务，用户仍在Employee Directory | ✅ |
+| Admin完成离职 | 用户从Employee Directory消失 | ✅ |
 | 重复入职Webhook | 返回"任务已存在"错误 | ✅ |
 | 未创建用户就完成入职任务 | 返回"必须先创建用户"错误 | ✅ |
 
@@ -460,7 +460,7 @@ cd server
 
 本次实现完全符合PRD v2.0的Inbox需求，确保了：
 
-1. **入职任务未处理前，User Directory不会显示新员工**
+1. **入职任务未处理前，Employee Directory不会显示新员工**
 2. **调用入职或离职接口不会直接新增或删除用户**
 3. **只有Admin在Inbox成功提交任务后，才会对应地新增或删除用户**
 

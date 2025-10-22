@@ -21,7 +21,7 @@ The system will feature a hierarchical, two-role structure.
 - **Access:** Unrestricted read/write access to all pages and modules within the application.
 - **Permissions:**
     - Full CRUD (Create, Read, Update, Delete) capabilities for all Services and Products.
-    - Can assign or revoke the `ServiceAdmin` role for any user in the User Directory.
+    - Can assign or revoke the `ServiceAdmin` role for any user in the Employee Directory.
 
 ### 2.2. ServiceAdmin (Service Administrator)
 - **Access:** Limited to the modules and data relevant to their assigned services.
@@ -73,7 +73,7 @@ The system will feature a hierarchical, two-role structure.
 - **Data Synchronization:**
     - Upon successfully saving an update to any billing record, the page data and the navigation badge count must be immediately re-fetched and updated.
 
-### 3.4. User Directory
+### 3.4. Employee Directory
 - **Access:** This page is accessible only to users with the `Admin` role.
 - **Functionality:**
     - **CRUD:** Full CRUD operations for users are supported.
@@ -90,16 +90,16 @@ The system will feature a hierarchical, two-role structure.
 - **API Triggers:** The system exposes two webhook endpoints for an external HR system: one for onboarding and one for offboarding.
 - **Onboarding Workflow:**
     - The API receives the new employee's **Name**, **Department**, and **Email**.
-    - An "Onboarding" task is created. Clicking "Start Task" opens the **User Directory's "Add" panel**.
+    - An "Onboarding" task is created. Clicking "Start Task" opens the **Employee Directory's "Add" panel**.
     - The `Name`, `Department`, and `Email` fields are pre-filled and are **read-only**.
     - The admin must assign at least one service or product to the user before submission is allowed.
-    - On successful submission, a new user is created in the User Directory, and the onboarding task is automatically marked as "Completed."
+    - On successful submission, a new user is created in the Employee Directory, and the onboarding task is automatically marked as "Completed."
 - **Offboarding Workflow:**
     - The API receives the departing employee's **Name**, **Department**, and **Email**.
-    - An "Offboarding" task is created. Clicking "Start Task" opens the **User Directory's "Edit" panel** for the specified user.
+    - An "Offboarding" task is created. Clicking "Start Task" opens the **Employee Directory's "Edit" panel** for the specified user.
     - The user's `Name`, `Department`, and `Email` are **read-only**.
     - The user's currently assigned services and products are prominently displayed and are also **read-only**.
-    - Successful submission of the panel confirms the offboarding action. The user is deleted from the User Directory, all associations are removed, and the offboarding task is automatically marked as "Completed."
+    - Successful submission of the panel confirms the offboarding action. The user is deleted from the Employee Directory, all associations are removed, and the offboarding task is automatically marked as "Completed."
 
 ## 4. Administration
 

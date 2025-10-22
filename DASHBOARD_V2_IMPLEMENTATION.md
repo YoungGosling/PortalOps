@@ -17,7 +17,7 @@
   - 图标：绿色BarChart3图标
   - 根据角色显示不同文字
 
-- **Total Users** - User Directory中的用户总数（仅Admin可见）
+- **Total Users** - Employee Directory中的用户总数（仅Admin可见）
   - 图标：紫色Users图标
   - 显示趋势：+12.5% from last month
 

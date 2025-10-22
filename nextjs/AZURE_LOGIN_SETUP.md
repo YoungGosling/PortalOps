@@ -174,7 +174,7 @@ When a user signs in with Azure AD for the first time:
 2. User profile information (name, email) is retrieved
 3. A session is created in NextAuth
 4. The user is granted default "User" role
-5. **Note**: To assign roles and services, an admin must add the user in the User Directory
+5. **Note**: To assign roles and services, an admin must add the user in the Employee Directory
 
 ### Returning Users
 
@@ -251,7 +251,7 @@ To fully integrate Azure AD users with your backend, consider:
 - **Solution**: Check that NEXTAUTH_SECRET is set and consistent across deployments
 
 **Issue**: Users can't access protected pages after Azure AD login
-- **Solution**: Ensure the user is added to the User Directory with appropriate roles
+- **Solution**: Ensure the user is added to the Employee Directory with appropriate roles
 
 ### Debug Mode
 

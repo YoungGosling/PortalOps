@@ -99,7 +99,7 @@ Form Fields:
 - bill_attachment: file (optional)
 ```
 
-### User Directory
+### Employee Directory
 
 #### GET /api/users (Modified)
 **New Query Parameter:** `?productId={uuid}` - filter users by product association

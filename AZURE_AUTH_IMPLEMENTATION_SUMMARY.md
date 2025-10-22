@@ -216,7 +216,7 @@ pnpm dev
 
 ## ⚠️ 注意事项
 
-1. **权限管理**: Azure 用户首次登录后没有任何角色，需要管理员在 User Directory 中手动分配。
+1. **权限管理**: Azure 用户首次登录后没有任何角色，需要管理员在 Employee Directory 中手动分配。
 
 2. **环境变量**: 后端必须配置 `AZURE_AD_ENABLED=true` 才会启用 Azure AD 验证。
 

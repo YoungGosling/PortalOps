@@ -1,4 +1,4 @@
-# User Directory Module Implementation
+# Employee Directory Module Implementation
 
 **Date:** 2025-10-18  
 **Version:** 2.0  
@@ -6,7 +6,7 @@
 
 ## Overview
 
-This document describes the complete implementation of the User Directory module according to the PRD v2.0 specifications. The module includes full CRUD operations for user management, service assignment, and integration with the Inbox workflow for onboarding/offboarding.
+This document describes the complete implementation of the Employee Directory module according to the PRD v2.0 specifications. The module includes full CRUD operations for user management, service assignment, and integration with the Inbox workflow for onboarding/offboarding.
 
 ## Implemented Components
 
@@ -45,7 +45,7 @@ This document describes the complete implementation of the User Directory module
 - ✅ Destructive action styling (red button)
 - ✅ Loading state during deletion
 
-### 3. User Directory Page
+### 3. Employee Directory Page
 
 **Location:** `/app/(internal)/users/page.tsx`
 
@@ -76,13 +76,13 @@ This document describes the complete implementation of the User Directory module
 - ✅ **Onboarding Workflow**: 
   - "Start Task" opens UserFormDialog with prefilled readonly data
   - Admin must assign at least one service
-  - Creates new user in User Directory
+  - Creates new user in Employee Directory
   - Marks task as completed automatically
   
 - ✅ **Offboarding Workflow**:
   - "Start Task" finds user by email and opens UserFormDialog in readonly mode
   - Displays user's current service assignments
-  - Confirmation deletes user from User Directory
+  - Confirmation deletes user from Employee Directory
   - Marks task as completed automatically
 
 **Implementation Details:**
@@ -192,7 +192,7 @@ Request/Response types are defined in `/types/index.ts`:
 ## Permissions & Access Control
 
 ### Admin Role
-- ✅ Full access to User Directory page
+- ✅ Full access to Employee Directory page
 - ✅ Can create, edit, and delete users
 - ✅ Can assign any role (Admin, ServiceAdmin)
 - ✅ Can assign any services
@@ -201,7 +201,7 @@ Request/Response types are defined in `/types/index.ts`:
 ### Non-Admin Users
 - ✅ Access denied message displayed
 - ✅ Cannot view or manage users
-- ✅ No access to User Directory navigation item
+- ✅ No access to Employee Directory navigation item
 
 ## Testing Checklist
 
@@ -242,7 +242,7 @@ All files pass TypeScript and ESLint checks with zero errors.
 
 ## Compliance with PRD v2.0
 
-### Section 3.4: User Directory ✅
+### Section 3.4: Employee Directory ✅
 - ✅ **Access:** Admin-only access implemented
 - ✅ **CRUD:** Full create, read, update, delete operations
 - ✅ **Add/Edit User Panel:**
@@ -254,12 +254,12 @@ All files pass TypeScript and ESLint checks with zero errors.
 
 ### Section 3.5: Inbox ✅
 - ✅ **Onboarding Workflow:**
-  - ✅ Opens User Directory "Add" panel
+  - ✅ Opens Employee Directory "Add" panel
   - ✅ Prefilled readonly fields (Name, Department, Email)
   - ✅ Requires service/product assignment
   - ✅ Creates user and marks task completed
 - ✅ **Offboarding Workflow:**
-  - ✅ Opens User Directory "Edit" panel
+  - ✅ Opens Employee Directory "Edit" panel
   - ✅ Readonly user information
   - ✅ Displays assigned services/products (readonly)
   - ✅ Confirms and deletes user
@@ -283,7 +283,7 @@ While the core functionality is complete per PRD v2.0, the following enhancement
 
 ## Conclusion
 
-The User Directory module is fully implemented according to PRD v2.0 specifications. All CRUD operations work correctly, the Inbox workflow integration is complete, and the UI follows the established design patterns. The module is ready for backend integration testing.
+The Employee Directory module is fully implemented according to PRD v2.0 specifications. All CRUD operations work correctly, the Inbox workflow integration is complete, and the UI follows the established design patterns. The module is ready for backend integration testing.
 
 ---
 

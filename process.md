@@ -65,8 +65,8 @@
 - [ ] 8.4 实现完成度指示器
 - [ ] 8.5 实现导航徽章
 
-### 阶段 9: 功能页面 - User Directory (预计时间: 1小时)
-- [ ] 9.1 创建 User Directory 页面 (Admin only)
+### 阶段 9: 功能页面 - Employee Directory (预计时间: 1小时)
+- [ ] 9.1 创建 Employee Directory 页面 (Admin only)
 - [ ] 9.2 实现 Add/Edit User Panel
 - [ ] 9.3 实现用户角色分配
 - [ ] 9.4 实现服务/产品分配
@@ -243,7 +243,7 @@ nextjs/
 
 ---
 
-### 阶段 9: 功能页面 - User Directory
+### 阶段 9: 功能页面 - Employee Directory
 **状态**: ⚪ 未开始
 
 ---
@@ -330,7 +330,7 @@ nextjs/
 | 6. Service Inventory | 4 | 4 | 100% | ✅ 完成 |
 | 7. Product Inventory | 4 | 4 | 100% | ✅ 完成 |
 | 8. Payment Register | 5 | 5 | 100% | ✅ 完成 |
-| 9. User Directory | 5 | 5 | 100% | ✅ 完成 |
+| 9. Employee Directory | 5 | 5 | 100% | ✅ 完成 |
 | 10. Inbox | 4 | 4 | 100% | ✅ 完成 |
 | 11. Dashboard | 3 | 3 | 100% | ✅ 完成 |
 | 12. Master Files | 3 | 3 | 100% | ✅ 完成 |
@@ -385,7 +385,7 @@ nextjs/
   - ✅ Service Inventory (app/(internal)/services/page.tsx)
   - ✅ Product Inventory (app/(internal)/products/page.tsx)
   - ✅ Payment Register (app/(internal)/payments/page.tsx)
-  - ✅ User Directory (app/(internal)/users/page.tsx)
+  - ✅ Employee Directory (app/(internal)/users/page.tsx)
   - ✅ Inbox (app/(internal)/inbox/page.tsx)
   - ✅ Admin Dashboard (app/(admin)/admin/dashboard/page.tsx)
   - ✅ Security & Compliance (app/(admin)/admin/security/page.tsx)
@@ -541,7 +541,7 @@ nextjs/
 6. ✅ Service Inventory - 100%
 7. ✅ Product Inventory - 100%
 8. ✅ Payment Register - 100%
-9. ✅ User Directory - 100%
+9. ✅ Employee Directory - 100%
 10. ✅ Inbox - 100%
 11. ✅ Dashboard - 100%
 12. ✅ Master Files - 100%

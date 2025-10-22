@@ -123,7 +123,7 @@ Password: (根据后端配置)
 - ✅ Service Inventory (`/services`)
 - ✅ Product Inventory (`/products`)
 - ✅ Payment Register (`/payments`)
-- ✅ User Directory (`/users`) - 仅 Admin
+- ✅ Employee Directory (`/users`) - 仅 Admin
 - ✅ Inbox (`/inbox`) - 仅 Admin
 
 ---

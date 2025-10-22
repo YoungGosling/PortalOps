@@ -9,7 +9,7 @@ This document outlines the requirements for a new "Payment Register" feature. Th
 ### 2.1. Navigation Updates
 - The "Reports" item in the main navigation shall be removed.
 - A new navigation item labeled "Payment Register" shall be added.
-- The position of the "Payment Register" and "User Directory" navigation items shall be swapped.
+- The position of the "Payment Register" and "Employee Directory" navigation items shall be swapped.
 
 ### 2.2. Access Control
 - Access to the "Payment Register" page shall be restricted to users with the "Admin" role. Users without this role should not see the navigation item and should be denied access if they attempt to navigate to the URL directly.

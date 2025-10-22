@@ -88,7 +88,7 @@ export default function UsersPage() {
     return (
       <div className="space-y-6 animate-fade-in">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">User Directory</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Employee Directory</h1>
           <p className="text-muted-foreground mt-0.5">
             Manage user accounts and permissions
           </p>
@@ -100,7 +100,7 @@ export default function UsersPage() {
             </div>
             <h3 className="text-xl font-semibold mb-2">Access Denied</h3>
             <p className="text-sm text-muted-foreground">
-              Only administrators can access the user directory
+              Only administrators can access the Employee Directory
             </p>
           </CardContent>
         </Card>
@@ -113,7 +113,7 @@ export default function UsersPage() {
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">User Directory</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Employee Directory</h1>
           <p className="text-muted-foreground mt-0.5">
             Manage user accounts and permissions across the organization
           </p>

@@ -280,7 +280,7 @@ To fully integrate Azure AD users with the PortalOps backend:
    - Ensure `NEXTAUTH_SECRET` is set and consistent
 
 4. **Can't access pages after Azure login**
-   - User needs to be added to User Directory with roles
+   - User needs to be added to Employee Directory with roles
 
 **See [AZURE_LOGIN_SETUP.md](./AZURE_LOGIN_SETUP.md#troubleshooting) for more.**
 
@@ -313,7 +313,7 @@ This implementation was based on the Dynamite frontend Azure login pattern found
 ## 📝 Notes
 
 - Azure AD users are created with default "User" role
-- Admin must assign roles/services via User Directory
+- Admin must assign roles/services via Employee Directory
 - Both authentication methods can coexist
 - Logout automatically detects authentication method
 - Sessions expire after 30 days

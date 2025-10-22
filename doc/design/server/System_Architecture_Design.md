@@ -40,7 +40,7 @@ The application is packaged as a **single container using Docker** and can optio
 | **Auth Module**     | Login, JWT token issuing, token refresh, password hashing |
 | **Role & Permission Module** | Implements RBAC with Admin / Service Admin / Product Admin enforcement |
 | **Service Inventory Module** | Manage services and their products (e.g., “Google Workspace → Gmail / Drive”) |
-| **User Directory Module** | List users and their assigned access |
+| **Employee Directory Module** | List users and their assigned access |
 | **Payment Register Module** | Manage billing details per product |
 | **Onboarding & Offboarding Workflow** | Generates tasks and reminders |
 | **Scheduler Module (APScheduler)** | Sends email alerts or internal notifications for pending tasks or expiring payments |
@@ -73,7 +73,7 @@ Each request is checked against **user roles and assigned permissions**. RBAC lo
 | **Admin**         | Full access to all modules and all data |
 | **Service Administrator** | Limited to assigned services and their products |
 | **Product Administrator** | Limited to assigned products only |
-| **User (non-login)** | Exists in User Directory only, no access |
+| **User (non-login)** | Exists in Employee Directory only, no access |
 
 ---
 

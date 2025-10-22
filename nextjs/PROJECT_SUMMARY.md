@@ -156,7 +156,7 @@
 - ✅ 未完成记录置顶排序
 - ✅ 加载状态
 
-#### User Directory (用户目录)
+#### Employee Directory (用户目录)
 - ✅ 用户列表展示
 - ✅ 头像显示（首字母）
 - ✅ 角色徽章
@@ -247,7 +247,7 @@ nextjs/
 │   │   ├── services/           # Service Inventory
 │   │   ├── products/           # Product Inventory
 │   │   ├── payments/           # Payment Register
-│   │   ├── users/              # User Directory
+│   │   ├── users/              # Employee Directory
 │   │   └── inbox/              # Inbox
 │   ├── (admin)/admin/          # 管理员页面
 │   │   ├── dashboard/

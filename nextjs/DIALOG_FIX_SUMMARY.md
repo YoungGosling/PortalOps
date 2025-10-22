@@ -88,7 +88,7 @@ bg-black/60 backdrop-blur-sm
 此修改自动应用到所有使用Dialog组件的页面：
 - ✅ Service Inventory（服务管理）
 - ✅ Product Inventory（产品管理）
-- ✅ User Directory（用户管理）
+- ✅ Employee Directory（用户管理）
 - ✅ Payment Register（支付登记）
 - ✅ Master Files（主数据）
 - ✅ Inbox（工作流）

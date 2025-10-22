@@ -1,8 +1,8 @@
-# User Directory - Quick Start Guide
+# Employee Directory - Quick Start Guide
 
 ## 🎯 What Was Fixed
 
-The User Directory module had **non-functional Add, Edit, and Delete buttons**. All three operations now work correctly with full dialog integration.
+The Employee Directory module had **non-functional Add, Edit, and Delete buttons**. All three operations now work correctly with full dialog integration.
 
 ## ✅ What's Working Now
 
@@ -67,7 +67,7 @@ app/(internal)/
 
 ## 🔐 Permissions
 
-- **Admin Only**: User Directory is restricted to Admin role
+- **Admin Only**: Employee Directory is restricted to Admin role
 - **Access Control**: Non-admin users see "Access Denied" message
 
 ## 🧪 Testing
@@ -85,7 +85,7 @@ All functionality has been tested:
 ```typescript
 // The UserFormDialog component is reusable across the app
 
-// 1. Regular Add/Edit (User Directory)
+// 1. Regular Add/Edit (Employee Directory)
 <UserFormDialog
   open={dialogOpen}
   onOpenChange={setDialogOpen}

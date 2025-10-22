@@ -120,7 +120,7 @@ Endpoints for user login and session verification remain largely unchanged.
 
 ---
 
-## 6. User Directory
+## 6. Employee Directory
 
 ### `GET /api/users`
 *   **[UPDATED] Description:** Retrieves users. Access should be restricted to `Admin` only.

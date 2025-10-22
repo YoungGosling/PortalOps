@@ -74,7 +74,7 @@ export function Sidebar({ collapsed }: SidebarProps) {
       badge: incompleteCount > 0 ? incompleteCount : undefined,
     },
     {
-      label: 'User Directory',
+      label: 'Employee Directory',
       icon: Users,
       path: '/users',
       show: isAdmin(),
@@ -116,7 +116,7 @@ export function Sidebar({ collapsed }: SidebarProps) {
                 'Service Provider': 'text-success',
                 'Product Inventory': 'text-warning',
                 'Payment Register': 'text-chart-5',
-                'User Directory': 'text-chart-4',
+                'Employee Directory': 'text-chart-4',
               };
               return (
                 <Link key={item.path} href={item.path}>
@@ -166,7 +166,7 @@ export function Sidebar({ collapsed }: SidebarProps) {
                 'Service Provider': 'text-success',
                 'Product Inventory': 'text-warning',
                 'Payment Register': 'text-chart-5',
-                'User Directory': 'text-chart-4',
+                'Employee Directory': 'text-chart-4',
               };
               return (
                 <Link key={item.path} href={item.path}>

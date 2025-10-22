@@ -82,7 +82,7 @@ PGPASSWORD=password psql -U portalops -h localhost -d portalops -f /home/evanzha
 
 **验证**:
 - Inbox中该任务状态变为 "completed"
-- User Directory中现在应该能看到 `test.employee@company.com` ✅
+- Employee Directory中现在应该能看到 `test.employee@company.com` ✅
 
 #### Step 3: 调用离职Webhook
 
@@ -118,7 +118,7 @@ PGPASSWORD=password psql -U portalops -h localhost -d portalops -f /home/evanzha
 
 **验证**:
 - 访问 Inbox，应该看到一条新的离职任务
-- **关键验证**: 访问 User Directory，用户 `test.employee@company.com` **仍然存在** ✅
+- **关键验证**: 访问 Employee Directory，用户 `test.employee@company.com` **仍然存在** ✅
 - 这证明离职Webhook没有立即删除用户
 
 #### Step 4: 完成离职（通过前端）
@@ -134,7 +134,7 @@ PGPASSWORD=password psql -U portalops -h localhost -d portalops -f /home/evanzha
 
 **验证**:
 - Inbox中离职任务状态变为 "completed"
-- **关键验证**: User Directory中 `test.employee@company.com` **已消失** ✅
+- **关键验证**: Employee Directory中 `test.employee@company.com` **已消失** ✅
 - 用户的所有权限分配也被删除
 
 ---
@@ -324,15 +324,15 @@ X-Webhook-Key: {{webhook_key}}
 ### 入职流程
 - [ ] Webhook调用成功，返回 "triggered successfully"
 - [ ] Inbox显示待处理的入职任务
-- [ ] User Directory不显示该用户（✅ 核心验证）
-- [ ] 完成入职任务后，User Directory显示该用户
+- [ ] Employee Directory不显示该用户（✅ 核心验证）
+- [ ] 完成入职任务后，Employee Directory显示该用户
 - [ ] 任务状态变为 completed
 
 ### 离职流程
 - [ ] Webhook调用成功，返回 "triggered successfully"
 - [ ] Inbox显示待处理的离职任务
-- [ ] User Directory仍显示该用户（✅ 核心验证）
-- [ ] 完成离职任务后，User Directory不再显示该用户
+- [ ] Employee Directory仍显示该用户（✅ 核心验证）
+- [ ] 完成离职任务后，Employee Directory不再显示该用户
 - [ ] 任务状态变为 completed
 - [ ] 用户的所有权限被删除
 
@@ -428,7 +428,7 @@ ORDER BY u.name;
 
 离职功能的核心验证点：
 
-1. ✅ **调用离职Webhook后，用户仍然存在于User Directory**
+1. ✅ **调用离职Webhook后，用户仍然存在于Employee Directory**
 2. ✅ **只有Admin在Inbox完成离职任务后，用户才被删除**
 3. ✅ **删除用户时，所有相关权限也被级联删除**
 

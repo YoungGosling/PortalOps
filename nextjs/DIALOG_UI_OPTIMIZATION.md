@@ -127,7 +127,7 @@ border border-border bg-white dark:bg-gray-950 p-6 shadow-2xl
 这些优化会自动应用到所有使用Dialog组件的地方：
 - ✅ Service Inventory - Add/Edit/Delete Service
 - ✅ Product Inventory - Add/Edit/Delete Product
-- ✅ User Directory - Add/Edit/Delete User
+- ✅ Employee Directory - Add/Edit/Delete User
 - ✅ Payment Register - 所有弹窗操作
 - ✅ Master Files - 所有配置弹窗
 

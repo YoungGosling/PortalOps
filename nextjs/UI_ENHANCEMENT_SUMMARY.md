@@ -64,7 +64,7 @@
   - Service Inventory - 成功色（绿色）
   - Product Inventory - 警告色（黄色）
   - Payment Register - 图表色5（红紫色）
-  - User Directory - 图表色4（紫色）
+  - Employee Directory - 图表色4（紫色）
   
 - **激活状态**：
   - 渐变背景（从主色到信息色）

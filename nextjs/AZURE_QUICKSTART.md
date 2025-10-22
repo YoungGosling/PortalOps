@@ -79,7 +79,7 @@ pnpm dev
 ## Next Steps
 
 - [ ] Read [AZURE_LOGIN_SETUP.md](./AZURE_LOGIN_SETUP.md) for complete configuration
-- [ ] Add Azure AD users to User Directory for role assignment
+- [ ] Add Azure AD users to Employee Directory for role assignment
 - [ ] Configure production Azure AD application
 - [ ] Implement backend user sync endpoint
 

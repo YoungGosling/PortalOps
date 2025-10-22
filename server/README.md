@@ -5,7 +5,7 @@ FastAPI-based backend for the PortalOps enterprise portal operations management 
 ## Features
 
 - **Authentication & Authorization**: JWT-based authentication with Role-Based Access Control (RBAC)
-- **User Management**: Complete user directory with role and permission management
+- **User Management**: Complete Employee Directory with role and permission management
 - **Service Inventory**: Manage services and their products
 - **Payment Register**: Track billing information for all products
 - **Workflow Management**: Onboarding/offboarding task management with inbox system

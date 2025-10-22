@@ -78,7 +78,7 @@ frontend/
 │   │   ├── inbox/page.tsx            ✅ Inbox
 │   │   ├── services/page.tsx         ✅ Service Inventory
 │   │   ├── products/page.tsx         ✅ Product Inventory
-│   │   ├── users/page.tsx            ✅ User Directory
+│   │   ├── users/page.tsx            ✅ Employee Directory
 │   │   └── payment-register/page.tsx ✅ Payment Register
 │   ├── (admin)/
 │   │   └── admin/

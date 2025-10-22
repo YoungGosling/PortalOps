@@ -5,7 +5,7 @@
 This implementation ensures that:
 1. **Onboarding**: HR webhook creates a task ONLY. User is NOT created until Admin completes the onboarding in Inbox.
 2. **Offboarding**: HR webhook creates a task ONLY. User is NOT deleted until Admin completes the offboarding in Inbox.
-3. Users will NOT appear in User Directory until onboarding is completed.
+3. Users will NOT appear in Employee Directory until onboarding is completed.
 
 ## Architecture Changes
 
@@ -46,7 +46,7 @@ The `workflow_tasks` table has been updated to:
 
 5. **Complete Task** (`app/api/api_v1/endpoints/workflows.py`):
    - **`POST /api/inbox/tasks/{id}/complete`**:
-     - **Onboarding**: Verifies user was created via User Directory API, then marks task complete
+     - **Onboarding**: Verifies user was created via Employee Directory API, then marks task complete
      - **Offboarding**: Deletes the user, then marks task complete
 
 ### Frontend Changes
@@ -57,7 +57,7 @@ The `workflow_tasks` table has been updated to:
 
 2. **Inbox Page** (`app/(internal)/inbox/page.tsx`):
    - For onboarding: Creates temporary user object with task data (no API call needed)
-   - For offboarding: Fetches existing user from User Directory
+   - For offboarding: Fetches existing user from Employee Directory
    - Calls `completeTask` after successful user create/delete
 
 3. **UserFormDialog** (`components/users/UserFormDialog.tsx`):
@@ -87,7 +87,7 @@ The `workflow_tasks` table has been updated to:
 6. Backend verifies user exists → Marks task complete
    ↓
    
-7. User NOW appears in User Directory ✅
+7. User NOW appears in Employee Directory ✅
 ```
 
 ### Offboarding Flow
@@ -99,7 +99,7 @@ The `workflow_tasks` table has been updated to:
 2. Inbox shows pending task
 
 3. Admin clicks "Start Task"
-   ↓ (Fetches user from User Directory, shows in read-only form)
+   ↓ (Fetches user from Employee Directory, shows in read-only form)
    
 4. Admin reviews → Clicks "Confirm Offboarding"
    ↓ (Triggers callback which calls POST /api/inbox/tasks/{id}/complete)
@@ -110,7 +110,7 @@ The `workflow_tasks` table has been updated to:
    - Marks task complete
    ↓
    
-6. User NO LONGER appears in User Directory ✅
+6. User NO LONGER appears in Employee Directory ✅
 ```
 
 ## Installation & Migration
@@ -175,7 +175,7 @@ curl -X POST http://localhost:8000/api/webhooks/hr/onboarding \
 
 **Verify**:
 1. Check Inbox - should see pending onboarding task
-2. Check User Directory - should NOT see john.doe@example.com yet ✅
+2. Check Employee Directory - should NOT see john.doe@example.com yet ✅
 
 ### Test 2: Complete Onboarding
 
@@ -187,7 +187,7 @@ curl -X POST http://localhost:8000/api/webhooks/hr/onboarding \
 
 **Verify**:
 1. Task should be marked as completed in Inbox
-2. User Directory should NOW show john.doe@example.com ✅
+2. Employee Directory should NOW show john.doe@example.com ✅
 3. User should have assigned services
 
 ### Test 3: Offboarding Webhook
@@ -211,7 +211,7 @@ curl -X POST http://localhost:8000/api/webhooks/hr/offboarding \
 
 **Verify**:
 1. Check Inbox - should see pending offboarding task
-2. Check User Directory - should STILL see john.doe@example.com ✅
+2. Check Employee Directory - should STILL see john.doe@example.com ✅
 
 ### Test 4: Complete Offboarding
 
@@ -223,7 +223,7 @@ curl -X POST http://localhost:8000/api/webhooks/hr/offboarding \
 
 **Verify**:
 1. Task should be marked as completed in Inbox
-2. User Directory should NO LONGER show john.doe@example.com ✅
+2. Employee Directory should NO LONGER show john.doe@example.com ✅
 3. All permission assignments should be removed
 
 ### Test 5: Duplicate Prevention

@@ -233,12 +233,12 @@ ApiClient 从 NextAuth session 获取 ID token
 
 2. 用户可以访问应用，但没有任何权限
 
-3. **管理员需要在 User Directory 中为该用户分配角色和权限**
+3. **管理员需要在 Employee Directory 中为该用户分配角色和权限**
 
 ### 为 Azure 用户分配权限
 
 1. 管理员登录 PortalOps
-2. 进入 User Directory
+2. 进入 Employee Directory
 3. 找到新创建的 Azure 用户
 4. 分配角色（Admin / ServiceAdmin）
 5. 分配产品/服务权限
@@ -283,7 +283,7 @@ psql -U portalops -d portalops -f migrations/add_azure_id_to_users.sql
 
 **解决**:
 1. 使用 Admin 账户登录（如 `admin@portalops.com`）
-2. 进入 User Directory
+2. 进入 Employee Directory
 3. 找到新用户，分配角色和权限
 4. 用户重新登录即可
 

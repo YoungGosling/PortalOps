@@ -1,5 +1,5 @@
 现在我有新需求需要实现
-1.NAVIGATION的Reports不再需求了，请替换成Payment Register，并且标签位置和User Directory互换
+1.NAVIGATION的Reports不再需求了，请替换成Payment Register，并且标签位置和Employee Directory互换
 2.Payment Register只能由Admin角色访问
 3.Payment Register页面需要实现以下功能：
     - 核心功能是提供产品的账单信息填写，包括账单金额、持卡人、有效期，支付方式等，填写项呈一行排列，行开头会显示产品对应的服务名称和产品名称
