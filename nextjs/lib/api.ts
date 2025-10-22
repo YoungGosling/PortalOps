@@ -20,6 +20,11 @@ import type {
   RecentActivity,
   UpcomingRenewal,
   PendingTasksCount,
+  Department,
+  DepartmentCreateRequest,
+  DepartmentUpdateRequest,
+  DepartmentProductAssignmentRequest,
+  DepartmentProductAssignmentResponse,
 } from '@/types';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
@@ -255,12 +260,16 @@ class ApiClient {
     const query = productId ? `?productId=${productId}` : '';
     const response = await this.request<{ data: any[]; pagination: any }>(`/api/users${query}`);
     // Backend returns paginated response with { data, pagination }
-    // Transform to match frontend User type
+    // Transform to match frontend User type (v3: include new fields)
     return response.data.map((user) => ({
       id: user.id,
       name: user.name,
       email: user.email,
       department: user.department,
+      department_id: user.department_id,
+      position: user.position,
+      hire_date: user.hire_date,
+      resignation_date: user.resignation_date,
       roles: user.roles || [],
       assignedProductIds: user.assignedProductIds || [],
     }));
@@ -335,6 +344,64 @@ class ApiClient {
 
   async getPendingTasksCount(): Promise<PendingTasksCount> {
     return this.request<PendingTasksCount>('/api/dashboard/pending-tasks-count');
+  }
+
+  // v3: Departments
+  async getDepartments(): Promise<Department[]> {
+    return this.request<Department[]>('/api/departments');
+  }
+
+  async createDepartment(data: DepartmentCreateRequest): Promise<Department> {
+    return this.request<Department>('/api/departments', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateDepartment(id: string, data: DepartmentUpdateRequest): Promise<Department> {
+    return this.request<Department>(`/api/departments/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteDepartment(id: string): Promise<void> {
+    return this.request<void>(`/api/departments/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async getDepartmentProducts(departmentId: string): Promise<Product[]> {
+    return this.request<Product[]>(`/api/departments/${departmentId}/products`);
+  }
+
+  async setDepartmentProducts(
+    departmentId: string,
+    data: DepartmentProductAssignmentRequest
+  ): Promise<DepartmentProductAssignmentResponse> {
+    return this.request<DepartmentProductAssignmentResponse>(
+      `/api/departments/${departmentId}/products`,
+      {
+        method: 'PUT',
+        body: JSON.stringify(data),
+      }
+    );
+  }
+
+  // v3: Get Services with Products (for tree selection)
+  async getServicesWithProducts(): Promise<Service[]> {
+    const services = await this.getServices();
+    // For each service, fetch its products
+    const servicesWithProducts = await Promise.all(
+      services.map(async (service) => {
+        const products = await this.getProducts(service.id);
+        return {
+          ...service,
+          products,
+        };
+      })
+    );
+    return servicesWithProducts;
   }
 }
 

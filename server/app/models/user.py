@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Integer, ForeignKey, DateTime, Text
+from sqlalchemy import Column, String, Integer, ForeignKey, DateTime, Text, Date
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
@@ -15,7 +15,13 @@ class User(Base):
     password_hash = Column(String(255), nullable=True)
     azure_id = Column(String(255), nullable=True,
                       unique=True)  # Azure AD Object ID
+    # Legacy: department name (deprecated)
     department = Column(String(255), nullable=True)
+    department_id = Column(UUID(as_uuid=True), ForeignKey(
+        "departments.id", ondelete="SET NULL"), nullable=True)  # v3: Reference to Department
+    position = Column(String(255), nullable=True)  # Job title/position
+    hire_date = Column(Date, nullable=True)  # Date of hire
+    resignation_date = Column(Date, nullable=True)  # Date of resignation
     created_at = Column(DateTime(timezone=True),
                         server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), server_default=func.now(
@@ -31,6 +37,7 @@ class User(Base):
     target_tasks = relationship(
         "WorkflowTask", foreign_keys="WorkflowTask.target_user_id", back_populates="target_user")
     audit_logs = relationship("AuditLog", back_populates="actor")
+    dept_ref = relationship("Department", foreign_keys=[department_id])
 
 
 class Role(Base):

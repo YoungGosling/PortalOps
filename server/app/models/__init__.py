@@ -5,6 +5,7 @@ from .payment_invoice import PaymentInvoice
 from .permission import PermissionAssignment
 from .workflow import WorkflowTask
 from .audit import AuditLog
+from .department import Department, DepartmentProductAssignment
 
 __all__ = [
     "User",
@@ -16,5 +17,7 @@ __all__ = [
     "PaymentInvoice",
     "PermissionAssignment",
     "WorkflowTask",
-    "AuditLog"
+    "AuditLog",
+    "Department",
+    "DepartmentProductAssignment"
 ]

@@ -18,6 +18,9 @@ class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
             name=obj_in.name,
             email=obj_in.email,
             department=obj_in.department,
+            position=obj_in.position,
+            hire_date=obj_in.hire_date,
+            resignation_date=None,  # Always default to None as per requirements
             password_hash=get_password_hash(
                 obj_in.password) if obj_in.password else None,
         )

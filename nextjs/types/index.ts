@@ -4,7 +4,11 @@ export interface User {
   id: string;
   name: string;
   email: string;
-  department?: string;
+  department?: string;         // Deprecated: kept for backward compatibility
+  department_id?: string;      // v3: FK to Department (UUID)
+  position?: string;           // v3: Job title/position
+  hire_date?: string;          // v3: Hire date (YYYY-MM-DD)
+  resignation_date?: string;   // v3: Resignation date (YYYY-MM-DD), nullable
   roles: ('Admin' | 'ServiceAdmin')[];
   assignedProductIds: string[];
 }
@@ -167,7 +171,11 @@ export interface ProductUpdateRequest {
 export interface UserCreateRequest {
   name: string;
   email: string;
-  department?: string;
+  department?: string;       // Deprecated
+  department_id?: string;    // v3: FK to Department (UUID)
+  position?: string;         // v3: Job title
+  hire_date?: string;        // v3: Hire date (YYYY-MM-DD)
+  resignation_date?: string; // v3: Resignation date (YYYY-MM-DD)
   role?: 'Admin' | 'ServiceAdmin';
   assignedProductIds?: string[];
 }
@@ -175,7 +183,11 @@ export interface UserCreateRequest {
 export interface UserUpdateRequest {
   name?: string;
   email?: string;
-  department?: string;
+  department?: string;       // Deprecated
+  department_id?: string;    // v3: FK to Department (UUID)
+  position?: string;         // v3: Job title
+  hire_date?: string;        // v3: Hire date (YYYY-MM-DD)
+  resignation_date?: string; // v3: Resignation date (YYYY-MM-DD)
   role?: 'Admin' | 'ServiceAdmin';
   assignedProductIds?: string[];
 }
@@ -185,5 +197,36 @@ export interface PaymentUpdateRequest {
   cardholder_name?: string;
   expiry_date?: string;
   payment_method?: string;
+}
+
+// v3: Department Types
+export interface Department {
+  id: string;
+  name: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface DepartmentCreateRequest {
+  name: string;
+}
+
+export interface DepartmentUpdateRequest {
+  name?: string;
+}
+
+export interface DepartmentProductAssignmentRequest {
+  product_ids: string[];
+}
+
+export interface DepartmentProductAssignmentResponse {
+  assigned_product_ids: string[];
+}
+
+// v3: Service with Products Tree Structure (for selection component)
+export interface ServiceProductTree {
+  service: Service;
+  products: Product[];
+  expanded: boolean;
 }
 

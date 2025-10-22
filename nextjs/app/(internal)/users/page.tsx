@@ -6,9 +6,17 @@ import type { User, Product } from '@/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { UserFormDialog } from '@/components/users/UserFormDialog';
 import { DeleteUserDialog } from '@/components/users/DeleteUserDialog';
-import { Plus, Users as UsersIcon, Pencil, Trash2, Mail, Briefcase, Shield, UserCircle2, Loader2, Building2 } from 'lucide-react';
+import { Plus, Users as UsersIcon, Pencil, Trash2, Mail, Briefcase, Shield, UserCircle2, Loader2, Building2, Calendar, User as UserIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/providers/auth-provider';
 
@@ -21,6 +29,7 @@ export default function UsersPage() {
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletingUser, setDeletingUser] = useState<User | null>(null);
+  const [dataLoaded, setDataLoaded] = useState(false); // Track if data has been loaded
 
   const fetchUsers = async () => {
     try {
@@ -45,13 +54,16 @@ export default function UsersPage() {
   };
 
   useEffect(() => {
-    if (isAdmin()) {
+    // Only fetch data once when component mounts and user is admin
+    if (isAdmin() && !dataLoaded) {
       fetchUsers();
       fetchProducts();
-    } else {
+      setDataLoaded(true);
+    } else if (!isAdmin()) {
       setLoading(false);
     }
-  }, [isAdmin]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Handle add user
   const handleAddUser = () => {
@@ -115,7 +127,7 @@ export default function UsersPage() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Employee Directory</h1>
           <p className="text-muted-foreground mt-0.5">
-            Manage user accounts and permissions across the organization
+            {users.length} {users.length === 1 ? 'employee' : 'employees'} in directory
           </p>
         </div>
         <Button onClick={handleAddUser} size="default" className="gap-2">
@@ -145,132 +157,182 @@ export default function UsersPage() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {users.map((user) => {
-            const hasAdminRole = user.roles?.includes('Admin');
-            
-            return (
-              <Card 
-                key={user.id} 
-                className="border-0 shadow-sm hover:shadow-md transition-all duration-200 group"
-              >
-                <CardHeader className="pb-3">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <CardTitle className="text-lg font-semibold truncate">
-                          {user.name}
-                        </CardTitle>
-                        {hasAdminRole && (
-                          <Badge className="bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400 border-0 px-1.5 py-0.5">
-                            <Shield className="h-3 w-3" />
-                          </Badge>
-                        )}
-                      </div>
-                      <CardDescription className="text-xs flex items-center gap-1.5">
-                        <Mail className="h-3.5 w-3.5" />
-                        <span className="truncate">{user.email}</span>
-                      </CardDescription>
-                    </div>
-                    <div className="flex-shrink-0 p-2.5 rounded-lg bg-purple-50 dark:bg-purple-950 group-hover:bg-purple-100 dark:group-hover:bg-purple-900 transition-colors">
-                      <UserCircle2 className="h-5 w-5 text-purple-600 dark:text-purple-400" />
-                    </div>
-                  </div>
-                </CardHeader>
-                
-                <CardContent className="space-y-4">
-                  {/* User Information */}
-                  <div className="space-y-2">
-                    {user.department && (
-                      <div className="flex items-center gap-2 text-sm">
-                        <Briefcase className="h-3.5 w-3.5 text-muted-foreground" />
-                        <span className="text-muted-foreground">{user.department}</span>
-                      </div>
-                    )}
-                    
-                    {/* Role Tags - moved to products position */}
-                    {user.roles && user.roles.length > 0 ? (
-                      <div className="flex items-center gap-2 text-sm">
-                        <Shield className="h-3.5 w-3.5 text-muted-foreground" />
-                        <div className="flex flex-wrap gap-1">
-                          {user.roles.map((role) => (
-                            <span
-                              key={role}
-                              className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium capitalize ${
-                                role === 'Admin' 
-                                  ? 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400'
-                                  : role === 'ServiceAdmin' 
-                                  ? 'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-400'
-                                  : 'bg-purple-100 text-purple-700 dark:bg-purple-950 dark:text-purple-400'
-                              }`}
-                            >
-                              {role}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-2 text-sm">
-                        <Shield className="h-3.5 w-3.5 text-muted-foreground" />
-                        <span className="text-muted-foreground">No roles assigned yet</span>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Assigned Products - moved to roles position */}
-                  {(() => {
+        <Card className="border-0 shadow-sm">
+          <CardContent className="p-0">
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow className="hover:bg-transparent border-b">
+                    <TableHead className="w-[250px]">Name</TableHead>
+                    <TableHead className="w-[200px]">Email</TableHead>
+                    <TableHead className="w-[150px]">Department</TableHead>
+                    <TableHead className="w-[150px]">Position</TableHead>
+                    <TableHead className="w-[120px]">Hire Date</TableHead>
+                    <TableHead className="w-[150px]">Roles</TableHead>
+                    <TableHead className="w-[200px]">Products</TableHead>
+                    <TableHead className="text-right w-[140px]">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {users.map((user) => {
+                    const hasAdminRole = user.roles?.includes('Admin');
                     const userProducts = getUserProducts(user);
-                    return userProducts.length > 0 ? (
-                      <div className="space-y-2">
-                        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                          Products
-                        </p>
-                        <div className="flex flex-wrap gap-1.5">
-                          {userProducts.map((product) => (
-                            <span
-                              key={product.id}
-                              className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-400 transition-colors"
+                    
+                    return (
+                      <TableRow 
+                        key={user.id}
+                        className="group hover:bg-accent/30 transition-colors"
+                      >
+                        {/* Name */}
+                        <TableCell className="font-medium">
+                          <div className="flex items-center gap-2">
+                            <div className="p-2 rounded-lg bg-purple-50 dark:bg-purple-950 group-hover:bg-purple-100 dark:group-hover:bg-purple-900 transition-colors">
+                              <UserCircle2 className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="font-semibold">{user.name}</span>
+                              {hasAdminRole && (
+                                <Badge className="bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400 border-0 px-1.5 py-0.5">
+                                  <Shield className="h-3 w-3" />
+                                </Badge>
+                              )}
+                            </div>
+                          </div>
+                        </TableCell>
+
+                        {/* Email */}
+                        <TableCell>
+                          <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                            <Mail className="h-3.5 w-3.5 flex-shrink-0" />
+                            <span className="truncate">{user.email}</span>
+                          </div>
+                        </TableCell>
+
+                        {/* Department */}
+                        <TableCell>
+                          {user.department ? (
+                            <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                              <Building2 className="h-3.5 w-3.5 flex-shrink-0" />
+                              <span className="truncate">{user.department}</span>
+                            </div>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">-</span>
+                          )}
+                        </TableCell>
+
+                        {/* Position */}
+                        <TableCell>
+                          {user.position ? (
+                            <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                              <Briefcase className="h-3.5 w-3.5 flex-shrink-0" />
+                              <span className="truncate">{user.position}</span>
+                            </div>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">-</span>
+                          )}
+                        </TableCell>
+
+                        {/* Hire Date */}
+                        <TableCell>
+                          {user.hire_date ? (
+                            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                              <Calendar className="h-3.5 w-3.5 flex-shrink-0" />
+                              <span>
+                                {new Date(user.hire_date).toLocaleDateString('en-US', { 
+                                  year: 'numeric', 
+                                  month: 'short', 
+                                  day: 'numeric' 
+                                })}
+                              </span>
+                            </div>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">-</span>
+                          )}
+                        </TableCell>
+
+                        {/* Roles */}
+                        <TableCell>
+                          {user.roles && user.roles.length > 0 ? (
+                            <div className="flex flex-wrap gap-1">
+                              {user.roles.map((role) => (
+                                <Badge
+                                  key={role}
+                                  variant="outline"
+                                  className={`text-xs px-2 py-0.5 ${
+                                    role === 'Admin' 
+                                      ? 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400 border-amber-200'
+                                      : role === 'ServiceAdmin' 
+                                      ? 'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-400 border-blue-200'
+                                      : 'bg-purple-100 text-purple-700 dark:bg-purple-950 dark:text-purple-400 border-purple-200'
+                                  }`}
+                                >
+                                  {role}
+                                </Badge>
+                              ))}
+                            </div>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">No roles</span>
+                          )}
+                        </TableCell>
+
+                        {/* Products */}
+                        <TableCell>
+                          {userProducts.length > 0 ? (
+                            <div className="flex flex-wrap gap-1 max-w-[200px]">
+                              {userProducts.slice(0, 2).map((product) => (
+                                <Badge
+                                  key={product.id}
+                                  variant="outline"
+                                  className="text-xs bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-400 border-green-200"
+                                >
+                                  {product.name}
+                                </Badge>
+                              ))}
+                              {userProducts.length > 2 && (
+                                <Badge
+                                  variant="outline"
+                                  className="text-xs bg-muted"
+                                >
+                                  +{userProducts.length - 2}
+                                </Badge>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">No products</span>
+                          )}
+                        </TableCell>
+
+                        {/* Actions */}
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-2">
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              className="gap-1.5 hover:bg-primary/5 hover:border-primary/50 hover:text-primary transition-all"
+                              onClick={() => handleEditUser(user)}
                             >
-                              {product.name}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="py-4 px-3 rounded-lg bg-muted/30 border border-dashed">
-                        <p className="text-xs text-muted-foreground text-center">
-                          No products assigned yet
-                        </p>
-                      </div>
+                              <Pencil className="h-3.5 w-3.5" />
+                              Edit
+                            </Button>
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              className="gap-1.5 hover:bg-destructive/10 hover:text-destructive hover:border-destructive transition-all"
+                              onClick={() => handleDeleteUser(user)}
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                              Delete
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
                     );
-                  })()}
-                  
-                  {/* Action Buttons */}
-                  <div className="flex gap-2 pt-2">
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      className="flex-1 gap-1.5 hover:bg-primary/5 hover:border-primary/50 hover:text-primary transition-all"
-                      onClick={() => handleEditUser(user)}
-                    >
-                      <Pencil className="h-3.5 w-3.5" />
-                      Edit
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      className="flex-1 gap-1.5 hover:bg-destructive/10 hover:text-destructive hover:border-destructive transition-all"
-                      onClick={() => handleDeleteUser(user)}
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                      Delete
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       {/* User Form Dialog */}

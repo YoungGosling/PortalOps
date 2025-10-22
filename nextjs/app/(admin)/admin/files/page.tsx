@@ -24,6 +24,7 @@ export default function MasterFilesPage() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedProduct, setSelectedProduct] = useState<string>('all');
+  const [dataLoaded, setDataLoaded] = useState(false); // Track if data has been loaded
 
   const fetchInvoices = async () => {
     try {
@@ -40,12 +41,15 @@ export default function MasterFilesPage() {
   };
 
   useEffect(() => {
-    if (isAdmin()) {
+    // Only fetch data once when component mounts and user is admin
+    if (isAdmin() && !dataLoaded) {
       fetchInvoices();
-    } else {
+      setDataLoaded(true);
+    } else if (!isAdmin()) {
       setLoading(false);
     }
-  }, [isAdmin]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Filter invoices based on search term and selected product
   useEffect(() => {

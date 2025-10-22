@@ -20,6 +20,7 @@ import {
   ChevronDown,
   ChevronRight,
   TrendingUp,
+  Building2,
 } from 'lucide-react';
 import { useState } from 'react';
 import {
@@ -82,6 +83,11 @@ export function Sidebar({ collapsed }: SidebarProps) {
   ];
 
   const adminItems = [
+    {
+      label: 'Dept Master File',
+      icon: Building2,
+      path: '/admin/departments',
+    },
     {
       label: 'User Administration',
       icon: UserCheck,
@@ -212,6 +218,7 @@ export function Sidebar({ collapsed }: SidebarProps) {
                 {adminItems.map((item) => {
                   const Icon = item.icon;
                   const adminIconColors: Record<string, string> = {
+                    'Dept Master File': 'dark:text-blue-400',
                     'User Administration': 'text-success',
                     'Master Files': 'text-warning',
                   };

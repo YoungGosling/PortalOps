@@ -4,6 +4,7 @@ from .service import Service, ServiceCreate, ServiceUpdate, Product, ProductCrea
 from .payment import PaymentInfo, PaymentInfoCreate, PaymentInfoUpdate, PaymentRegisterItem
 from .workflow import WorkflowTask, WorkflowTaskCreate, WorkflowTaskUpdate
 from .audit import AuditLog, AuditLogCreate
+from .department import Department, DepartmentCreate, DepartmentUpdate, DepartmentProductAssignment, DepartmentProductAssignmentResponse
 
 __all__ = [
     "Token",
@@ -28,8 +29,10 @@ __all__ = [
     "WorkflowTaskCreate",
     "WorkflowTaskUpdate",
     "AuditLog",
-    "AuditLogCreate"
+    "AuditLogCreate",
+    "Department",
+    "DepartmentCreate",
+    "DepartmentUpdate",
+    "DepartmentProductAssignment",
+    "DepartmentProductAssignmentResponse"
 ]
-
-
-

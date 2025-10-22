@@ -18,6 +18,7 @@ export default function InboxPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [currentTask, setCurrentTask] = useState<WorkflowTask | null>(null);
   const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [dataLoaded, setDataLoaded] = useState(false); // Track if data has been loaded
 
   const fetchTasks = async () => {
     try {
@@ -39,12 +40,15 @@ export default function InboxPage() {
   };
 
   useEffect(() => {
-    if (isAdmin()) {
+    // Only fetch data once when component mounts and user is admin
+    if (isAdmin() && !dataLoaded) {
       fetchTasks();
-    } else {
+      setDataLoaded(true);
+    } else if (!isAdmin()) {
       setLoading(false);
     }
-  }, [isAdmin]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Handle start task - opens the appropriate dialog based on task type
   const handleStartTask = async (task: WorkflowTask) => {
