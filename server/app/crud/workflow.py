@@ -7,10 +7,21 @@ import uuid
 
 
 class CRUDWorkflowTask(CRUDBase[WorkflowTask, WorkflowTaskCreate, WorkflowTaskUpdate]):
+    def get_all_admin_tasks(
+        self, db: Session, *, status: Optional[str] = None
+    ) -> List[WorkflowTask]:
+        """Get all tasks visible to admin users (not filtered by assignee)."""
+        query = db.query(WorkflowTask)
+
+        if status:
+            query = query.filter(WorkflowTask.status == status)
+
+        return query.order_by(WorkflowTask.created_at.desc()).all()
+    
     def get_tasks_for_user(
         self, db: Session, *, user_id: uuid.UUID, status: Optional[str] = None
     ) -> List[WorkflowTask]:
-        """Get tasks assigned to a specific user."""
+        """Get tasks assigned to a specific user. (Deprecated - use get_all_admin_tasks for admin users)"""
         query = db.query(WorkflowTask).filter(
             WorkflowTask.assignee_user_id == user_id)
 
@@ -24,7 +35,7 @@ class CRUDWorkflowTask(CRUDBase[WorkflowTask, WorkflowTaskCreate, WorkflowTaskUp
         return db.query(WorkflowTask).filter(WorkflowTask.status == 'pending').all()
 
     def create_onboarding_task(
-        self, db: Session, *, assignee_id: uuid.UUID, employee_name: str, 
+        self, db: Session, *, assignee_id: uuid.UUID, employee_name: str,
         employee_email: str, employee_department: Optional[str] = None, details: str
     ) -> WorkflowTask:
         """Create an onboarding task. No user record is created yet."""
@@ -45,7 +56,7 @@ class CRUDWorkflowTask(CRUDBase[WorkflowTask, WorkflowTaskCreate, WorkflowTaskUp
 
     def create_offboarding_task(
         self, db: Session, *, assignee_id: uuid.UUID, target_user_id: uuid.UUID,
-        employee_name: str, employee_email: str, employee_department: Optional[str] = None, 
+        employee_name: str, employee_email: str, employee_department: Optional[str] = None,
         details: str
     ) -> WorkflowTask:
         """Create an offboarding task. User already exists."""

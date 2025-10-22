@@ -30,7 +30,7 @@ def hr_onboarding_webhook(
         workflow_task.model.type == "onboarding",
         workflow_task.model.status == "pending"
     ).first()
-    
+
     if existing_task:
         return {"message": "Onboarding task already exists for this employee"}
 
@@ -42,7 +42,8 @@ def hr_onboarding_webhook(
             "detail": f"User {employee_data['email']} is already registered"
         }
 
-    # Find admins to assign tasks to
+    # Find any admin to use as the assignee (all admins will see all tasks)
+    # We still need an assignee_id for database constraints, but it's now just a placeholder
     from app.models.user import Role, UserRole
     admin_role = db.query(Role).filter(Role.name == "Admin").first()
     if not admin_role:
@@ -50,18 +51,19 @@ def hr_onboarding_webhook(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Admin role not found in system"
         )
-    
+
     admin_user_role = db.query(UserRole).filter(
         UserRole.role_id == admin_role.id
     ).first()
-    
+
     if not admin_user_role:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="No admin user found to assign task"
+            detail="No admin user found in system"
         )
 
     # Create onboarding task WITHOUT creating a user record
+    # Note: assignee_id is now just a placeholder - all admins can see and process all tasks
     task_details = f"Onboard new employee: {employee_data['name']} ({employee_data['email']})"
     workflow_task.create_onboarding_task(
         db,
@@ -101,11 +103,12 @@ def hr_offboarding_webhook(
         workflow_task.model.type == "offboarding",
         workflow_task.model.status == "pending"
     ).first()
-    
+
     if existing_task:
         return {"message": "Offboarding task already exists for this employee"}
 
-    # Find admins to assign tasks to
+    # Find any admin to use as the assignee (all admins will see all tasks)
+    # We still need an assignee_id for database constraints, but it's now just a placeholder
     from app.models.user import Role, UserRole
     admin_role = db.query(Role).filter(Role.name == "Admin").first()
     if not admin_role:
@@ -113,18 +116,19 @@ def hr_offboarding_webhook(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Admin role not found in system"
         )
-    
+
     admin_user_role = db.query(UserRole).filter(
         UserRole.role_id == admin_role.id
     ).first()
-    
+
     if not admin_user_role:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="No admin user found to assign task"
+            detail="No admin user found in system"
         )
 
     # Create offboarding task WITHOUT deleting the user
+    # Note: assignee_id is now just a placeholder - all admins can see and process all tasks
     task_details = f"Offboard employee: {employee_data['name']} ({employee_data['email']})"
     workflow_task.create_offboarding_task(
         db,
@@ -146,12 +150,12 @@ def read_user_tasks(
     db: Session = Depends(get_db)
 ):
     """
-    Get tasks assigned to the current user (Admin only).
+    Get all tasks visible to admin users (Admin only).
+    All admins see the same tasks regardless of who they're assigned to.
     Employee details are now stored directly in the task.
     """
-    tasks = workflow_task.get_tasks_for_user(
-        db, user_id=current_user.id, status=status)
-    
+    tasks = workflow_task.get_all_admin_tasks(db, status=status)
+
     # Tasks now have employee_name, employee_email, employee_department directly
     # No need to look up from users table
     return tasks
@@ -161,11 +165,12 @@ def read_user_tasks(
 def update_task(
     task_id: uuid.UUID,
     task_update: WorkflowTaskUpdate,
-    current_user: User = Depends(get_current_active_user),
+    current_user: User = Depends(require_admin),
     db: Session = Depends(get_db)
 ):
     """
     Update task status and add comments.
+    Any admin can update any task.
     """
     existing_task = workflow_task.get(db, task_id)
     if not existing_task:
@@ -174,12 +179,7 @@ def update_task(
             detail="Task not found"
         )
 
-    # Check if user is the assignee
-    if existing_task.assignee_user_id != current_user.id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You can only update tasks assigned to you"
-        )
+    # No assignee check - any admin can update any task
 
     # Update task
     update_data = task_update.dict(exclude_unset=True)
@@ -206,11 +206,12 @@ def update_task(
 @inbox_router.get("/tasks/{task_id}", response_model=WorkflowTask)
 def read_task(
     task_id: uuid.UUID,
-    current_user: User = Depends(get_current_active_user),
+    current_user: User = Depends(require_admin),
     db: Session = Depends(get_db)
 ):
     """
     Get specific task details.
+    Any admin can view any task.
     """
     existing_task = workflow_task.get(db, task_id)
     if not existing_task:
@@ -219,12 +220,7 @@ def read_task(
             detail="Task not found"
         )
 
-    # Check if user is the assignee
-    if existing_task.assignee_user_id != current_user.id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You can only view tasks assigned to you"
-        )
+    # No assignee check - any admin can view any task
 
     return existing_task
 
@@ -237,12 +233,13 @@ def complete_task(
 ):
     """
     Complete a workflow task and trigger associated backend logic.
-    
+    Any admin can complete any task. Prevents duplicate processing.
+
     For ONBOARDING: This endpoint is called AFTER the admin has successfully created the user
     via the User Directory's create endpoint. This endpoint just marks the task as complete.
-    
+
     For OFFBOARDING: This endpoint DELETES the user and marks the task as complete.
-    
+
     Flow:
     - Onboarding: Frontend creates user -> if successful -> calls this to mark task complete
     - Offboarding: Frontend calls this directly -> deletes user -> marks task complete
@@ -254,30 +251,26 @@ def complete_task(
             detail="Task not found"
         )
 
-    # Check if user is the assignee
-    if existing_task.assignee_user_id != current_user.id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You can only complete tasks assigned to you"
-        )
+    # No assignee check - any admin can complete any task
 
-    # Check if already completed
+    # Check if already completed (protection against duplicate processing)
     if existing_task.status == "completed":
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Task is already completed"
+            detail="Task has already been completed by another admin"
         )
 
     # Handle based on task type
     if existing_task.type == "onboarding":
         # For onboarding, verify that the user has been created
-        created_user = user.get_by_email(db, email=existing_task.employee_email)
+        created_user = user.get_by_email(
+            db, email=existing_task.employee_email)
         if not created_user:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="User must be created before completing onboarding task"
             )
-        
+
         # Update task with the created user's ID
         workflow_task.update(db, db_obj=existing_task, obj_in={
             "target_user_id": created_user.id,
@@ -290,9 +283,10 @@ def complete_task(
             actor_user_id=current_user.id,
             action="user.onboard",
             target_id=str(created_user.id),
-            details={"task_id": str(task_id), "email": existing_task.employee_email}
+            details={"task_id": str(
+                task_id), "email": existing_task.employee_email}
         )
-        
+
     elif existing_task.type == "offboarding":
         # For offboarding, delete the user
         if not existing_task.target_user_id:
@@ -300,7 +294,7 @@ def complete_task(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Cannot offboard: target user not found"
             )
-        
+
         target_user = user.get(db, existing_task.target_user_id)
         if target_user:
             user.remove(db, id=existing_task.target_user_id)
@@ -313,9 +307,10 @@ def complete_task(
                 target_id=str(existing_task.target_user_id),
                 details={"task_id": str(task_id), "email": target_user.email}
             )
-        
+
         # Mark task as completed
-        workflow_task.update(db, db_obj=existing_task, obj_in={"status": "completed"})
+        workflow_task.update(db, db_obj=existing_task,
+                             obj_in={"status": "completed"})
 
     # Log task completion
     audit_log.log_action(

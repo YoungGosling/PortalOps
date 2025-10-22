@@ -41,6 +41,3 @@ class WorkflowTask(WorkflowTaskBase):
 
 class OnboardingWebhookRequest(BaseModel):
     employee: dict  # {"name": "...", "email": "...", "department": "..."}
-
-
-

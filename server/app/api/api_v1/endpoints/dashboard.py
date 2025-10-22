@@ -146,12 +146,20 @@ def get_pending_tasks_count(
     db: Session = Depends(get_db)
 ):
     """
-    Get count of pending workflow tasks (onboarding/offboarding) assigned to the current user.
-    Returns the count of tasks with status='pending' assigned to the current user.
+    Get count of pending workflow tasks (onboarding/offboarding).
+    For admin users, returns the total count of all pending tasks (visible to all admins).
+    For non-admin users, returns 0.
     """
+    from app.core.deps import get_user_roles
+    
+    # Check if user is admin
+    user_roles = get_user_roles(current_user.id, db)
+    if "Admin" not in user_roles:
+        return {"pendingCount": 0}
+    
+    # For admins, return total pending count (all admins see all tasks)
     pending_count = db.query(func.count(WorkflowTask.id)).filter(
-        WorkflowTask.status == 'pending',
-        WorkflowTask.assignee_user_id == current_user.id
+        WorkflowTask.status == 'pending'
     ).scalar()
 
     return {
