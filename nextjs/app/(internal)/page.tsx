@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { BarChart3, Users, Building, CreditCard, Loader2, DollarSign, Inbox, Clock, UserPlus, Activity, CalendarClock } from 'lucide-react';
 import { apiClient } from '@/lib/api';
@@ -18,11 +18,18 @@ export default function DashboardPage() {
   const [pendingTasks, setPendingTasks] = useState<PendingTasksCount | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const hasFetchedRef = useRef(false);
 
   useEffect(() => {
     const fetchDashboardData = async () => {
-      // Prevent retry if already errored
-      if (error) return;
+      // Prevent retry if already errored or already fetched
+      if (error || hasFetchedRef.current) return;
+      
+      // Only fetch if user exists
+      if (!user) {
+        setLoading(false);
+        return;
+      }
       
       try {
         setLoading(true);
@@ -40,6 +47,7 @@ export default function DashboardPage() {
         setActivities(activitiesData);
         setRenewals(renewalsData);
         setPendingTasks(tasksData);
+        hasFetchedRef.current = true; // Mark as fetched
       } catch (error) {
         console.error('Failed to fetch dashboard data:', error);
         setError(true);
@@ -49,10 +57,8 @@ export default function DashboardPage() {
       }
     };
 
-    if (user) {
-      fetchDashboardData();
-    }
-  }, [user]);
+    fetchDashboardData();
+  }, [user?.email]); // Only depend on user email to avoid unnecessary re-renders
 
   if (loading) {
     return (
