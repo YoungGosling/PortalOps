@@ -4,16 +4,17 @@ import { useState, useRef, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Upload, X, FileText, Eye, Trash2 } from 'lucide-react';
+import { Upload, X, FileText, Download, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import type { PaymentInvoice } from '@/types';
 
 interface FileUploadProps {
   files: File[];
   uploadedInvoices: PaymentInvoice[];
+  pendingDeleteInvoiceIds?: Set<string>;
   onFilesChange: (files: File[]) => void;
   onDeleteInvoice: (invoiceId: string) => void;
-  onPreviewInvoice: (invoiceId: string) => void;
+  onDownloadInvoice: (invoiceId: string) => void;
   disabled?: boolean;
   className?: string;
 }
@@ -21,9 +22,10 @@ interface FileUploadProps {
 export function FileUpload({
   files,
   uploadedInvoices,
+  pendingDeleteInvoiceIds = new Set(),
   onFilesChange,
   onDeleteInvoice,
-  onPreviewInvoice,
+  onDownloadInvoice,
   disabled = false,
   className = '',
 }: FileUploadProps) {
@@ -170,6 +172,7 @@ export function FileUpload({
                       </div>
                     </div>
                     <Button
+                      type="button"
                       variant="ghost"
                       size="sm"
                       onClick={() => removeFile(index)}
@@ -191,43 +194,57 @@ export function FileUpload({
         <div className="space-y-2">
           <h4 className="text-sm font-medium text-muted-foreground">Uploaded Invoices</h4>
           <div className="space-y-2">
-            {uploadedInvoices.map((invoice) => (
-              <Card key={invoice.id} className="p-3">
-                <CardContent className="p-0">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                      <FileText className="h-4 w-4 text-muted-foreground" />
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-medium truncate">{invoice.original_file_name}</p>
-                        <Badge variant="secondary" className="text-xs">
-                          Uploaded
-                        </Badge>
+            {uploadedInvoices.map((invoice) => {
+              const isPendingDelete = pendingDeleteInvoiceIds.has(invoice.id);
+              return (
+                <Card 
+                  key={invoice.id} 
+                  className={`p-3 transition-opacity ${isPendingDelete ? 'opacity-40 bg-destructive/10' : ''}`}
+                >
+                  <CardContent className="p-0">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-3">
+                        <FileText className={`h-4 w-4 ${isPendingDelete ? 'text-destructive' : 'text-muted-foreground'}`} />
+                        <div className="min-w-0 flex-1">
+                          <p className={`text-sm font-medium truncate ${isPendingDelete ? 'line-through text-muted-foreground' : ''}`}>
+                            {invoice.original_file_name}
+                          </p>
+                          <Badge 
+                            variant={isPendingDelete ? "destructive" : "secondary"} 
+                            className="text-xs"
+                          >
+                            {isPendingDelete ? 'Marked for Deletion' : 'Uploaded'}
+                          </Badge>
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-1">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => onDownloadInvoice(invoice.id)}
+                          disabled={isPendingDelete}
+                          className="h-8 w-8 p-0 text-muted-foreground hover:text-green-600"
+                          title="Download invoice"
+                        >
+                          <Download className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => onDeleteInvoice(invoice.id)}
+                          disabled={disabled || isPendingDelete}
+                          className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
                       </div>
                     </div>
-                    <div className="flex items-center space-x-1">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => onPreviewInvoice(invoice.id)}
-                        disabled={disabled}
-                        className="h-8 w-8 p-0 text-muted-foreground hover:text-blue-600"
-                      >
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => onDeleteInvoice(invoice.id)}
-                        disabled={disabled}
-                        className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                  </CardContent>
+                </Card>
+              );
+            })}
           </div>
         </div>
       )}

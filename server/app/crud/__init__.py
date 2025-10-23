@@ -6,6 +6,7 @@ from .payment_invoice import payment_invoice
 from .workflow import workflow_task
 from .audit import audit_log
 from .department import department
+from .master_data import product_status, payment_method
 
 __all__ = [
     "user",
@@ -15,5 +16,7 @@ __all__ = [
     "payment_invoice",
     "workflow_task",
     "audit_log",
-    "department"
+    "department",
+    "product_status",
+    "payment_method"
 ]

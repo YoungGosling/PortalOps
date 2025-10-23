@@ -40,24 +40,33 @@ class ProductBase(BaseModel):
 
 class ProductCreate(ProductBase):
     service_id: Optional[uuid.UUID] = None
+    status_id: int = 1  # Default to Active
 
 
 class ProductCreateWithUrl(BaseModel):
     name: str
     url: Optional[str] = None
+    description: Optional[str] = None
     serviceId: uuid.UUID
+    statusId: Optional[int] = 1  # Default to Active
 
 
 class ProductUpdate(BaseModel):
     name: Optional[str] = None
     url: Optional[str] = None
     description: Optional[str] = None
+    status_id: Optional[int] = None
 
 
 class Product(ProductBase):
     id: uuid.UUID
     service_id: uuid.UUID
     service_name: Optional[str] = None
+    status_id: int
+    status: Optional[str] = None  # Product status name
+    latest_payment_date: Optional[str] = None
+    latest_usage_start_date: Optional[str] = None
+    latest_usage_end_date: Optional[str] = None
     created_at: datetime
     updated_at: datetime
 

@@ -1,5 +1,5 @@
 from typing import List, Optional
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from app.crud.base import CRUDBase
 from app.models.department import Department, DepartmentProductAssignment
 from app.models.service import Product
@@ -22,7 +22,9 @@ class CRUDDepartment(CRUDBase[Department, DepartmentCreate, DepartmentUpdate]):
         if not product_ids:
             return []
 
-        products = db.query(Product).filter(Product.id.in_(product_ids)).all()
+        products = db.query(Product).options(joinedload(Product.service)).filter(
+            Product.id.in_(product_ids)
+        ).all()
         return products
 
     def set_department_products(

@@ -10,8 +10,8 @@ class PaymentInvoice(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True,
                 default=func.uuid_generate_v4())
-    product_id = Column(UUID(as_uuid=True), ForeignKey(
-        "products.id", ondelete="CASCADE"), nullable=False)
+    payment_info_id = Column(UUID(as_uuid=True), ForeignKey(
+        "payment_info.id", ondelete="CASCADE"), nullable=False)
     file_name = Column(Text, nullable=False)
     original_file_name = Column(Text, nullable=False)
     file_path = Column(Text, nullable=False)
@@ -19,4 +19,4 @@ class PaymentInvoice(Base):
                         server_default=func.now(), nullable=False)
 
     # Relationships
-    product = relationship("Product", back_populates="payment_invoices")
+    payment_info = relationship("PaymentInfo", back_populates="invoices")

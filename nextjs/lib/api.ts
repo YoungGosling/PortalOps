@@ -6,7 +6,6 @@ import type {
   PaymentSummary,
   WorkflowTask,
   BillAttachment,
-  MasterFileInvoice,
   LoginRequest,
   LoginResponse,
   ServiceCreateRequest,
@@ -25,6 +24,12 @@ import type {
   DepartmentUpdateRequest,
   DepartmentProductAssignmentRequest,
   DepartmentProductAssignmentResponse,
+  ProductStatus,
+  ProductStatusCreateRequest,
+  ProductStatusUpdateRequest,
+  PaymentMethod,
+  PaymentMethodCreateRequest,
+  PaymentMethodUpdateRequest,
 } from '@/types';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
@@ -188,18 +193,29 @@ class ApiClient {
     const response = await this.request<any[]>('/api/v2/payment-register');
     // Transform camelCase nested API response to snake_case flat structure
     return response.map((item) => ({
+      id: item.paymentInfo?.id,
       product_id: item.productId,
       product_name: item.productName,
+      product_description: item.productDescription,
       service_name: item.serviceName,
-      amount: item.paymentInfo.amount ? parseFloat(item.paymentInfo.amount) : undefined,
-      cardholder_name: item.paymentInfo.cardholderName,
-      expiry_date: item.paymentInfo.expiryDate,
-      payment_method: item.paymentInfo.paymentMethod,
-      bill_attachment_path: item.paymentInfo.billAttachmentPath,
-      invoices: item.paymentInfo.invoices || [],
-      is_complete: item.paymentInfo.status === 'complete',
-      created_at: item.paymentInfo.createdAt,
-      updated_at: item.paymentInfo.updatedAt,
+      service_vendor: item.serviceVendor,
+      amount: item.paymentInfo?.amount ? parseFloat(item.paymentInfo.amount) : undefined,
+      cardholder_name: item.paymentInfo?.cardholderName,
+      expiry_date: item.paymentInfo?.expiryDate,
+      payment_method: item.paymentInfo?.paymentMethod,
+      payment_method_id: item.paymentInfo?.paymentMethodId,
+      payment_method_description: item.paymentInfo?.paymentMethodDescription,
+      payment_date: item.paymentInfo?.paymentDate,
+      usage_start_date: item.paymentInfo?.usageStartDate,
+      usage_end_date: item.paymentInfo?.usageEndDate,
+      reporter: item.paymentInfo?.reporter,
+      bill_attachment_path: item.paymentInfo?.billAttachmentPath,
+      invoices: item.paymentInfo?.invoices || [],
+      is_complete: item.paymentInfo?.status === 'complete',
+      payment_status: item.paymentInfo?.status,
+      product_status: item.productStatus,
+      created_at: item.paymentInfo?.createdAt,
+      updated_at: item.paymentInfo?.updatedAt,
     }));
   }
 
@@ -213,18 +229,80 @@ class ApiClient {
     });
   }
 
+  // V2: Update payment by payment ID (for one-to-many support)
+  async updatePaymentById(
+    paymentId: string,
+    data: PaymentUpdateRequest | FormData
+  ): Promise<void> {
+    return this.request<void>(`/api/v2/payment-register/payments/${paymentId}`, {
+      method: 'PUT',
+      body: data instanceof FormData ? data : JSON.stringify(data),
+    });
+  }
+
+  // V2: Delete payment by payment ID
+  async deletePaymentById(paymentId: string): Promise<void> {
+    return this.request<void>(`/api/v2/payment-register/payments/${paymentId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // V2: Get all payments for a specific product
+  async getProductPayments(productId: string): Promise<PaymentInfo[]> {
+    const response = await this.request<any[]>(`/api/v2/payment-register/products/${productId}/payments`);
+    return response.map((item) => ({
+      id: item.paymentInfo?.id || item.paymentId,
+      payment_id: item.paymentId,
+      product_id: item.productId,
+      product_name: item.productName,
+      product_description: item.productDescription,
+      service_name: item.serviceName,
+      service_vendor: item.serviceVendor,
+      amount: item.paymentInfo?.amount ? parseFloat(item.paymentInfo.amount) : undefined,
+      cardholder_name: item.paymentInfo?.cardholderName,
+      expiry_date: item.paymentInfo?.expiryDate,
+      payment_method: item.paymentInfo?.paymentMethod,
+      payment_method_id: item.paymentInfo?.paymentMethodId,
+      payment_method_description: item.paymentInfo?.paymentMethodDescription,
+      payment_date: item.paymentInfo?.paymentDate,
+      usage_start_date: item.paymentInfo?.usageStartDate,
+      usage_end_date: item.paymentInfo?.usageEndDate,
+      reporter: item.paymentInfo?.reporter,
+      invoices: item.paymentInfo?.invoices || [],
+      is_complete: item.paymentInfo?.status === 'complete',
+      payment_status: item.paymentInfo?.status,
+      product_status: item.productStatus,
+      created_at: item.paymentInfo?.createdAt,
+      updated_at: item.paymentInfo?.updatedAt,
+    }));
+  }
+
+  // V2: Create a new payment record for an existing product
+  async createPaymentForProduct(
+    productId: string,
+    data: PaymentUpdateRequest | FormData
+  ): Promise<{ id: string; product_id: string; status: string }> {
+    return this.request<{ id: string; product_id: string; status: string }>(
+      `/api/v2/payment-register/products/${productId}/payments`,
+      {
+        method: 'POST',
+        body: data instanceof FormData ? data : JSON.stringify(data),
+      }
+    );
+  }
+
   async getPaymentSummary(): Promise<PaymentSummary> {
     return this.request<PaymentSummary>('/api/payment-register/summary');
   }
 
   // Invoice Management
-  async uploadInvoices(productId: string, files: File[]): Promise<void> {
+  async uploadInvoices(paymentInfoId: string, files: File[]): Promise<void> {
     const formData = new FormData();
     files.forEach((file) => {
       formData.append('files', file);
     });
     
-    return this.request<void>(`/api/v2/invoices/${productId}/invoices`, {
+    return this.request<void>(`/api/v2/invoices/payments/${paymentInfoId}/invoices`, {
       method: 'POST',
       body: formData,
     });
@@ -248,11 +326,6 @@ class ApiClient {
     }
 
     return response.blob();
-  }
-
-  async getMasterFileInvoices(productId?: string): Promise<MasterFileInvoice[]> {
-    const query = productId ? `?productId=${productId}` : '';
-    return this.request<MasterFileInvoice[]>(`/api/v2/master-files/invoices${query}`);
   }
 
   // Users
@@ -402,6 +475,56 @@ class ApiClient {
       })
     );
     return servicesWithProducts;
+  }
+
+  // V2: Product Statuses (Master Data)
+  async getProductStatuses(): Promise<ProductStatus[]> {
+    return this.request<ProductStatus[]>('/api/admin/product-statuses');
+  }
+
+  async createProductStatus(data: ProductStatusCreateRequest): Promise<ProductStatus> {
+    return this.request<ProductStatus>('/api/admin/product-statuses', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateProductStatus(id: number, data: ProductStatusUpdateRequest): Promise<ProductStatus> {
+    return this.request<ProductStatus>(`/api/admin/product-statuses/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteProductStatus(id: number): Promise<void> {
+    return this.request<void>(`/api/admin/product-statuses/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // V2: Payment Methods (Master Data)
+  async getPaymentMethods(): Promise<PaymentMethod[]> {
+    return this.request<PaymentMethod[]>('/api/admin/payment-methods');
+  }
+
+  async createPaymentMethod(data: PaymentMethodCreateRequest): Promise<PaymentMethod> {
+    return this.request<PaymentMethod>('/api/admin/payment-methods', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updatePaymentMethod(id: number, data: PaymentMethodUpdateRequest): Promise<PaymentMethod> {
+    return this.request<PaymentMethod>(`/api/admin/payment-methods/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deletePaymentMethod(id: number): Promise<void> {
+    return this.request<void>(`/api/admin/payment-methods/${id}`, {
+      method: 'DELETE',
+    });
   }
 }
 

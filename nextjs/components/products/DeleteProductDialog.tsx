@@ -80,15 +80,30 @@ export function DeleteProductDialog({
                   <span className="text-sm font-medium text-muted-foreground">Service:</span>
                   <span className="text-sm font-semibold">{product.service_name || 'No Service'}</span>
                 </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-medium text-muted-foreground">Status:</span>
+                  <span className="text-sm font-semibold">{product.status || 'Unknown'}</span>
+                </div>
               </div>
             </div>
 
-            <div className="p-3 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900">
-              <p className="text-xs text-foreground">
-                <strong className="text-amber-700 dark:text-amber-400">Note:</strong> Deleting this product will also remove its
-                associated billing record from the Payment Register.
-              </p>
-            </div>
+            {product.status !== 'Inactive' && (
+              <div className="p-3 rounded-lg bg-orange-50 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-900">
+                <p className="text-xs text-foreground">
+                  <strong className="text-orange-700 dark:text-orange-400">Warning:</strong> Only products with "Inactive" status can be deleted. 
+                  Current status is "{product.status}". Please update the product status to "Inactive" before deletion.
+                </p>
+              </div>
+            )}
+
+            {product.status === 'Inactive' && (
+              <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900">
+                <p className="text-xs text-foreground">
+                  <strong className="text-blue-700 dark:text-blue-400">Note:</strong> Associated payment records will be preserved 
+                  but marked as "Error" status in the Payment Register. These records can be reassigned to another product if needed.
+                </p>
+              </div>
+            )}
           </div>
         )}
 
@@ -105,7 +120,7 @@ export function DeleteProductDialog({
             type="button"
             variant="destructive"
             onClick={handleDelete}
-            disabled={deleting}
+            disabled={deleting || (product?.status !== 'Inactive')}
           >
             {deleting ? (
               <>

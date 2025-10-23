@@ -15,12 +15,13 @@ import {
   CreditCard,
   FileText,
   UserCheck,
-  Archive,
   Settings,
   ChevronDown,
   ChevronRight,
   TrendingUp,
   Building2,
+  Tag,
+  Wallet,
 } from 'lucide-react';
 import { useState } from 'react';
 import {
@@ -89,14 +90,19 @@ export function Sidebar({ collapsed }: SidebarProps) {
       path: '/admin/departments',
     },
     {
+      label: 'Prod Master File',
+      icon: Tag,
+      path: '/admin/product-statuses',
+    },
+    {
+      label: 'Payt Master File',
+      icon: Wallet,
+      path: '/admin/payment-methods',
+    },
+    {
       label: 'User Administration',
       icon: UserCheck,
       path: '/admin/permissions',
-    },
-    {
-      label: 'Master Files',
-      icon: Archive,
-      path: '/admin/files',
     },
   ];
 
@@ -219,8 +225,9 @@ export function Sidebar({ collapsed }: SidebarProps) {
                   const Icon = item.icon;
                   const adminIconColors: Record<string, string> = {
                     'Dept Master File': 'dark:text-blue-400',
+                    'Prod Master File': 'dark:text-blue-400',
+                    'Payt Master File': 'dark:text-blue-400',
                     'User Administration': 'text-success',
-                    'Master Files': 'text-warning',
                   };
                   return (
                     <Link key={item.path} href={item.path}>

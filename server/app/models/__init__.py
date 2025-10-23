@@ -1,6 +1,6 @@
 from .user import User, Role, UserRole
 from .service import Service, Product
-from .payment import PaymentInfo
+from .payment import PaymentInfo, ProductStatus, PaymentMethod
 from .payment_invoice import PaymentInvoice
 from .permission import PermissionAssignment
 from .workflow import WorkflowTask
@@ -14,6 +14,8 @@ __all__ = [
     "Service",
     "Product",
     "PaymentInfo",
+    "ProductStatus",
+    "PaymentMethod",
     "PaymentInvoice",
     "PermissionAssignment",
     "WorkflowTask",

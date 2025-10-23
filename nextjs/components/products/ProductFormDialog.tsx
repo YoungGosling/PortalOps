@@ -19,8 +19,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
 import { apiClient } from '@/lib/api';
-import type { Product, Service } from '@/types';
+import type { Product, Service, ProductStatus } from '@/types';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
 
@@ -38,23 +39,32 @@ export function ProductFormDialog({
   onSuccess,
 }: ProductFormDialogProps) {
   const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
   const [serviceId, setServiceId] = useState('');
+  const [statusId, setStatusId] = useState('1');  // V2: Default to 'Active' (ID: 1)
   const [services, setServices] = useState<Service[]>([]);
+  const [statuses, setStatuses] = useState<ProductStatus[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadingServices, setLoadingServices] = useState(false);
+  const [loadingStatuses, setLoadingStatuses] = useState(false);
 
   const isEditMode = !!product;
 
-  // Fetch services when dialog opens
+  // Fetch services and statuses when dialog opens
   useEffect(() => {
     if (open) {
       fetchServices();
+      fetchStatuses();
       if (product) {
         setName(product.name);
+        setDescription(product.description || '');
         setServiceId(product.service_id);
+        setStatusId(product.status_id?.toString() || '1');
       } else {
         setName('');
+        setDescription('');
         setServiceId('');
+        setStatusId('1');
       }
     }
   }, [open, product]);
@@ -69,6 +79,19 @@ export function ProductFormDialog({
       console.error(error);
     } finally {
       setLoadingServices(false);
+    }
+  };
+
+  const fetchStatuses = async () => {
+    try {
+      setLoadingStatuses(true);
+      const data = await apiClient.getProductStatuses();
+      setStatuses(data);
+    } catch (error) {
+      toast.error('Failed to load product statuses');
+      console.error(error);
+    } finally {
+      setLoadingStatuses(false);
     }
   };
 
@@ -90,17 +113,21 @@ export function ProductFormDialog({
       setLoading(true);
 
       if (isEditMode && product) {
-        // Update existing product
+        // V2: Update existing product with new fields
         await apiClient.updateProduct(product.id, {
           name: name.trim(),
+          description: description.trim() || undefined,
           serviceId: serviceId,
+          statusId: parseInt(statusId),
         });
         toast.success('Product updated successfully');
       } else {
-        // Create new product
+        // V2: Create new product with new fields
         await apiClient.createProduct({
           name: name.trim(),
+          description: description.trim() || undefined,
           serviceId: serviceId,
+          statusId: parseInt(statusId),
         });
         toast.success('Product created successfully');
       }
@@ -152,6 +179,20 @@ export function ProductFormDialog({
             </div>
 
             <div className="space-y-2">
+              <Label htmlFor="product-description">
+                Description
+              </Label>
+              <Textarea
+                id="product-description"
+                placeholder="Enter product description (optional)"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                disabled={loading}
+                rows={3}
+              />
+            </div>
+
+            <div className="space-y-2">
               <Label htmlFor="service">
                 Service <span className="text-destructive">*</span>
               </Label>
@@ -186,6 +227,42 @@ export function ProductFormDialog({
                 </Select>
               )}
             </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="status">
+                Status <span className="text-destructive">*</span>
+              </Label>
+              {loadingStatuses ? (
+                <div className="flex items-center justify-center p-4 border rounded-md">
+                  <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                  <span className="ml-2 text-sm text-muted-foreground">Loading statuses...</span>
+                </div>
+              ) : statuses.length === 0 ? (
+                <div className="p-4 border rounded-md text-center">
+                  <p className="text-sm text-muted-foreground">
+                    No statuses available. Please configure product statuses first.
+                  </p>
+                </div>
+              ) : (
+                <Select
+                  value={statusId}
+                  onValueChange={setStatusId}
+                  disabled={loading}
+                  required
+                >
+                  <SelectTrigger id="status">
+                    <SelectValue placeholder="Select a status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {statuses.map((status) => (
+                      <SelectItem key={status.id} value={status.id.toString()}>
+                        {status.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
           </div>
 
           <DialogFooter>
@@ -199,7 +276,7 @@ export function ProductFormDialog({
             </Button>
             <Button
               type="submit"
-              disabled={loading || services.length === 0}
+              disabled={loading || services.length === 0 || statuses.length === 0}
             >
               {loading ? (
                 <>

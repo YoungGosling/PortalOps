@@ -3,9 +3,11 @@ from sqlalchemy.orm import Session, joinedload
 from app.crud.base import CRUDBase
 from app.models.service import Product
 from app.models.permission import PermissionAssignment
+from app.models.department import DepartmentProductAssignment
 from app.models.payment import PaymentInfo
 from app.schemas.service import ProductCreate, ProductUpdate
 import uuid
+from datetime import date
 
 
 class CRUDProduct(CRUDBase[Product, ProductCreate, ProductUpdate]):
@@ -58,30 +60,69 @@ class CRUDProduct(CRUDBase[Product, ProductCreate, ProductUpdate]):
 
         return permission is not None
 
-    def create_with_payment_info(self, db: Session, *, obj_in: ProductCreate) -> Product:
+    def create_with_payment_info(
+        self, db: Session, *, obj_in: ProductCreate, reporter: str = "System"
+    ) -> Product:
         """
-        Create a new product and a corresponding incomplete payment_info record.
+        Create a new product with an associated incomplete payment record.
+
+        Args:
+            db: Database session
+            obj_in: Product creation data
+            reporter: Name of the user creating the product
+
+        Returns:
+            The newly created Product instance with payment_info relationship loaded
         """
-        # Create the product object
-        db_obj = Product(
-            name=obj_in.name,
-            url=obj_in.url,
-            description=obj_in.description,
-            service_id=obj_in.service_id
-        )
-        db.add(db_obj)
-        db.flush()  # Use flush to get the ID before committing
+        # Create the product first
+        product = self.create(db, obj_in=obj_in)
 
-        # Create the corresponding incomplete payment_info record
-        payment_info_obj = PaymentInfo(
-            product_id=db_obj.id,
-            status="incomplete"
+        # Create an incomplete payment record linked to this product
+        today = date.today()
+        payment_record = PaymentInfo(
+            product_id=product.id,
+            status="incomplete",
+            payment_date=today,
+            usage_start_date=today,
+            usage_end_date=today,
+            reporter=reporter
         )
-        db.add(payment_info_obj)
 
+        db.add(payment_record)
         db.commit()
-        db.refresh(db_obj)
-        return db_obj
+        db.refresh(product)
+
+        return product
+
+    def remove(self, db: Session, *, id: uuid.UUID) -> Product:
+        """
+        Override remove to properly handle cascading deletes.
+        Explicitly delete related records before deleting the product.
+
+        Deletion behavior:
+        - permission_assignments: CASCADE deleted
+        - department_product_assignments: CASCADE deleted
+        - payment_info: product_id set to NULL, status set to 'error' (preserved)
+        """
+        obj = db.query(self.model).filter(self.model.id == id).first()
+        if not obj:
+            return None
+
+        # Explicitly delete permission assignments (CASCADE)
+        db.query(PermissionAssignment).filter(
+            PermissionAssignment.product_id == id
+        ).delete(synchronize_session=False)
+
+        # Explicitly delete department product assignments (CASCADE)
+        db.query(DepartmentProductAssignment).filter(
+            DepartmentProductAssignment.product_id == id
+        ).delete(synchronize_session=False)
+
+        # Now delete the product
+        # payment_info will have product_id set to NULL by database trigger
+        db.delete(obj)
+        db.commit()
+        return obj
 
 
 product = CRUDProduct(Product)
