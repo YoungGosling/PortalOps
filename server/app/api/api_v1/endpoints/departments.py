@@ -144,6 +144,9 @@ def get_department_products(
     Get all products assigned to a department.
     Admin only.
     """
+    from app.crud import payment_info
+    from app.models.payment import ProductStatus
+
     target_department = department.get(db, department_id)
     if not target_department:
         raise HTTPException(
@@ -153,7 +156,53 @@ def get_department_products(
 
     products = department.get_department_products(
         db, department_id=department_id)
-    return products
+
+    # Convert products to proper format with service_name, status string, and payment info
+    result = []
+    for product in products:
+        # Get product status name
+        status_name = None
+        if product.status_id:
+            status_obj = db.query(ProductStatus).filter(
+                ProductStatus.id == product.status_id).first()
+            if status_obj:
+                status_name = status_obj.name
+
+        # Get latest payment info
+        latest_payment = payment_info.get_latest_by_product(db, product.id)
+        latest_payment_date = None
+        latest_usage_start = None
+        latest_usage_end = None
+
+        if latest_payment:
+            if latest_payment.payment_date:
+                latest_payment_date = latest_payment.payment_date.strftime(
+                    "%m/%d/%Y")
+            if latest_payment.usage_start_date:
+                latest_usage_start = latest_payment.usage_start_date.strftime(
+                    "%m/%d/%Y")
+            if latest_payment.usage_end_date:
+                latest_usage_end = latest_payment.usage_end_date.strftime(
+                    "%m/%d/%Y")
+
+        product_dict = {
+            "id": product.id,
+            "name": product.name,
+            "url": product.url,
+            "description": product.description,
+            "service_id": product.service_id,
+            "service_name": product.service.name if product.service else None,
+            "status_id": product.status_id,
+            "status": status_name,
+            "latest_payment_date": latest_payment_date,
+            "latest_usage_start_date": latest_usage_start,
+            "latest_usage_end_date": latest_usage_end,
+            "created_at": product.created_at,
+            "updated_at": product.updated_at
+        }
+        result.append(product_dict)
+
+    return result
 
 
 @router.put("/{department_id}/products", response_model=DepartmentProductAssignmentResponse)
