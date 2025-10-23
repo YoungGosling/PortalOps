@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
 import { ChevronRight, ChevronDown, Package, Layers, Loader2 } from 'lucide-react';
 import type { Service, ProductSimple } from '@/types';
 import { cn } from '@/lib/utils';
@@ -20,9 +21,10 @@ interface ServiceProductSelectorProps {
  * 
  * Features:
  * - Tree structure with expandable services
- * - Cascading selection: selecting a service selects all its products
- * - Individual product selection
+ * - Cascading selection: selecting a service selects all its Active products only
+ * - Individual product selection (Active products only)
  * - Indeterminate state for partially selected services
+ * - Non-Active products are disabled and show their status
  * - Returns only selected product IDs
  */
 export function ServiceProductSelector({
@@ -57,29 +59,47 @@ export function ServiceProductSelector({
     return service.products || [];
   };
 
+  const getStatusClasses = (status: string) => {
+    switch (status) {
+      case 'Inactive':
+        return 'bg-gray-200 dark:bg-gray-700 border-gray-400 dark:border-gray-500 text-gray-900 dark:text-gray-100';
+      case 'Overdue':
+        return 'bg-orange-50 dark:bg-orange-950 border-orange-200 dark:border-orange-800 text-orange-700 dark:text-orange-400';
+    }
+  };
+
+  const isProductActive = (product: ProductSimple): boolean => {
+    // Consider product as active if status is undefined (backward compatibility) or explicitly 'Active'
+    return !product.status || product.status === 'Active';
+  };
+
+  const getActiveProducts = (service: Service): ProductSimple[] => {
+    return getServiceProducts(service).filter(isProductActive);
+  };
+
   const isServiceFullySelected = (service: Service): boolean => {
-    const products = getServiceProducts(service);
-    if (products.length === 0) return false;
-    return products.every(p => selectedProductIds.includes(p.id));
+    const activeProducts = getActiveProducts(service);
+    if (activeProducts.length === 0) return false;
+    return activeProducts.every(p => selectedProductIds.includes(p.id));
   };
 
   const isServicePartiallySelected = (service: Service): boolean => {
-    const products = getServiceProducts(service);
-    if (products.length === 0) return false;
-    const selectedCount = products.filter(p => selectedProductIds.includes(p.id)).length;
-    return selectedCount > 0 && selectedCount < products.length;
+    const activeProducts = getActiveProducts(service);
+    if (activeProducts.length === 0) return false;
+    const selectedCount = activeProducts.filter(p => selectedProductIds.includes(p.id)).length;
+    return selectedCount > 0 && selectedCount < activeProducts.length;
   };
 
   const handleServiceToggle = (service: Service) => {
-    const products = getServiceProducts(service);
-    const productIds = products.map(p => p.id);
+    const activeProducts = getActiveProducts(service);
+    const activeProductIds = activeProducts.map(p => p.id);
     
     if (isServiceFullySelected(service)) {
-      // Deselect all products of this service
-      onSelectionChange(selectedProductIds.filter(id => !productIds.includes(id)));
+      // Deselect all active products of this service
+      onSelectionChange(selectedProductIds.filter(id => !activeProductIds.includes(id)));
     } else {
-      // Select all products of this service
-      const newSelection = new Set([...selectedProductIds, ...productIds]);
+      // Select all active products of this service only
+      const newSelection = new Set([...selectedProductIds, ...activeProductIds]);
       onSelectionChange(Array.from(newSelection));
     }
   };
@@ -117,10 +137,12 @@ export function ServiceProductSelector({
       <div className="max-h-[400px] overflow-y-auto">
         {services.map((service) => {
           const products = getServiceProducts(service);
+          const activeProducts = getActiveProducts(service);
           const isExpanded = expandedServiceIds.has(service.id);
           const isFullySelected = isServiceFullySelected(service);
           const isPartiallySelected = isServicePartiallySelected(service);
           const hasProducts = products.length > 0;
+          const hasActiveProducts = activeProducts.length > 0;
 
           return (
             <div key={service.id} className="border-b last:border-b-0">
@@ -155,7 +177,7 @@ export function ServiceProductSelector({
                       isPartiallySelected && "data-[state=unchecked]:bg-primary/20"
                     )}
                     onCheckedChange={() => handleServiceToggle(service)}
-                    disabled={!hasProducts}
+                    disabled={!hasActiveProducts}
                   />
                   <Label
                     htmlFor={`service-${service.id}`}
@@ -172,9 +194,16 @@ export function ServiceProductSelector({
                         </span>
                       )}
                     </div>
-                    <span className="text-xs text-muted-foreground flex-shrink-0">
-                      {products.length} {products.length === 1 ? 'product' : 'products'}
-                    </span>
+                    <div className="text-xs text-muted-foreground flex-shrink-0 flex items-center gap-2">
+                      <span>
+                        {activeProducts.length} active
+                      </span>
+                      {products.length !== activeProducts.length && (
+                        <span className="text-orange-600 dark:text-orange-400">
+                          ({products.length - activeProducts.length} unavailable)
+                        </span>
+                      )}
+                    </div>
                   </Label>
                 </div>
               </div>
@@ -184,26 +213,51 @@ export function ServiceProductSelector({
                 <div className="bg-muted/20">
                   {products.map((product) => {
                     const isSelected = selectedProductIds.includes(product.id);
+                    const isActive = isProductActive(product);
                     
                     return (
                       <div
                         key={product.id}
                         className={cn(
-                          "flex items-center gap-3 p-3 pl-12 hover:bg-accent/50 transition-colors",
-                          isSelected && "bg-primary/5"
+                          "flex items-center gap-3 p-3 pl-12 transition-colors",
+                          isActive && "hover:bg-accent/50",
+                          isSelected && "bg-primary/5",
+                          !isActive && "opacity-60"
                         )}
                       >
                         <Checkbox
                           id={`product-${product.id}`}
                           checked={isSelected}
                           onCheckedChange={() => handleProductToggle(product.id)}
+                          disabled={!isActive}
                         />
                         <Label
                           htmlFor={`product-${product.id}`}
-                          className="flex items-center gap-2 flex-1 min-w-0 cursor-pointer"
+                          className={cn(
+                            "flex items-center gap-2 flex-1 min-w-0",
+                            isActive && "cursor-pointer",
+                            !isActive && "cursor-not-allowed"
+                          )}
                         >
-                          <Package className="h-3.5 w-3.5 text-green-600 dark:text-green-400 flex-shrink-0" />
-                          <span className="text-sm truncate">{product.name}</span>
+                          <Package className={cn(
+                            "h-3.5 w-3.5 flex-shrink-0",
+                            isActive ? "text-green-600 dark:text-green-400" : "text-gray-400"
+                          )} />
+                          <span className="text-sm truncate flex-1">{product.name}</span>
+                          {!isActive && (product.status === 'Overdue' || product.status === 'Inactive') && (
+                            <Badge
+                              variant="outline"
+                              className={cn(
+                                "ml-2 text-xs",
+                                product.status === 'Overdue' &&
+                                  "bg-orange-50 dark:bg-orange-950 border-orange-200 dark:border-orange-800 text-orange-700 dark:text-orange-400",
+                                product.status === 'Inactive' &&
+                                  "bg-gray-200 dark:bg-gray-700 border-gray-400 dark:border-gray-500 text-gray-900 dark:text-gray-100"
+                              )}
+                            >
+                              {product.status}
+                            </Badge>
+                          )}
                         </Label>
                       </div>
                     );
