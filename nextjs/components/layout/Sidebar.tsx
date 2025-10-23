@@ -23,7 +23,7 @@ import {
   Tag,
   Wallet,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Collapsible,
   CollapsibleContent,
@@ -38,8 +38,35 @@ export function Sidebar({ collapsed }: SidebarProps) {
   const pathname = usePathname();
   const { isAdmin } = useAuth();
   const { incompleteCount } = usePaymentSummary();
-  const [adminOpen, setAdminOpen] = useState(false);
+  
+  // Initialize adminOpen from localStorage or check if current path is admin
+  const [adminOpen, setAdminOpen] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('sidebar-admin-open');
+      if (stored !== null) {
+        return stored === 'true';
+      }
+      // Auto-open if current path is an admin route
+      return pathname.startsWith('/admin');
+    }
+    return false;
+  });
+  
   const [setupOpen, setSetupOpen] = useState(false);
+
+  // Persist adminOpen state to localStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('sidebar-admin-open', String(adminOpen));
+    }
+  }, [adminOpen]);
+
+  // Auto-open administration section if navigating to an admin route
+  useEffect(() => {
+    if (pathname.startsWith('/admin') && !adminOpen) {
+      setAdminOpen(true);
+    }
+  }, [pathname, adminOpen]);
 
   const isActive = (path: string) => pathname === path;
 
