@@ -173,11 +173,6 @@ export default function ProductStatusesPage() {
                   {statuses.length} {statuses.length === 1 ? 'status' : 'statuses'} configured
                 </CardDescription>
               </div>
-              <div className="flex items-center gap-2">
-                <div className="p-2 rounded-lg bg-purple-50 dark:bg-purple-950">
-                  <Tag className="h-5 w-5 text-purple-600 dark:text-purple-400" />
-                </div>
-              </div>
             </div>
           </CardHeader>
           <CardContent className="p-0">
