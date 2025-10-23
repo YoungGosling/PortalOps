@@ -11,7 +11,7 @@ class PaymentInvoiceBase(BaseModel):
 
 
 class PaymentInvoiceCreate(PaymentInvoiceBase):
-    product_id: uuid.UUID
+    payment_info_id: uuid.UUID
 
 
 class PaymentInvoiceUpdate(BaseModel):
@@ -22,7 +22,7 @@ class PaymentInvoiceUpdate(BaseModel):
 
 class PaymentInvoice(PaymentInvoiceBase):
     id: uuid.UUID
-    product_id: uuid.UUID
+    payment_info_id: uuid.UUID
     created_at: datetime
 
     class Config:
@@ -42,7 +42,7 @@ class MasterFileInvoice(BaseModel):
     id: uuid.UUID
     file_name: str
     original_file_name: str
-    product_id: uuid.UUID
+    payment_info_id: uuid.UUID
     product_name: str
     service_name: str
     created_at: datetime

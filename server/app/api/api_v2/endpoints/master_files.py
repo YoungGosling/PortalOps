@@ -30,7 +30,7 @@ def get_master_files_invoices(
             id=invoice["id"],
             file_name=invoice["file_name"],
             original_file_name=invoice["original_file_name"],
-            product_id=invoice["product_id"],
+            payment_info_id=invoice["payment_info_id"],
             product_name=invoice["product_name"],
             service_name=invoice["service_name"],
             created_at=invoice["created_at"]

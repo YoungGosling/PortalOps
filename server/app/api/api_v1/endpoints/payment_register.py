@@ -44,15 +44,21 @@ async def update_payment_info(
     amount: Optional[str] = Form(None),
     cardholder_name: Optional[str] = Form(None),
     expiry_date: Optional[str] = Form(None),
-    payment_method: Optional[str] = Form(None),
+    payment_method_id: Optional[int] = Form(None),
+    payment_date: Optional[str] = Form(None),
+    usage_start_date: Optional[str] = Form(None),
+    usage_end_date: Optional[str] = Form(None),
+    reporter: Optional[str] = Form(None),
     bill_attachment: Optional[UploadFile] = File(None),
     current_user: User = Depends(require_admin),
     db: Session = Depends(get_db)
 ):
     """
     Update payment information for a product with file upload support.
+    Creates a new payment record or updates the latest one.
     """
-    existing_payment_info = payment_info.get(db, product_id)
+    # Get the latest payment for this product
+    existing_payment_info = payment_info.get_latest_by_product(db, product_id)
     update_data = {}
 
     # Handle file upload
@@ -80,29 +86,55 @@ async def update_payment_info(
     if cardholder_name is not None:
         update_data['cardholder_name'] = cardholder_name
     if expiry_date is not None:
-        # Parse date string (expected format: YYYY-MM-DD)
         update_data['expiry_date'] = date.fromisoformat(expiry_date)
-    if payment_method is not None:
-        update_data['payment_method'] = payment_method
+    if payment_method_id is not None:
+        update_data['payment_method_id'] = payment_method_id
+    if payment_date is not None:
+        update_data['payment_date'] = date.fromisoformat(payment_date)
+    if usage_start_date is not None:
+        update_data['usage_start_date'] = date.fromisoformat(usage_start_date)
+    if usage_end_date is not None:
+        update_data['usage_end_date'] = date.fromisoformat(usage_end_date)
+    if reporter is not None:
+        update_data['reporter'] = reporter
 
     if not existing_payment_info:
-        # This case should be rare now, but handle it defensively
+        # Create new payment info - require mandatory fields
         from app.schemas.payment import PaymentInfoCreate
+        from datetime import date as date_today
+
         payment_create = PaymentInfoCreate(
             product_id=product_id,
-            **update_data
+            payment_date=update_data.get('payment_date', date_today.today()),
+            usage_start_date=update_data.get(
+                'usage_start_date', date_today.today()),
+            usage_end_date=update_data.get(
+                'usage_end_date', date_today.today()),
+            reporter=update_data.get('reporter', current_user.name),
+            amount=update_data.get('amount'),
+            cardholder_name=update_data.get('cardholder_name'),
+            expiry_date=update_data.get('expiry_date'),
+            payment_method_id=update_data.get('payment_method_id')
         )
         updated_obj = payment_info.create(db, obj_in=payment_create)
     else:
+        # Always update reporter to current user when payment info is updated
+        # This ensures proper attribution of who made the changes
+        if 'reporter' not in update_data:
+            update_data['reporter'] = current_user.name
         updated_obj = payment_info.update(
             db, db_obj=existing_payment_info, obj_in=update_data)
 
     # Check for completeness
+    # Note: expiry_date is optional (credit card expiry), not required for completeness
     if (
         updated_obj.amount is not None and
         updated_obj.cardholder_name and
-        updated_obj.expiry_date and
-        updated_obj.payment_method
+        updated_obj.payment_method_id and
+        updated_obj.payment_date and
+        updated_obj.usage_start_date and
+        updated_obj.usage_end_date and
+        updated_obj.reporter
     ):
         if updated_obj.status != 'complete':
             payment_info.update(db, db_obj=updated_obj,

@@ -111,31 +111,47 @@ def get_upcoming_renewals(
     """
     Get upcoming payment renewals - products with expiry dates closest to today.
     Returns products sorted by expiry_date (earliest first).
+    Uses the latest payment record for each product.
     """
-    # Query products with payment info that have expiry dates
-    renewals = db.query(
-        Product, Service, PaymentInfo
-    ).join(
-        Service, Product.service_id == Service.id
-    ).join(
-        PaymentInfo, Product.id == PaymentInfo.product_id
-    ).filter(
-        PaymentInfo.expiry_date.isnot(None)
-    ).order_by(
-        PaymentInfo.expiry_date.asc()
-    ).limit(limit).all()
+    from app.models.payment import PaymentMethod
 
-    result = []
-    for product, service, payment_info_record in renewals:
-        result.append({
-            "productId": str(product.id),
-            "productName": product.name,
-            "serviceName": service.name,
-            "expiryDate": payment_info_record.expiry_date.strftime("%m/%d/%Y") if payment_info_record.expiry_date else None,
-            "amount": float(payment_info_record.amount) if payment_info_record.amount else None,
-            "cardholderName": payment_info_record.cardholder_name,
-            "paymentMethod": payment_info_record.payment_method
-        })
+    # Get all products with their latest payment info
+    products_query = db.query(Product, Service).join(
+        Service, Product.service_id == Service.id
+    ).all()
+
+    renewals_list = []
+    for product, service in products_query:
+        # Get the latest payment for this product
+        latest_payment = payment_info.get_latest_by_product(db, product.id)
+
+        if latest_payment and latest_payment.expiry_date:
+            # Get payment method name if available
+            payment_method_name = None
+            if latest_payment.payment_method_id:
+                payment_method = db.query(PaymentMethod).filter(
+                    PaymentMethod.id == latest_payment.payment_method_id
+                ).first()
+                if payment_method:
+                    payment_method_name = payment_method.name
+
+            renewals_list.append({
+                "productId": str(product.id),
+                "productName": product.name,
+                "serviceName": service.name,
+                "expiryDate": latest_payment.expiry_date.strftime("%m/%d/%Y"),
+                "amount": float(latest_payment.amount) if latest_payment.amount else None,
+                "cardholderName": latest_payment.cardholder_name,
+                "paymentMethod": payment_method_name,
+                "expiry_date_sort": latest_payment.expiry_date  # For sorting
+            })
+
+    # Sort by expiry date (earliest first) and limit
+    renewals_list.sort(key=lambda x: x["expiry_date_sort"])
+    result = [
+        {k: v for k, v in item.items() if k != "expiry_date_sort"}
+        for item in renewals_list[:limit]
+    ]
 
     return result
 
@@ -151,12 +167,12 @@ def get_pending_tasks_count(
     For non-admin users, returns 0.
     """
     from app.core.deps import get_user_roles
-    
+
     # Check if user is admin
     user_roles = get_user_roles(current_user.id, db)
     if "Admin" not in user_roles:
         return {"pendingCount": 0}
-    
+
     # For admins, return total pending count (all admins see all tasks)
     pending_count = db.query(func.count(WorkflowTask.id)).filter(
         WorkflowTask.status == 'pending'

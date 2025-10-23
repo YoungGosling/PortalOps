@@ -236,7 +236,7 @@ def complete_task(
     Any admin can complete any task. Prevents duplicate processing.
 
     For ONBOARDING: This endpoint is called AFTER the admin has successfully created the user
-    via the User Directory's create endpoint. This endpoint just marks the task as complete.
+    via the Employee Directory's create endpoint. This endpoint just marks the task as complete.
 
     For OFFBOARDING: This endpoint DELETES the user and marks the task as complete.
 

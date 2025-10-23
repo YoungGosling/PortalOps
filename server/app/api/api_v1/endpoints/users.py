@@ -50,6 +50,10 @@ def read_users(
             "name": u.name,
             "email": u.email,
             "department": u.department,
+            "department_id": str(u.department_id) if u.department_id else None,
+            "position": u.position,
+            "hire_date": u.hire_date.isoformat() if u.hire_date else None,
+            "resignation_date": u.resignation_date.isoformat() if u.resignation_date else None,
             "roles": roles,
             "assignedProductIds": assigned_product_ids
         })
@@ -72,6 +76,7 @@ def create_user(
 ):
     """
     Create new user with optional role and product assignments.
+    v3: Auto-assign department products if department_id is provided.
     """
     # Check if user already exists
     existing_user = user.get_by_email(db, email=user_in.email)
@@ -87,11 +92,25 @@ def create_user(
     if user_in.role:
         user.assign_role(db, user_id=new_user.id, role_name=user_in.role)
 
-    # Assign products if provided
+    # v3: Get department products if department_id is set
+    department_product_ids = []
+    if user_in.department_id:
+        from app.crud import department as dept_crud
+        department_product_ids = [
+            str(p.id) for p in dept_crud.get_department_products(db, department_id=user_in.department_id)
+        ]
+
+    # Combine department products with manually assigned products
+    # Manual assignments override/supplement department defaults
+    all_product_ids = set(department_product_ids)
     if user_in.assignedProductIds:
-        for product_id in user_in.assignedProductIds:
-            user.assign_product_permission(
-                db, user_id=new_user.id, product_id=product_id)
+        all_product_ids.update([str(pid)
+                               for pid in user_in.assignedProductIds])
+
+    # Assign all products
+    for product_id_str in all_product_ids:
+        user.assign_product_permission(
+            db, user_id=new_user.id, product_id=uuid.UUID(product_id_str))
 
     # Log the action
     audit_log.log_action(
@@ -102,6 +121,11 @@ def create_user(
         details={
             "email": new_user.email,
             "name": new_user.name,
+            "department": user_in.department,
+            "department_id": str(user_in.department_id) if user_in.department_id else None,
+            "position": user_in.position,
+            "hire_date": user_in.hire_date.isoformat() if user_in.hire_date else None,
+            "resignation_date": user_in.resignation_date.isoformat() if user_in.resignation_date else None,
             "role": user_in.role,
             "assignedProductIds": [str(pid) for pid in (user_in.assignedProductIds or [])]
         }
@@ -209,6 +233,7 @@ def update_user(
 ):
     """
     Update user (v2 - unified update including basic info and permissions).
+    v3: Auto-assign department products if department_id is changed.
     """
     target_user = user.get(db, user_id)
     if not target_user:
@@ -221,7 +246,11 @@ def update_user(
     basic_update = UserUpdate(
         name=user_update.name,
         email=user_update.email,
-        department=user_update.department
+        department=user_update.department,
+        department_id=user_update.department_id,
+        position=user_update.position,
+        hire_date=user_update.hire_date,
+        resignation_date=user_update.resignation_date if user_update.resignation_date else None
     )
     updated_user = user.update(db, db_obj=target_user, obj_in=basic_update)
 
@@ -235,8 +264,23 @@ def update_user(
         # Add new role
         user.assign_role(db, user_id=user_id, role_name=user_update.role)
 
-    # Update product assignments if provided
-    if user_update.assignedProductIds is not None:
+    # v3: Get department products if department_id is set
+    department_product_ids = []
+    if user_update.department_id:
+        from app.crud import department as dept_crud
+        department_product_ids = [
+            str(p.id) for p in dept_crud.get_department_products(db, department_id=user_update.department_id)
+        ]
+
+    # Combine department products with manually assigned products
+    # Manual assignments override/supplement department defaults
+    all_product_ids = set(department_product_ids)
+    if user_update.assignedProductIds:
+        all_product_ids.update([str(pid)
+                               for pid in user_update.assignedProductIds])
+
+    # Update product assignments if provided (or if department changed)
+    if user_update.assignedProductIds is not None or user_update.department_id is not None:
         # Get current product assignments
         from app.models.permission import PermissionAssignment
         current_assignments = db.query(PermissionAssignment).filter(
@@ -245,7 +289,7 @@ def update_user(
         ).all()
 
         current_product_ids = {str(a.product_id) for a in current_assignments}
-        new_product_ids = {str(pid) for pid in user_update.assignedProductIds}
+        new_product_ids = all_product_ids
 
         # Remove old assignments
         for product_id_str in current_product_ids - new_product_ids:
@@ -263,6 +307,14 @@ def update_user(
     if "assignedProductIds" in update_details and update_details["assignedProductIds"]:
         update_details["assignedProductIds"] = [
             str(pid) for pid in update_details["assignedProductIds"]]
+    if "department_id" in update_details and update_details["department_id"]:
+        update_details["department_id"] = str(update_details["department_id"])
+
+    # Convert date objects to strings for JSON serialization
+    if "hire_date" in update_details and update_details["hire_date"]:
+        update_details["hire_date"] = update_details["hire_date"].isoformat()
+    if "resignation_date" in update_details and update_details["resignation_date"]:
+        update_details["resignation_date"] = update_details["resignation_date"].isoformat()
 
     audit_log.log_action(
         db,

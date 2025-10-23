@@ -12,11 +12,18 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { apiClient } from '@/lib/api';
-import type { User, Product } from '@/types';
+import type { User, Service, Department } from '@/types';
 import { toast } from 'sonner';
-import { Loader2, Package, X } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
+import { Loader2 } from 'lucide-react';
+import { ServiceProductSelector } from '@/components/products/ServiceProductSelector';
 
 interface UserFormDialogProps {
   open: boolean;
@@ -35,10 +42,15 @@ export function UserFormDialog({
 }: UserFormDialogProps) {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
-  const [department, setDepartment] = useState('');
+  const [departmentId, setDepartmentId] = useState('');  // v3: department FK (UUID)
+  const [position, setPosition] = useState('');          // v3: new field
+  const [hireDate, setHireDate] = useState('');          // v3: new field
+  const [resignationDate, setResignationDate] = useState(''); // v3: new field (optional)
   const [loading, setLoading] = useState(false);
-  const [loadingProducts, setLoadingProducts] = useState(false);
-  const [availableProducts, setAvailableProducts] = useState<Product[]>([]);
+  const [loadingServices, setLoadingServices] = useState(false);
+  const [loadingDepartments, setLoadingDepartments] = useState(false);
+  const [services, setServices] = useState<Service[]>([]);
+  const [departments, setDepartments] = useState<Department[]>([]);
   const [selectedProductIds, setSelectedProductIds] = useState<string[]>([]);
 
   const isEditMode = !!user;
@@ -46,10 +58,11 @@ export function UserFormDialog({
   const isOffboarding = workflowMode === 'offboarding';
   const isWorkflowMode = !!workflowMode;
 
-  // Fetch products for assignment
+  // Fetch services with products and departments
   useEffect(() => {
     if (open) {
-      fetchProducts();
+      fetchServicesWithProducts();
+      fetchDepartments();
     }
     
     if (open) {
@@ -57,28 +70,69 @@ export function UserFormDialog({
         // Edit mode - populate with existing user data
         setName(user.name);
         setEmail(user.email);
-        setDepartment(user.department || '');
+        setDepartmentId(user.department_id || '');
+        setPosition(user.position || '');
+        setHireDate(user.hire_date || '');
+        setResignationDate(user.resignation_date || '');
         setSelectedProductIds(user.assignedProductIds || []);
       } else {
         // Add mode - reset form
         setName('');
         setEmail('');
-        setDepartment('');
+        setDepartmentId('');
+        setPosition('');
+        setHireDate('');
+        setResignationDate('');
         setSelectedProductIds([]);
       }
     }
   }, [open, user]);
 
-  const fetchProducts = async () => {
+  const fetchServicesWithProducts = async () => {
     try {
-      setLoadingProducts(true);
-      const data = await apiClient.getProducts();
-      setAvailableProducts(data);
+      setLoadingServices(true);
+      const data = await apiClient.getServicesWithProducts();
+      setServices(data);
     } catch (error) {
-      console.error('Failed to load products:', error);
-      setAvailableProducts([]);
+      console.error('Failed to load services:', error);
+      setServices([]);
     } finally {
-      setLoadingProducts(false);
+      setLoadingServices(false);
+    }
+  };
+
+  const fetchDepartments = async () => {
+    try {
+      setLoadingDepartments(true);
+      const data = await apiClient.getDepartments();
+      setDepartments(data);
+    } catch (error) {
+      console.error('Failed to load departments:', error);
+      setDepartments([]);
+    } finally {
+      setLoadingDepartments(false);
+    }
+  };
+
+  // v3: Auto-populate products when department changes
+  const handleDepartmentChange = async (newDepartmentId: string) => {
+    setDepartmentId(newDepartmentId);
+    
+    // Fetch department products and auto-populate
+    if (newDepartmentId) {
+      try {
+        const deptProducts = await apiClient.getDepartmentProducts(newDepartmentId);
+        const deptProductIds = deptProducts.map(p => p.id);
+        
+        // Merge with existing manual selections
+        const allProductIds = Array.from(new Set([...selectedProductIds, ...deptProductIds]));
+        setSelectedProductIds(allProductIds);
+        
+        toast.success(`Auto-assigned ${deptProductIds.length} products from department`);
+      } catch (error) {
+        console.error('Failed to load department products:', error);
+        toast.error('Failed to load department products');
+      }
     }
   };
 
@@ -132,7 +186,10 @@ export function UserFormDialog({
       const userData = {
         name: name.trim(),
         email: email.trim(),
-        department: department.trim() || undefined,
+        department_id: departmentId || undefined,
+        position: position.trim() || undefined,
+        hire_date: hireDate.trim() || undefined,
+        resignation_date: resignationDate.trim() || undefined,
         assignedProductIds: selectedProductIds.length > 0 ? selectedProductIds : undefined,
       };
 
@@ -167,16 +224,6 @@ export function UserFormDialog({
     if (!loading) {
       onOpenChange(false);
     }
-  };
-
-  const toggleProductSelection = (productId: string) => {
-    setSelectedProductIds(prev => {
-      if (prev.includes(productId)) {
-        return prev.filter(id => id !== productId);
-      } else {
-        return [...prev, productId];
-      }
-    });
   };
 
   const getDialogTitle = () => {
@@ -235,112 +282,105 @@ export function UserFormDialog({
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="user-department">
-                Department <span className="text-muted-foreground text-xs">(Optional)</span>
-              </Label>
-              <Input
-                id="user-department"
-                placeholder="Enter department"
-                value={department}
-                onChange={(e) => setDepartment(e.target.value)}
-                disabled={loading || isWorkflowMode}
-              />
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="user-department">
+                  Department <span className="text-muted-foreground text-xs">(Optional)</span>
+                </Label>
+                <Select
+                  value={departmentId}
+                  onValueChange={handleDepartmentChange}
+                  disabled={loading || isWorkflowMode || loadingDepartments}
+                >
+                  <SelectTrigger id="user-department">
+                    <SelectValue placeholder="Select department" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {departments.map((dept) => (
+                      <SelectItem key={dept.id} value={dept.id}>
+                        {dept.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {loadingDepartments && (
+                  <p className="text-xs text-muted-foreground">Loading departments...</p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="user-position">
+                  Position <span className="text-muted-foreground text-xs">(Optional)</span>
+                </Label>
+                <Input
+                  id="user-position"
+                  placeholder="Job title / position"
+                  value={position}
+                  onChange={(e) => setPosition(e.target.value)}
+                  disabled={loading || isWorkflowMode}
+                />
+              </div>
             </div>
 
-            {/* Product Assignment */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="user-hire-date">
+                  Hire Date <span className="text-muted-foreground text-xs">(Optional)</span>
+                </Label>
+                <Input
+                  id="user-hire-date"
+                  type="date"
+                  value={hireDate}
+                  onChange={(e) => setHireDate(e.target.value)}
+                  disabled={loading || isWorkflowMode}
+                />
+              </div>
+
+              {/* Resignation Date - only show in edit mode for admins if needed */}
+              {isEditMode && (
+                <div className="space-y-2">
+                  <Label htmlFor="user-resignation-date">
+                    Resignation Date <span className="text-muted-foreground text-xs">(Optional)</span>
+                  </Label>
+                  <Input
+                    id="user-resignation-date"
+                    type="date"
+                    value={resignationDate}
+                    onChange={(e) => setResignationDate(e.target.value)}
+                    disabled={loading || isWorkflowMode}
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* Product Assignment - v3: Using ServiceProductSelector */}
             <div className="space-y-2">
               <Label>
                 Assign Products {isOnboarding && <span className="text-destructive">*</span>}
                 {!isOnboarding && !isOffboarding && <span className="text-muted-foreground text-xs">(Optional)</span>}
               </Label>
-              <p className="text-sm text-muted-foreground">
-                Select products to give the user access to
+              <p className="text-sm text-muted-foreground mb-2">
+                Select services and products to grant access. Selecting a service selects all its products.
               </p>
               
               {isOffboarding ? (
                 <div className="p-4 border rounded-md bg-muted/30">
-                  <p className="text-sm font-medium mb-2">Current Assignments:</p>
-                  <div className="flex flex-wrap gap-2">
-                    {selectedProductIds.length === 0 ? (
-                      <p className="text-sm text-muted-foreground">No products assigned</p>
-                    ) : (
-                      selectedProductIds.map((id) => {
-                        const product = availableProducts.find(p => p.id === id);
-                        return product ? (
-                          <Badge key={id} variant="secondary">
-                            {product.name}
-                          </Badge>
-                        ) : null;
-                      })
-                    )}
-                  </div>
-                </div>
-              ) : loadingProducts ? (
-                <div className="flex items-center justify-center p-4 border rounded-md">
-                  <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-                  <span className="ml-2 text-sm text-muted-foreground">Loading products...</span>
-                </div>
-              ) : availableProducts.length === 0 ? (
-                <div className="p-4 border rounded-md text-center">
-                  <p className="text-sm text-muted-foreground">
-                    No products available
-                  </p>
+                  <p className="text-sm font-medium mb-2">This user will be offboarded</p>
+                  <p className="text-xs text-muted-foreground">All access will be removed</p>
                 </div>
               ) : (
-                <>
-                  <div className="border rounded-md p-3 max-h-[200px] overflow-y-auto">
-                    <div className="space-y-2">
-                      {availableProducts.map((product) => (
-                        <div
-                          key={product.id}
-                          className={`flex items-center justify-between p-2 rounded-md cursor-pointer transition-colors ${
-                            selectedProductIds.includes(product.id)
-                              ? 'bg-primary/10 border border-primary'
-                              : 'hover:bg-accent'
-                          }`}
-                          onClick={() => toggleProductSelection(product.id)}
-                        >
-                          <div className="flex items-center gap-2">
-                            <Package className="h-4 w-4 text-muted-foreground" />
-                            <div>
-                              <span className="text-sm font-medium">{product.name}</span>
-                              {product.service_name && (
-                                <span className="text-xs text-muted-foreground ml-2">
-                                  ({product.service_name})
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                          {selectedProductIds.includes(product.id) && (
-                            <Badge variant="default" className="text-xs">Selected</Badge>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  
-                  {selectedProductIds.length > 0 && (
-                    <div className="flex items-center gap-2 flex-wrap pt-2">
-                      <span className="text-sm text-muted-foreground">Selected:</span>
-                      {selectedProductIds.map((id) => {
-                        const product = availableProducts.find(p => p.id === id);
-                        return product ? (
-                          <Badge key={id} variant="secondary" className="gap-1">
-                            {product.name}
-                            <X
-                              className="h-3 w-3 cursor-pointer hover:text-destructive"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                toggleProductSelection(id);
-                              }}
-                            />
-                          </Badge>
-                        ) : null;
-                      })}
-                    </div>
-                  )}
-                </>
+                <ServiceProductSelector
+                  services={services}
+                  selectedProductIds={selectedProductIds}
+                  onSelectionChange={setSelectedProductIds}
+                  loading={loadingServices}
+                />
+              )}
+              
+              {!isOffboarding && selectedProductIds.length > 0 && (
+                <p className="text-xs text-muted-foreground pt-2">
+                  {selectedProductIds.length} product{selectedProductIds.length === 1 ? '' : 's'} selected
+                </p>
               )}
             </div>
           </div>

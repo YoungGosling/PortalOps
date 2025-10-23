@@ -77,7 +77,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             name: session.user?.name || '',
             email: session.user?.email || '',
             department: undefined,
-            roles: [], // Admin needs to assign roles in User Directory
+            roles: [], // Admin needs to assign roles in Employee Directory
             assignedProductIds: [],
           };
           setUser(azureUser);

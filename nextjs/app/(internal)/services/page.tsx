@@ -63,7 +63,7 @@ export default function ServicesPage() {
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Service Inventory</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Service Provider</h1>
           <p className="text-muted-foreground mt-0.5">
             Manage your enterprise services and their associated products
           </p>

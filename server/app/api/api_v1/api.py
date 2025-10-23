@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from app.api.api_v1.endpoints import auth, users, services, payment_register, workflows, audit_logs, products, master_files, dashboard
+from app.api.api_v1.endpoints import auth, users, services, payment_register, workflows, audit_logs, products, master_files, dashboard, departments, admin_master_data
 
 api_router = APIRouter()
 
@@ -21,3 +21,7 @@ api_router.include_router(
     audit_logs.router, prefix="/audit-logs", tags=["audit-logs"])
 api_router.include_router(
     master_files.router, prefix="/master-files", tags=["master-files"])
+api_router.include_router(
+    departments.router, prefix="/departments", tags=["departments"])
+api_router.include_router(
+    admin_master_data.router, prefix="/admin", tags=["admin-master-data"])

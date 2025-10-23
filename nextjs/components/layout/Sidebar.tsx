@@ -15,11 +15,13 @@ import {
   CreditCard,
   FileText,
   UserCheck,
-  Archive,
   Settings,
   ChevronDown,
   ChevronRight,
   TrendingUp,
+  Building2,
+  Tag,
+  Wallet,
 } from 'lucide-react';
 import { useState } from 'react';
 import {
@@ -55,7 +57,7 @@ export function Sidebar({ collapsed }: SidebarProps) {
       show: isAdmin(),
     },
     {
-      label: 'Service Inventory',
+      label: 'Service Provider',
       icon: Building,
       path: '/services',
       show: true,
@@ -74,7 +76,7 @@ export function Sidebar({ collapsed }: SidebarProps) {
       badge: incompleteCount > 0 ? incompleteCount : undefined,
     },
     {
-      label: 'User Directory',
+      label: 'Employee Directory',
       icon: Users,
       path: '/users',
       show: isAdmin(),
@@ -83,14 +85,24 @@ export function Sidebar({ collapsed }: SidebarProps) {
 
   const adminItems = [
     {
+      label: 'Dept Master File',
+      icon: Building2,
+      path: '/admin/departments',
+    },
+    {
+      label: 'Prod Master File',
+      icon: Tag,
+      path: '/admin/product-statuses',
+    },
+    {
+      label: 'Payt Master File',
+      icon: Wallet,
+      path: '/admin/payment-methods',
+    },
+    {
       label: 'User Administration',
       icon: UserCheck,
       path: '/admin/permissions',
-    },
-    {
-      label: 'Master Files',
-      icon: Archive,
-      path: '/admin/files',
     },
   ];
 
@@ -113,10 +125,10 @@ export function Sidebar({ collapsed }: SidebarProps) {
               const iconColors: Record<string, string> = {
                 'Dashboard': 'text-primary',
                 'Inbox': 'text-info',
-                'Service Inventory': 'text-success',
+                'Service Provider': 'text-success',
                 'Product Inventory': 'text-warning',
                 'Payment Register': 'text-chart-5',
-                'User Directory': 'text-chart-4',
+                'Employee Directory': 'text-chart-4',
               };
               return (
                 <Link key={item.path} href={item.path}>
@@ -163,10 +175,10 @@ export function Sidebar({ collapsed }: SidebarProps) {
               const iconColors: Record<string, string> = {
                 'Dashboard': 'text-primary',
                 'Inbox': 'text-info',
-                'Service Inventory': 'text-success',
+                'Service Provider': 'text-success',
                 'Product Inventory': 'text-warning',
                 'Payment Register': 'text-chart-5',
-                'User Directory': 'text-chart-4',
+                'Employee Directory': 'text-chart-4',
               };
               return (
                 <Link key={item.path} href={item.path}>
@@ -212,8 +224,10 @@ export function Sidebar({ collapsed }: SidebarProps) {
                 {adminItems.map((item) => {
                   const Icon = item.icon;
                   const adminIconColors: Record<string, string> = {
+                    'Dept Master File': 'dark:text-blue-400',
+                    'Prod Master File': 'dark:text-blue-400',
+                    'Payt Master File': 'dark:text-blue-400',
                     'User Administration': 'text-success',
-                    'Master Files': 'text-warning',
                   };
                   return (
                     <Link key={item.path} href={item.path}>

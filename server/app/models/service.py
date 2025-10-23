@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Text, ForeignKey, DateTime
+from sqlalchemy import Column, String, Text, ForeignKey, DateTime, Integer
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
@@ -34,6 +34,8 @@ class Product(Base):
     name = Column(String(255), nullable=False)
     url = Column(Text, nullable=True)
     description = Column(Text, nullable=True)
+    status_id = Column(Integer, ForeignKey(
+        "product_statuses.id", ondelete="RESTRICT"), nullable=False, default=1)
     created_at = Column(DateTime(timezone=True),
                         server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), server_default=func.now(
@@ -41,9 +43,8 @@ class Product(Base):
 
     # Relationships
     service = relationship("Service", back_populates="products")
+    status = relationship("ProductStatus", back_populates="products")
     payment_info = relationship(
-        "PaymentInfo", back_populates="product", uselist=False, cascade="all, delete-orphan")
-    payment_invoices = relationship(
-        "PaymentInvoice", back_populates="product", cascade="all, delete-orphan")
+        "PaymentInfo", back_populates="product")
     permission_assignments = relationship(
         "PermissionAssignment", back_populates="product")

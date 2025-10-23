@@ -9,36 +9,49 @@ import os
 
 
 class CRUDPaymentInvoice(CRUDBase[PaymentInvoice, PaymentInvoiceCreate, PaymentInvoiceUpdate]):
+    def get_by_payment_info_id(self, db: Session, *, payment_info_id: uuid.UUID) -> List[PaymentInvoice]:
+        """Get all invoices for a specific payment record."""
+        return db.query(PaymentInvoice).filter(PaymentInvoice.payment_info_id == payment_info_id).all()
+
     def get_by_product_id(self, db: Session, *, product_id: uuid.UUID) -> List[PaymentInvoice]:
-        """Get all invoices for a specific product."""
-        return db.query(PaymentInvoice).filter(PaymentInvoice.product_id == product_id).all()
+        """Get all invoices for a specific product (across all payment records)."""
+        from app.models.payment import PaymentInfo
+
+        # Join through payment_info to get all invoices for a product
+        return db.query(PaymentInvoice).join(
+            PaymentInfo, PaymentInvoice.payment_info_id == PaymentInfo.id
+        ).filter(PaymentInfo.product_id == product_id).all()
 
     def get_invoices_for_master_files(self, db: Session, *, product_id: Optional[uuid.UUID] = None) -> List[dict]:
         """Get all invoices for master files view with product and service information."""
         from app.models.service import Product, Service
+        from app.models.payment import PaymentInfo
 
         query = db.query(
             PaymentInvoice,
             Product.name.label('product_name'),
-            Service.name.label('service_name')
+            Service.name.label('service_name'),
+            PaymentInfo.id.label('payment_info_id')
         ).join(
-            Product, PaymentInvoice.product_id == Product.id
+            PaymentInfo, PaymentInvoice.payment_info_id == PaymentInfo.id
+        ).join(
+            Product, PaymentInfo.product_id == Product.id
         ).join(
             Service, Product.service_id == Service.id
         )
 
         if product_id:
-            query = query.filter(PaymentInvoice.product_id == product_id)
+            query = query.filter(PaymentInfo.product_id == product_id)
 
         results = query.order_by(PaymentInvoice.created_at.desc()).all()
 
         master_files = []
-        for invoice, product_name, service_name in results:
+        for invoice, product_name, service_name, payment_info_id in results:
             master_files.append({
                 "id": invoice.id,
                 "file_name": invoice.file_name,
                 "original_file_name": invoice.original_file_name,
-                "product_id": invoice.product_id,
+                "payment_info_id": invoice.payment_info_id,
                 "product_name": product_name,
                 "service_name": service_name,
                 "created_at": invoice.created_at
@@ -62,11 +75,11 @@ class CRUDPaymentInvoice(CRUDBase[PaymentInvoice, PaymentInvoiceCreate, PaymentI
             print(f"Error deleting invoice file: {e}")
             return False
 
-    def create_with_file(self, db: Session, *, product_id: uuid.UUID, file_name: str,
+    def create_with_file(self, db: Session, *, payment_info_id: uuid.UUID, file_name: str,
                          original_file_name: str, file_path: str) -> PaymentInvoice:
         """Create invoice record with file information."""
         invoice_data = PaymentInvoiceCreate(
-            product_id=product_id,
+            payment_info_id=payment_info_id,
             file_name=file_name,
             original_file_name=original_file_name,
             file_path=file_path
