@@ -61,6 +61,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     if (sessionStatus === 'authenticated' && session?.user) {
+      // Check if session has valid tokens
+      if (!session.tokens?.id_token || !session.tokens?.access_token) {
+        console.error('Session has no valid tokens, signing out...');
+        setUser(null);
+        setLoading(false);
+        router.push('/signin');
+        return;
+      }
+
       // User is authenticated via Azure AD
       // Fetch user data from backend (which will sync Azure user automatically)
       const fetchAzureUser = async () => {
@@ -71,16 +80,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setUser(userData);
         } catch (error) {
           console.error('Failed to fetch Azure user from backend:', error);
-          // Fallback: use Azure session data with empty roles
-          const azureUser: User = {
-            id: session.user?.email || '',
-            name: session.user?.name || '',
-            email: session.user?.email || '',
-            department: undefined,
-            roles: [], // Admin needs to assign roles in Employee Directory
-            assignedProductIds: [],
-          };
-          setUser(azureUser);
+          // On authentication error, clear user and redirect to sign in
+          // This prevents infinite retry loops
+          setUser(null);
+          if (window.location.pathname !== '/signin' && window.location.pathname !== '/signup') {
+            router.push('/signin');
+          }
         } finally {
           setLoading(false);
         }

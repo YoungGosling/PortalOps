@@ -180,7 +180,9 @@ def verify_azure_ad_token(token: str) -> Dict:
             detail="Invalid Azure AD token",
         )
     except Exception as e:
+        import traceback
         logger.error(f"Unexpected error validating Azure AD token: {e}")
+        logger.error(f"Traceback: {traceback.format_exc()}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Could not validate Azure AD credentials",

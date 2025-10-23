@@ -45,6 +45,26 @@ export const authOptions: AuthOptions = {
   },
   callbacks: {
     session: async ({ session, token }): Promise<MySession> => {
+      // If token refresh failed, force sign out
+      if (token.error === "RefreshAccessTokenError") {
+        console.error("Token refresh failed, session will be invalid");
+        // Return a minimal session that will trigger re-authentication
+        return {
+          user: {
+            id: "",
+            name: "",
+            email: "",
+            image: null,
+          },
+          tokens: {
+            id_token: "",
+            access_token: "",
+          },
+          expires: new Date(0).toISOString(), // Set to expired
+          portalOpsUser: undefined,
+        };
+      }
+
       // Use cached data from token
       return {
         user: {
@@ -61,19 +81,19 @@ export const authOptions: AuthOptions = {
         portalOpsUser: token.portalOpsUser as any,
       };
     },
-    jwt: async ({ user, token, account }) => {
-      if (user) {
+    jwt: async ({ user, token, account, trigger }) => {
+      // Initial sign in
+      if (account && user) {
         token.sub = user.id;
-        token.idToken = account?.id_token || "";
-        token.accessToken = account?.access_token || "";
-        token.refreshToken = account?.refresh_token || "";
+        token.idToken = account.id_token || "";
+        token.accessToken = account.access_token || "";
+        token.refreshToken = account.refresh_token || "";
+        token.expiresAt = account.expires_at ? account.expires_at * 1000 : Date.now() + 60 * 60 * 1000; // expires_at is in seconds
 
         try {
           // Try to fetch user from PortalOps backend
           if (token.email) {
             try {
-              // Note: This will require backend API endpoint to support Azure AD user lookup
-              // For now, we'll store the Azure user info
               token.portalOpsUser = {
                 email: token.email,
                 name: user.name,
@@ -81,7 +101,6 @@ export const authOptions: AuthOptions = {
               };
             } catch (error) {
               console.error("Error fetching PortalOps user:", error);
-              // User might not exist in PortalOps yet - this is OK for first login
               token.portalOpsUser = null;
             }
           }
@@ -89,8 +108,54 @@ export const authOptions: AuthOptions = {
           console.error("Error in JWT callback:", error);
           token.portalOpsUser = null;
         }
+        
+        return token;
       }
-      return token;
+
+      // Return previous token if it hasn't expired yet
+      if (Date.now() < (token.expiresAt as number)) {
+        return token;
+      }
+
+      // Token has expired, try to refresh it
+      console.log("Token expired, attempting to refresh...");
+      try {
+        const response = await fetch(
+          `https://login.microsoftonline.com/${process.env.AZURE_AD_TENANT_ID}/oauth2/v2.0/token`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/x-www-form-urlencoded",
+            },
+            body: new URLSearchParams({
+              client_id: process.env.AZURE_AD_CLIENT_ID || "",
+              client_secret: process.env.AZURE_AD_CLIENT_SECRET || "",
+              grant_type: "refresh_token",
+              refresh_token: token.refreshToken as string,
+            }),
+          }
+        );
+
+        const refreshedTokens = await response.json();
+
+        if (!response.ok) {
+          console.error("Failed to refresh token:", refreshedTokens);
+          throw new Error("Failed to refresh token");
+        }
+
+        console.log("Token refreshed successfully");
+        return {
+          ...token,
+          idToken: refreshedTokens.id_token,
+          accessToken: refreshedTokens.access_token,
+          expiresAt: Date.now() + refreshedTokens.expires_in * 1000,
+          refreshToken: refreshedTokens.refresh_token ?? token.refreshToken, // Fall back to old refresh token
+        };
+      } catch (error) {
+        console.error("Error refreshing access token:", error);
+        // Return token with error flag to trigger sign out
+        return { ...token, error: "RefreshAccessTokenError" };
+      }
     },
   },
   events: {

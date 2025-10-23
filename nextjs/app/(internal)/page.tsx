@@ -17,11 +17,16 @@ export default function DashboardPage() {
   const [renewals, setRenewals] = useState<UpcomingRenewal[]>([]);
   const [pendingTasks, setPendingTasks] = useState<PendingTasksCount | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
 
   useEffect(() => {
     const fetchDashboardData = async () => {
+      // Prevent retry if already errored
+      if (error) return;
+      
       try {
         setLoading(true);
+        setError(false);
         
         // Fetch all data in parallel
         const [statsData, activitiesData, renewalsData, tasksData] = await Promise.all([
@@ -37,7 +42,8 @@ export default function DashboardPage() {
         setPendingTasks(tasksData);
       } catch (error) {
         console.error('Failed to fetch dashboard data:', error);
-        toast.error('Failed to load dashboard data');
+        setError(true);
+        toast.error('Failed to load dashboard data. Please sign in again.');
       } finally {
         setLoading(false);
       }
