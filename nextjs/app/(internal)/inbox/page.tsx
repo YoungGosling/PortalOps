@@ -2,12 +2,42 @@
 
 import { useState, useEffect } from 'react';
 import { apiClient } from '@/lib/api';
-import type { WorkflowTask, User } from '@/types';
+import type { WorkflowTask } from '@/types';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { UserFormDialog } from '@/components/users/UserFormDialog';
-import { Inbox as InboxIcon, CheckCircle2, Clock, UserPlus, UserMinus } from 'lucide-react';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { WorkflowChecklistDialog } from '@/components/workflows/WorkflowChecklistDialog';
+import { 
+  Inbox as InboxIcon, 
+  Clock, 
+  UserPlus, 
+  UserMinus, 
+  Eye, 
+  Trash2, 
+  Loader2,
+  RefreshCw,
+  ChevronLeft,
+  ChevronRight,
+  CheckCircle2
+} from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/providers/auth-provider';
 
@@ -17,20 +47,25 @@ export default function InboxPage() {
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [currentTask, setCurrentTask] = useState<WorkflowTask | null>(null);
-  const [editingUser, setEditingUser] = useState<User | null>(null);
-  const [dataLoaded, setDataLoaded] = useState(false); // Track if data has been loaded
+  const [isReadOnly, setIsReadOnly] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deletingTask, setDeletingTask] = useState<WorkflowTask | null>(null);
+  const [dataLoaded, setDataLoaded] = useState(false);
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalTasks, setTotalTasks] = useState(0);
+  const [pageSize] = useState(20);
 
-  const fetchTasks = async () => {
+  const fetchTasks = async (page: number = currentPage) => {
     try {
       setLoading(true);
-      const data = await apiClient.getTasks();
-      // Sort: incomplete tasks first (pending status)
-      const sorted = data.sort((a, b) => {
-        if (a.status === 'pending' && b.status !== 'pending') return -1;
-        if (a.status !== 'pending' && b.status === 'pending') return 1;
-        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
-      });
-      setTasks(sorted);
+      const response = await apiClient.getTasks(page, pageSize);
+      setTasks(response.data);
+      setCurrentPage(response.pagination.page);
+      setTotalTasks(response.pagination.total);
+      setTotalPages(Math.ceil(response.pagination.total / response.pagination.limit));
     } catch (error) {
       toast.error('Failed to load tasks');
       console.error(error);
@@ -40,7 +75,6 @@ export default function InboxPage() {
   };
 
   useEffect(() => {
-    // Only fetch data once when component mounts and user is admin
     if (isAdmin() && !dataLoaded) {
       fetchTasks();
       setDataLoaded(true);
@@ -50,67 +84,50 @@ export default function InboxPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Handle start task - opens the appropriate dialog based on task type
-  const handleStartTask = async (task: WorkflowTask) => {
+  const handlePageChange = (page: number) => {
+    if (page < 1 || page > totalPages) return;
+    setCurrentPage(page);
+    fetchTasks(page);
+  };
+
+  const handleRefresh = () => {
+    fetchTasks(currentPage);
+  };
+
+  const handleStartTask = (task: WorkflowTask) => {
     setCurrentTask(task);
+    setIsReadOnly(false);
+    setDialogOpen(true);
+  };
+
+  const handlePreviewTask = (task: WorkflowTask) => {
+    setCurrentTask(task);
+    setIsReadOnly(true);
+    setDialogOpen(true);
+  };
+
+  const handleDeleteClick = (task: WorkflowTask) => {
+    setDeletingTask(task);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!deletingTask) return;
     
-    if (task.type === 'onboarding') {
-      // Onboarding: User doesn't exist yet - create a temporary user object
-      // with data from the task for display in the form
-      const tempUser: User = {
-        id: '', // No ID yet - user will be created
-        name: task.employee_name,
-        email: task.employee_email,
-        department: task.employee_department,
-        roles: [],
-        assignedProductIds: []
-      };
-      
-      setEditingUser(tempUser);
-      setDialogOpen(true);
-    } else if (task.type === 'offboarding') {
-      // Offboarding: User exists - fetch their current data
-      try {
-        const users = await apiClient.getUsers();
-        const user = users.find(u => u.email === task.employee_email);
-        
-        if (!user) {
-          toast.error('User not found in directory');
-          return;
-        }
-        
-        setEditingUser(user);
-        setDialogOpen(true);
-      } catch (error) {
-        toast.error('Failed to load user information');
-        console.error(error);
-      }
+    try {
+      await apiClient.deleteTask(deletingTask.id);
+      toast.success('Task deleted successfully');
+      setDeleteDialogOpen(false);
+      setDeletingTask(null);
+      fetchTasks(currentPage);
+    } catch (error) {
+      toast.error('Failed to delete task');
+      console.error(error);
     }
   };
 
-  // Handle task completion after user is created/deleted
   const handleTaskComplete = async () => {
-    if (!currentTask) return;
-
-    try {
-      // Complete the task on backend
-      await apiClient.completeTask(currentTask.id);
-      
-      // Refresh task list
-      await fetchTasks();
-      
-      // Close dialog and reset state
-      setDialogOpen(false);
-      setCurrentTask(null);
-      setEditingUser(null);
-      
-      toast.success(
-        `${currentTask.type === 'onboarding' ? 'Onboarding' : 'Offboarding'} completed successfully`
-      );
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to complete task');
-      console.error('Error completing task:', error);
-    }
+    await fetchTasks(currentPage);
   };
 
   if (!isAdmin()) {
@@ -136,26 +153,27 @@ export default function InboxPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Inbox</h1>
-        <p className="text-muted-foreground">
-          Manage onboarding and offboarding workflow tasks
-        </p>
+    <div className="space-y-6 animate-fade-in">
+      {/* Page Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Inbox</h1>
+          <p className="text-muted-foreground mt-0.5">
+            {totalTasks > 0 ? `${totalTasks} ${totalTasks === 1 ? 'task' : 'tasks'} in inbox` : 'No tasks in inbox'}
+          </p>
+        </div>
+        <Button onClick={handleRefresh} variant="outline" size="default" className="gap-2">
+          <RefreshCw className="h-4 w-4" />
+          Refresh
+        </Button>
       </div>
 
       {loading ? (
-        <Card>
-          <CardContent className="p-0">
-            <div className="animate-pulse p-8">
-              {[...Array(3)].map((_, i) => (
-                <div key={i} className="h-24 bg-muted rounded mb-3" />
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
       ) : tasks.length === 0 ? (
-        <Card>
+        <Card className="border-0 shadow-sm">
           <CardContent className="flex flex-col items-center justify-center py-16">
             <InboxIcon className="h-16 w-16 text-muted-foreground mb-4" />
             <h3 className="text-xl font-semibold mb-2">No tasks found</h3>
@@ -166,131 +184,234 @@ export default function InboxPage() {
           </CardContent>
         </Card>
       ) : (
-        <Card>
-          <CardContent className="p-0">
-            <div className="divide-y">
-              {tasks.map((task) => {
-                const isOnboarding = task.type === 'onboarding';
-                const isPending = task.status === 'pending';
-                
-                return (
-                  <div
-                    key={task.id}
-                    className={`flex items-start gap-4 p-5 transition-colors ${
-                      isPending ? 'bg-accent/20 hover:bg-accent/30' : 'hover:bg-accent/10'
-                    }`}
-                  >
-                    {/* Status Icon */}
-                    <div className="flex-shrink-0 mt-1">
-                      {isPending ? (
-                        <div className="relative">
-                          <Clock className="h-6 w-6 text-orange-500" />
-                          <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-orange-500 animate-pulse" />
-                        </div>
-                      ) : (
-                        <CheckCircle2 className="h-6 w-6 text-green-600" />
-                      )}
-                    </div>
-
-                    {/* Task Type Icon */}
-                    <div className="flex-shrink-0 mt-1">
-                      {isOnboarding ? (
-                        <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/20">
-                          <UserPlus className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                        </div>
-                      ) : (
-                        <div className="p-2 rounded-lg bg-red-100 dark:bg-red-900/20">
-                          <UserMinus className="h-5 w-5 text-red-600 dark:text-red-400" />
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Task Details */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <h3 className="text-lg font-semibold">{task.employee_name}</h3>
-                        <Badge 
-                          variant={isOnboarding ? 'default' : 'destructive'}
-                          className="capitalize"
-                        >
-                          {task.type}
-                        </Badge>
-                        {isPending && (
-                          <Badge variant="outline" className="text-orange-600 border-orange-600">
-                            Action Required
-                          </Badge>
-                        )}
-                      </div>
+        <>
+          <Card className="border-0 shadow-sm">
+            <CardContent className="p-0">
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="hover:bg-transparent border-b">
+                      <TableHead className="w-[80px]">Status</TableHead>
+                      <TableHead className="w-[100px]">Type</TableHead>
+                      <TableHead className="w-[200px]">Employee Name</TableHead>
+                      <TableHead className="w-[220px]">Email</TableHead>
+                      <TableHead className="w-[150px]">Department</TableHead>
+                      <TableHead className="w-[150px]">Created Date</TableHead>
+                      <TableHead className="text-right w-[150px]">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {tasks.map((task) => {
+                      const isOnboarding = task.type === 'onboarding';
+                      const isPending = task.status === 'pending';
+                      const isCompleted = task.status === 'completed';
                       
-                      <div className="space-y-1">
-                        <p className="text-sm text-muted-foreground">
-                          <span className="font-medium">Email:</span> {task.employee_email}
-                        </p>
-                        {task.employee_department && (
-                          <p className="text-sm text-muted-foreground">
-                            <span className="font-medium">Department:</span> {task.employee_department}
-                          </p>
-                        )}
-                      </div>
-
-                      <div className="flex items-center gap-4 mt-3 text-xs text-muted-foreground">
-                        <span>
-                          Created: {new Date(task.created_at).toLocaleDateString('en-US', {
-                            year: 'numeric',
-                            month: 'short',
-                            day: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit'
-                          })}
-                        </span>
-                        {task.status === 'completed' && (
-                          <span className="text-green-600 dark:text-green-400">
-                            ✓ Completed: {new Date(task.updated_at).toLocaleDateString('en-US', {
-                              year: 'numeric',
-                              month: 'short',
-                              day: 'numeric'
-                            })}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Action Button */}
-                    <div className="flex-shrink-0">
-                      {isPending && (
-                        <Button 
-                          onClick={() => handleStartTask(task)}
-                          size="lg"
-                          className="min-w-[120px]"
+                      return (
+                        <TableRow
+                          key={task.id}
+                          className={isPending ? 'bg-accent/20' : ''}
                         >
-                          Start Task
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
+                          {/* Status Column */}
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              {isPending ? (
+                                <>
+                                  <Clock className="h-4 w-4 text-orange-500" />
+                                  <Badge variant="outline" className="text-orange-600 border-orange-600 text-xs">
+                                    Action Required
+                                  </Badge>
+                                </>
+                              ) : (
+                                <>
+                                  <CheckCircle2 className="h-4 w-4 text-green-600" />
+                                  <Badge variant="outline" className="text-green-600 border-green-600 text-xs">
+                                    Complete
+                                  </Badge>
+                                </>
+                              )}
+                            </div>
+                          </TableCell>
+                          
+                          {/* Type Column */}
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              {isOnboarding ? (
+                                <>
+                                  <div className="p-1.5 rounded-md bg-blue-100 dark:bg-blue-900/20">
+                                    <UserPlus className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
+                                  </div>
+                                  <span className="text-sm font-medium">Onboarding</span>
+                                </>
+                              ) : (
+                                <>
+                                  <div className="p-1.5 rounded-md bg-red-100 dark:bg-red-900/20">
+                                    <UserMinus className="h-3.5 w-3.5 text-red-600 dark:text-red-400" />
+                                  </div>
+                                  <span className="text-sm font-medium">Offboarding</span>
+                                </>
+                              )}
+                            </div>
+                          </TableCell>
+                          
+                          {/* Employee Name */}
+                          <TableCell>
+                            <span className="font-medium">{task.employee_name}</span>
+                          </TableCell>
+                          
+                          {/* Email */}
+                          <TableCell>
+                            <span className="text-sm text-muted-foreground">{task.employee_email}</span>
+                          </TableCell>
+                          
+                          {/* Department */}
+                          <TableCell>
+                            <span className="text-sm">{task.employee_department || 'N/A'}</span>
+                          </TableCell>
+                          
+                          {/* Created Date */}
+                          <TableCell>
+                            <span className="text-sm text-muted-foreground">
+                              {new Date(task.created_at).toLocaleDateString('en-US', {
+                                year: 'numeric',
+                                month: 'short',
+                                day: 'numeric'
+                              })}
+                            </span>
+                          </TableCell>
+                          
+                          {/* Actions */}
+                          <TableCell className="text-right">
+                            {isPending ? (
+                              <Button
+                                onClick={() => handleStartTask(task)}
+                                size="sm"
+                                className="min-w-[100px]"
+                              >
+                                Start Task
+                              </Button>
+                            ) : isCompleted ? (
+                              <div className="flex items-center justify-end gap-2">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handlePreviewTask(task)}
+                                  className="h-8 w-8 p-0"
+                                  title="Preview"
+                                >
+                                  <Eye className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleDeleteClick(task)}
+                                  className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                                  title="Delete"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            ) : null}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between">
+              <div className="text-sm text-muted-foreground">
+                Showing {(currentPage - 1) * pageSize + 1} to {Math.min(currentPage * pageSize, totalTasks)} of {totalTasks} tasks
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  disabled={currentPage === 1}
+                  className="gap-1"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                    let pageNum;
+                    if (totalPages <= 5) {
+                      pageNum = i + 1;
+                    } else if (currentPage <= 3) {
+                      pageNum = i + 1;
+                    } else if (currentPage >= totalPages - 2) {
+                      pageNum = totalPages - 4 + i;
+                    } else {
+                      pageNum = currentPage - 2 + i;
+                    }
+                    
+                    return (
+                      <Button
+                        key={pageNum}
+                        variant={currentPage === pageNum ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => handlePageChange(pageNum)}
+                        className="min-w-[40px]"
+                      >
+                        {pageNum}
+                      </Button>
+                    );
+                  })}
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                  className="gap-1"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
-          </CardContent>
-        </Card>
+          )}
+        </>
       )}
 
-      {/* User Form Dialog for Onboarding/Offboarding */}
-      {currentTask && (
-        <UserFormDialog
-          open={dialogOpen}
-          onOpenChange={(open) => {
-            setDialogOpen(open);
-            if (!open) {
-              setCurrentTask(null);
-              setEditingUser(null);
-            }
-          }}
-          user={editingUser}
-          onSuccess={handleTaskComplete}
-          workflowMode={currentTask.type}
-        />
-      )}
+      {/* Workflow Checklist Dialog */}
+      <WorkflowChecklistDialog
+        open={dialogOpen}
+        onOpenChange={(open) => {
+          setDialogOpen(open);
+          if (!open) {
+            setCurrentTask(null);
+            setIsReadOnly(false);
+          }
+        }}
+        task={currentTask}
+        onSuccess={handleTaskComplete}
+        readOnly={isReadOnly}
+      />
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Task</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this completed task for{' '}
+              <span className="font-semibold">{deletingTask?.employee_name}</span>?
+              This action cannot be undone and will remove the task and its attachment.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteConfirm} className="bg-destructive hover:bg-destructive/90">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

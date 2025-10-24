@@ -437,7 +437,7 @@ export function EditPaymentModal({
                 Invoices <span className="text-destructive">*</span>
               </Label>
               <p className="text-sm text-muted-foreground mb-2">
-                Upload invoice files. At least one invoice is required.
+                At least one invoice is required.
               </p>
               <FileUpload
                 files={selectedFiles}

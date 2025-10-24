@@ -188,9 +188,9 @@ export function ServiceProductSelector({
                       <span className="font-medium text-sm truncate block">
                         {service.name}
                       </span>
-                      {service.vendor && (
+                      {service.admins && service.admins.length > 0 && (
                         <span className="text-xs text-muted-foreground">
-                          {service.vendor}
+                          {service.admins.map(a => a.name).join(' / ')}
                         </span>
                       )}
                     </div>
@@ -198,11 +198,6 @@ export function ServiceProductSelector({
                       <span>
                         {activeProducts.length} active
                       </span>
-                      {products.length !== activeProducts.length && (
-                        <span className="text-orange-600 dark:text-orange-400">
-                          ({products.length - activeProducts.length} unavailable)
-                        </span>
-                      )}
                     </div>
                   </Label>
                 </div>

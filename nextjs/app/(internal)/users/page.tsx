@@ -16,7 +16,7 @@ import {
 } from '@/components/ui/table';
 import { UserFormDialog } from '@/components/users/UserFormDialog';
 import { DeleteUserDialog } from '@/components/users/DeleteUserDialog';
-import { Plus, Users as UsersIcon, Pencil, Trash2, Mail, Briefcase, Shield, UserCircle2, Loader2, Building2, Calendar, User as UserIcon } from 'lucide-react';
+import { Plus, Users as UsersIcon, Pencil, Trash2, Mail, Briefcase, Shield, UserCircle2, Loader2, Building2, Calendar, User as UserIcon, ChevronLeft, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/providers/auth-provider';
 
@@ -30,12 +30,21 @@ export default function UsersPage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletingUser, setDeletingUser] = useState<User | null>(null);
   const [dataLoaded, setDataLoaded] = useState(false); // Track if data has been loaded
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalUsers, setTotalUsers] = useState(0);
+  const [pageSize] = useState(20); // Users per page
 
-  const fetchUsers = async () => {
+  const fetchUsers = async (page: number = currentPage) => {
     try {
       setLoading(true);
-      const data = await apiClient.getUsers();
-      setUsers(data);
+      const response = await apiClient.getUsers(undefined, page, pageSize);
+      setUsers(response.data);
+      setCurrentPage(response.pagination.page);
+      setTotalUsers(response.pagination.total);
+      setTotalPages(Math.ceil(response.pagination.total / response.pagination.limit));
     } catch (error) {
       toast.error('Failed to load users');
       console.error(error);
@@ -85,7 +94,15 @@ export default function UsersPage() {
 
   // Handle dialog success
   const handleDialogSuccess = () => {
-    fetchUsers();
+    fetchUsers(currentPage);
+  };
+
+  // Handle page change
+  const handlePageChange = (newPage: number) => {
+    if (newPage >= 1 && newPage <= totalPages) {
+      setCurrentPage(newPage);
+      fetchUsers(newPage);
+    }
   };
 
   // Get user's assigned products
@@ -127,7 +144,7 @@ export default function UsersPage() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Employee Directory</h1>
           <p className="text-muted-foreground mt-0.5">
-            {users.length} {users.length === 1 ? 'employee' : 'employees'} in directory
+            {totalUsers > 0 ? `${totalUsers} ${totalUsers === 1 ? 'employee' : 'employees'} in directory` : 'No employees in directory'}
           </p>
         </div>
         <Button onClick={handleAddUser} size="default" className="gap-2">
@@ -308,6 +325,63 @@ export default function UsersPage() {
             </div>
           </CardContent>
         </Card>
+      )}
+
+      {/* Pagination Controls */}
+      {!loading && users.length > 0 && totalPages > 1 && (
+        <div className="flex items-center justify-between px-2">
+          <div className="text-sm text-muted-foreground">
+            Showing {((currentPage - 1) * pageSize) + 1} to {Math.min(currentPage * pageSize, totalUsers)} of {totalUsers} employees
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handlePageChange(currentPage - 1)}
+              disabled={currentPage === 1}
+              className="gap-1"
+            >
+              <ChevronLeft className="h-4 w-4" />
+              Previous
+            </Button>
+            <div className="flex items-center gap-1">
+              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                let pageNum;
+                if (totalPages <= 5) {
+                  pageNum = i + 1;
+                } else if (currentPage <= 3) {
+                  pageNum = i + 1;
+                } else if (currentPage >= totalPages - 2) {
+                  pageNum = totalPages - 4 + i;
+                } else {
+                  pageNum = currentPage - 2 + i;
+                }
+                
+                return (
+                  <Button
+                    key={pageNum}
+                    variant={currentPage === pageNum ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => handlePageChange(pageNum)}
+                    className="min-w-[40px]"
+                  >
+                    {pageNum}
+                  </Button>
+                );
+              })}
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handlePageChange(currentPage + 1)}
+              disabled={currentPage === totalPages}
+              className="gap-1"
+            >
+              Next
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
       )}
 
       {/* User Form Dialog */}

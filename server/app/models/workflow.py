@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Text, ForeignKey, DateTime, CheckConstraint
+from sqlalchemy import Column, String, Text, ForeignKey, DateTime, Date, CheckConstraint
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
@@ -23,6 +23,11 @@ class WorkflowTask(Base):
     employee_name = Column(String(255), nullable=True)
     employee_email = Column(String(255), nullable=True)
     employee_department = Column(String(255), nullable=True)
+    employee_position = Column(String(255), nullable=True)
+    employee_hire_date = Column(Date, nullable=True)
+    employee_resignation_date = Column(Date, nullable=True)
+    attachment_path = Column(Text, nullable=True)
+    attachment_original_name = Column(Text, nullable=True)
     created_at = Column(DateTime(timezone=True),
                         server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), server_default=func.now(

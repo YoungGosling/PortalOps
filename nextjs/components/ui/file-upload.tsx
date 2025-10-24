@@ -50,21 +50,25 @@ export function FileUpload({
 
     const droppedFiles = Array.from(e.dataTransfer.files);
     const validFiles = droppedFiles.filter(file => {
-      // Allow PDF and common document formats
+      // Allow PDF, Office documents, images, and text files
       const allowedTypes = [
         'application/pdf',
         'image/jpeg',
         'image/png',
-        'image/gif',
         'application/msword',
         'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-        'text/plain'
+        'application/vnd.ms-excel',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'application/vnd.ms-powerpoint',
+        'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+        'text/plain',
+        'text/csv'
       ];
-      return allowedTypes.includes(file.type) || file.name.match(/\.(pdf|jpg|jpeg|png|gif|doc|docx|txt)$/i);
+      return allowedTypes.includes(file.type) || file.name.match(/\.(pdf|docx|xlsx|xls|pptx|txt|csv|jpg|jpeg|png)$/i);
     });
 
     if (validFiles.length !== droppedFiles.length) {
-      toast.error('Some files were skipped. Only PDF, images, and document files are allowed.');
+      toast.error('Some files were skipped. Allowed formats: PDF, DOCX, XLSX, XLS, PPTX, TXT, CSV, JPG, JPEG, PNG');
     }
 
     if (validFiles.length > 0) {
@@ -81,16 +85,20 @@ export function FileUpload({
         'application/pdf',
         'image/jpeg',
         'image/png',
-        'image/gif',
         'application/msword',
         'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-        'text/plain'
+        'application/vnd.ms-excel',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'application/vnd.ms-powerpoint',
+        'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+        'text/plain',
+        'text/csv'
       ];
-      return allowedTypes.includes(file.type) || file.name.match(/\.(pdf|jpg|jpeg|png|gif|doc|docx|txt)$/i);
+      return allowedTypes.includes(file.type) || file.name.match(/\.(pdf|docx|xlsx|xls|pptx|txt|csv|jpg|jpeg|png)$/i);
     });
 
     if (validFiles.length !== selectedFiles.length) {
-      toast.error('Some files were skipped. Only PDF, images, and document files are allowed.');
+      toast.error('Some files were skipped. Allowed formats: PDF, DOCX, XLSX, XLS, PPTX, TXT, CSV, JPG, JPEG, PNG');
     }
 
     if (validFiles.length > 0) {
@@ -136,9 +144,6 @@ export function FileUpload({
             <p className="text-sm font-medium">
               {isDragOver ? 'Drop files here' : 'Click to upload or drag and drop'}
             </p>
-            <p className="text-xs text-muted-foreground">
-              PDF, images, and documents (max 10MB each)
-            </p>
           </div>
         </div>
         
@@ -146,7 +151,7 @@ export function FileUpload({
           ref={fileInputRef}
           type="file"
           multiple
-          accept=".pdf,.jpg,.jpeg,.png,.gif,.doc,.docx,.txt"
+          accept=".pdf,.docx,.xlsx,.xls,.pptx,.txt,.csv,.jpg,.jpeg,.png"
           onChange={handleFileSelect}
           className="hidden"
           disabled={disabled}

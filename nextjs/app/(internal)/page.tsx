@@ -344,19 +344,19 @@ export default function DashboardPage() {
                 )}
 
                 <button 
-                  onClick={() => router.push('/users')}
+                  onClick={() => router.push('/products')}
                   className="p-4 rounded-xl border-2 border-transparent bg-muted/30 hover:bg-muted/50 hover:shadow-md transition-all duration-200 text-left"
                 >
                   <div className="flex flex-col items-center text-center gap-2">
                     <div className="p-3 rounded-full bg-green-100 dark:bg-green-900/50">
-                      <UserPlus className="h-5 w-5 text-green-600 dark:text-green-400" />
+                      <BarChart3 className="h-5 w-5 text-green-600 dark:text-green-400" />
                     </div>
                     <div>
                       <p className="font-semibold text-sm mb-0.5">
-                        Add New User
+                        View Product
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        Create a new user account
+                        Browse product inventory
                       </p>
                     </div>
                   </div>

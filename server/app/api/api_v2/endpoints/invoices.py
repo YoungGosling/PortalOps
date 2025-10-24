@@ -28,6 +28,7 @@ async def upload_invoices(
 ):
     """
     Upload one or more invoice files for a specific payment record.
+    Supports PDF, DOCX, XLSX, XLS, PPTX, TXT, CSV, JPG, JPEG, PNG formats.
     """
     if not files:
         raise HTTPException(
@@ -43,14 +44,25 @@ async def upload_invoices(
             detail="Payment record not found"
         )
 
+    # Define allowed file extensions
+    allowed_extensions = ['.pdf', '.docx', '.xlsx', '.xls',
+                          '.pptx', '.txt', '.csv', '.jpg', '.jpeg', '.png']
+
     uploaded_invoices = []
 
     for file in files:
         if not file.filename:
             continue
 
+        # Validate file extension
+        file_extension = os.path.splitext(file.filename)[1].lower()
+        if file_extension not in allowed_extensions:
+            raise HTTPException(
+                status_code=400,
+                detail=f"File type not supported for '{file.filename}'. Allowed formats: {', '.join(allowed_extensions)}"
+            )
+
         # Generate unique filename
-        file_extension = os.path.splitext(file.filename)[1]
         unique_filename = f"{uuid.uuid4()}{file_extension}"
         file_path = os.path.join(STORAGE_DIR, unique_filename)
 

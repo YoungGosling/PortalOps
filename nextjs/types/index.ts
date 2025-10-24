@@ -93,14 +93,27 @@ export interface ProductWithPayments extends Product {
 
 export interface WorkflowTask {
   id: string;
-  type: 'onboarding' | 'offboarding';  // Backend uses 'type' not 'task_type'
+  type: 'onboarding' | 'offboarding';
   employee_name: string;
   employee_email: string;
   employee_department?: string;
+  employee_position?: string;
+  employee_hire_date?: string;
+  employee_resignation_date?: string;
   status: 'pending' | 'completed';
   created_at: string;
   updated_at: string;
-  target_user_id?: string;  // Null for onboarding until user is created
+  target_user_id?: string;
+  attachment_path?: string;
+  attachment_original_name?: string;
+  assigned_products?: ProductWithServiceAdmin[];
+}
+
+export interface ProductWithServiceAdmin {
+  product_id: string;
+  product_name: string;
+  service_name: string;
+  service_admins: { name: string; email: string; }[];
 }
 
 export interface BillAttachment {

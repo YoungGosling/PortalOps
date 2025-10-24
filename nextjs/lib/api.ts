@@ -88,13 +88,22 @@ class ApiClient {
     // Get headers (now async to support NextAuth session check)
     const authHeaders = await this.getHeaders(true, !isFormData);
     
-    const response = await fetch(url, {
-      ...options,
-      headers: {
-        ...authHeaders,
-        ...options.headers,
-      },
-    });
+    let response: Response;
+    try {
+      response = await fetch(url, {
+        ...options,
+        headers: {
+          ...authHeaders,
+          ...options.headers,
+        },
+      });
+    } catch (error: any) {
+      // Network error or CORS issue
+      console.error('Fetch error:', error);
+      console.error('URL:', url);
+      console.error('Headers:', authHeaders);
+      throw new Error(`Network error: Unable to connect to server. Please check if the backend is running at ${this.baseUrl}`);
+    }
 
     if (!response.ok) {
       // Handle 401 Unauthorized (token expired or invalid)
@@ -329,12 +338,15 @@ class ApiClient {
   }
 
   // Users
-  async getUsers(productId?: string): Promise<User[]> {
-    const query = productId ? `?productId=${productId}` : '';
+  async getUsers(productId?: string, page: number = 1, limit: number = 20): Promise<{ data: User[]; pagination: { total: number; page: number; limit: number } }> {
+    let query = `?page=${page}&limit=${limit}`;
+    if (productId) {
+      query += `&productId=${productId}`;
+    }
     const response = await this.request<{ data: any[]; pagination: any }>(`/api/users${query}`);
     // Backend returns paginated response with { data, pagination }
     // Transform to match frontend User type (v3: include new fields)
-    return response.data.map((user) => ({
+    const users = response.data.map((user) => ({
       id: user.id,
       name: user.name,
       email: user.email,
@@ -346,6 +358,11 @@ class ApiClient {
       roles: user.roles || [],
       assignedProductIds: user.assignedProductIds || [],
     }));
+    
+    return {
+      data: users,
+      pagination: response.pagination
+    };
   }
 
   async createUser(data: UserCreateRequest): Promise<User> {
@@ -369,8 +386,8 @@ class ApiClient {
   }
 
   // Inbox & Workflows
-  async getTasks(): Promise<WorkflowTask[]> {
-    return this.request<WorkflowTask[]>('/api/inbox/tasks');
+  async getTasks(page: number = 1, limit: number = 20): Promise<{ data: WorkflowTask[]; pagination: { total: number; page: number; limit: number } }> {
+    return this.request<{ data: WorkflowTask[]; pagination: { total: number; page: number; limit: number } }>(`/api/inbox/tasks?page=${page}&limit=${limit}`);
   }
 
   async completeTask(
@@ -523,6 +540,45 @@ class ApiClient {
 
   async deletePaymentMethod(id: number): Promise<void> {
     return this.request<void>(`/api/admin/payment-methods/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // Workflow Tasks with Details
+  async getTaskWithDetails(taskId: string): Promise<WorkflowTask> {
+    return this.request<WorkflowTask>(`/api/inbox/tasks/${taskId}`);
+  }
+
+  async uploadTaskAttachment(taskId: string, file: File): Promise<void> {
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    return this.request<void>(`/api/inbox/tasks/${taskId}/attachment`, {
+      method: 'POST',
+      body: formData,
+    });
+  }
+
+  async completeTaskWithAttachment(taskId: string): Promise<void> {
+    return this.request<void>(`/api/inbox/tasks/${taskId}/complete`, {
+      method: 'POST',
+    });
+  }
+
+  async downloadTaskAttachment(taskId: string): Promise<Blob> {
+    const url = `${this.baseUrl}/api/inbox/tasks/${taskId}/attachment`;
+    const headers = await this.getHeaders();
+    const response = await fetch(url, { headers });
+    
+    if (!response.ok) {
+      throw new Error(`Failed to download attachment: ${response.status}`);
+    }
+    
+    return response.blob();
+  }
+
+  async deleteTask(taskId: string): Promise<void> {
+    return this.request<void>(`/api/inbox/tasks/${taskId}`, {
       method: 'DELETE',
     });
   }

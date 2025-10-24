@@ -209,7 +209,7 @@ export default function ProductsPage() {
       </div>
 
       {/* Service Filter Card */}
-      <Card className="border-0 shadow-sm">
+      {/* <Card className="border-0 shadow-sm">
         <CardContent className="py-4">
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-lg bg-blue-50 dark:bg-blue-950">
@@ -235,7 +235,7 @@ export default function ProductsPage() {
             )}
           </div>
         </CardContent>
-      </Card>
+      </Card> */}
 
       {loading ? (
         <div className="flex items-center justify-center h-64">
