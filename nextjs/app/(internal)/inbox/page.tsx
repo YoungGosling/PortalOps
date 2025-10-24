@@ -82,7 +82,7 @@ export default function InboxPage() {
       setLoading(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [isAdmin]);
 
   const handlePageChange = (page: number) => {
     if (page < 1 || page > totalPages) return;

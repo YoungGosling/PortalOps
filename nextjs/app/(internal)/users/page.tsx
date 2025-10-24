@@ -72,7 +72,7 @@ export default function UsersPage() {
       setLoading(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [isAdmin]);
 
   // Handle add user
   const handleAddUser = () => {
