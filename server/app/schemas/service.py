@@ -12,6 +12,7 @@ class ServiceBase(BaseModel):
 
 class ServiceCreate(ServiceBase):
     productIds: Optional[List[uuid.UUID]] = []
+    adminUserIds: Optional[List[uuid.UUID]] = []
 
 
 class ServiceUpdate(BaseModel):
@@ -20,6 +21,7 @@ class ServiceUpdate(BaseModel):
     url: Optional[str] = None
     associateProductIds: Optional[List[uuid.UUID]] = []
     disassociateProductIds: Optional[List[uuid.UUID]] = []
+    adminUserIds: Optional[List[uuid.UUID]] = None
 
 
 class Service(ServiceBase):
@@ -83,5 +85,16 @@ class ProductSimple(BaseModel):
         from_attributes = True
 
 
+class AdminSimple(BaseModel):
+    """Simplified admin info for service listings"""
+    id: uuid.UUID
+    name: str
+    email: str
+
+    class Config:
+        from_attributes = True
+
+
 class ServiceWithProducts(Service):
     products: List[ProductSimple] = []
+    admins: List[AdminSimple] = []

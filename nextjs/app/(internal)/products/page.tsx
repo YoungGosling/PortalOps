@@ -145,12 +145,19 @@ export default function ProductsPage() {
   };
 
   // Get all payment records for a specific product (one-to-many relationship)
-  // Returns all payment records for the product, sorted by payment date (newest first)
+  // Returns all payment records for the product, sorted by:
+  // 1. Unfilled (is_complete: false) first, sorted by payment_date descending (newest first)
+  // 2. Filled (is_complete: true) second, sorted by payment_date descending (newest first)
   const getProductPayments = (productId: string): PaymentInfo[] => {
     return payments
       .filter((payment) => payment.product_id === productId)
       .sort((a, b) => {
-        // Sort by payment_date descending (newest first)
+        // First, sort by completion status (unfilled first)
+        if (a.is_complete !== b.is_complete) {
+          return a.is_complete ? 1 : -1; // false (unfilled) comes before true (filled)
+        }
+        
+        // Within the same completion status, sort by payment_date descending (newest first)
         if (!a.payment_date) return 1;
         if (!b.payment_date) return -1;
         return new Date(b.payment_date).getTime() - new Date(a.payment_date).getTime();
@@ -510,7 +517,7 @@ export default function ProductsPage() {
                                                       : 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400 border-0 text-xs'
                                                     }
                                                   >
-                                                    {payment.is_complete ? 'Complete' : 'Incomplete'}
+                                                    {payment.is_complete ? 'Filled' : 'Unfilled'}
                                                   </Badge>
                                                 </TableCell>
                                                 <TableCell>

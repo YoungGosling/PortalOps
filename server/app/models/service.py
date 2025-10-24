@@ -1,9 +1,19 @@
-from sqlalchemy import Column, String, Text, ForeignKey, DateTime, Integer
+from sqlalchemy import Column, String, Text, ForeignKey, DateTime, Integer, Table
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 import uuid
 from app.db.database import Base
+
+# Association table for service admins (many-to-many)
+service_admins = Table(
+    'service_admins',
+    Base.metadata,
+    Column('service_id', UUID(as_uuid=True), ForeignKey(
+        'services.id', ondelete='CASCADE'), primary_key=True),
+    Column('user_id', UUID(as_uuid=True), ForeignKey(
+        'users.id', ondelete='CASCADE'), primary_key=True)
+)
 
 
 class Service(Base):
@@ -23,6 +33,12 @@ class Service(Base):
         "Product", back_populates="service")
     permission_assignments = relationship(
         "PermissionAssignment", back_populates="service")
+    # Many-to-many relationship with User through service_admins table
+    admins = relationship(
+        "User",
+        secondary=service_admins,
+        backref="administered_services"
+    )
 
 
 class Product(Base):

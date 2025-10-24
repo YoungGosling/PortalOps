@@ -37,6 +37,16 @@ class Settings(BaseSettings):
     # Development Configuration
     DEBUG: bool = True
 
+    # Scheduler Configuration
+    # Payment expiration check schedule (default: daily at 00:01)
+    PAYMENT_EXPIRATION_CHECK_HOUR: int = 0
+    PAYMENT_EXPIRATION_CHECK_MINUTE: int = 1
+
+    # Task reminder schedule (default: Monday at 10:00)
+    TASK_REMINDER_DAY_OF_WEEK: int = 0  # Monday = 0, Sunday = 6
+    TASK_REMINDER_HOUR: int = 10
+    TASK_REMINDER_MINUTE: int = 0
+
     class Config:
         env_file = ".env"
         case_sensitive = True

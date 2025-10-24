@@ -10,9 +10,10 @@ import uuid
 
 class CRUDService(CRUDBase[Service, ServiceCreate, ServiceUpdate]):
     def create_with_products(self, db: Session, *, obj_in: ServiceCreate) -> Service:
-        """Create a service and optionally associate products."""
-        # Create service without productIds
-        service_data = obj_in.model_dump(exclude={'productIds'})
+        """Create a service and optionally associate products and admins."""
+        # Create service without productIds and adminUserIds
+        service_data = obj_in.model_dump(
+            exclude={'productIds', 'adminUserIds'})
         db_obj = Service(**service_data)
         db.add(db_obj)
         db.flush()
@@ -25,15 +26,23 @@ class CRUDService(CRUDBase[Service, ServiceCreate, ServiceUpdate]):
                 if product:
                     product.service_id = db_obj.id
 
+        # Associate admin users if provided
+        if obj_in.adminUserIds:
+            from app.models.user import User
+            for user_id in obj_in.adminUserIds:
+                user = db.query(User).filter(User.id == user_id).first()
+                if user:
+                    db_obj.admins.append(user)
+
         db.commit()
         db.refresh(db_obj)
         return db_obj
 
     def update_with_products(self, db: Session, *, db_obj: Service, obj_in: ServiceUpdate) -> Service:
-        """Update service and manage product associations."""
+        """Update service and manage product associations and admin assignments."""
         # Update basic fields
         update_data = obj_in.model_dump(
-            exclude={'associateProductIds', 'disassociateProductIds'}, exclude_unset=True)
+            exclude={'associateProductIds', 'disassociateProductIds', 'adminUserIds'}, exclude_unset=True)
         for field, value in update_data.items():
             setattr(db_obj, field, value)
 
@@ -52,6 +61,17 @@ class CRUDService(CRUDBase[Service, ServiceCreate, ServiceUpdate]):
                     Product.id == product_id).first()
                 if product and product.service_id == db_obj.id:
                     product.service_id = None
+
+        # Update admin assignments if provided
+        if obj_in.adminUserIds is not None:
+            from app.models.user import User
+            # Clear existing admins
+            db_obj.admins = []
+            # Add new admins
+            for user_id in obj_in.adminUserIds:
+                user = db.query(User).filter(User.id == user_id).first()
+                if user:
+                    db_obj.admins.append(user)
 
         db.commit()
         db.refresh(db_obj)
@@ -74,7 +94,7 @@ class CRUDService(CRUDBase[Service, ServiceCreate, ServiceUpdate]):
     def get_services_for_user(
         self, db: Session, *, user_id: uuid.UUID, is_admin: bool = False
     ) -> List[Service]:
-        """Get services filtered by user permissions with their products."""
+        """Get services filtered by user permissions with their products and admins."""
         if is_admin:
             # Admin can see all services
             services = db.query(Service).all()
@@ -87,13 +107,14 @@ class CRUDService(CRUDBase[Service, ServiceCreate, ServiceUpdate]):
                 PermissionAssignment.user_id == user_id
             ).distinct().all()
 
-        # Add products and product count to each service
+        # Add products, product count, and admins to each service
         for service in services:
             products = db.query(Product).filter(
                 Product.service_id == service.id
             ).all()
             service.products = products
             service.productCount = len(products)
+            # Admins are already loaded via the relationship
 
         return services
 

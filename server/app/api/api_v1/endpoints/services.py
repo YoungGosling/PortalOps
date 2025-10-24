@@ -46,13 +46,17 @@ def create_service(
 
     new_service = service.create_with_products(db, obj_in=service_in)
 
-    # Log the action
+    # Log the action (convert UUIDs to strings for JSON serialization)
+    details = {"name": new_service.name, "vendor": new_service.vendor}
+    if service_in.adminUserIds:
+        details["adminUserIds"] = [str(uid) for uid in service_in.adminUserIds]
+
     audit_log.log_action(
         db,
         actor_user_id=current_user.id,
         action="service.create",
         target_id=str(new_service.id),
-        details={"name": new_service.name, "vendor": new_service.vendor}
+        details=details
     )
 
     return new_service
@@ -111,13 +115,23 @@ def update_service(
     updated_service = service.update_with_products(
         db, db_obj=existing_service, obj_in=service_update)
 
-    # Log the action
+    # Log the action (convert UUIDs to strings for JSON serialization)
+    details = service_update.model_dump(exclude_unset=True)
+    if "adminUserIds" in details and details["adminUserIds"] is not None:
+        details["adminUserIds"] = [str(uid) for uid in details["adminUserIds"]]
+    if "associateProductIds" in details and details["associateProductIds"]:
+        details["associateProductIds"] = [
+            str(pid) for pid in details["associateProductIds"]]
+    if "disassociateProductIds" in details and details["disassociateProductIds"]:
+        details["disassociateProductIds"] = [
+            str(pid) for pid in details["disassociateProductIds"]]
+
     audit_log.log_action(
         db,
         actor_user_id=current_user.id,
         action="service.update",
         target_id=str(service_id),
-        details=service_update.model_dump(exclude_unset=True)
+        details=details
     )
 
     return updated_service

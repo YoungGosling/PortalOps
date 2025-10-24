@@ -171,12 +171,12 @@ export default function PaymentsPage() {
                           ) : isComplete ? (
                             <Badge className="bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-400 border-0 gap-1 text-xs">
                               <CheckCircle2 className="h-3 w-3" />
-                              Complete
+                              Filled
                             </Badge>
                           ) : (
                             <Badge variant="outline" className="bg-orange-50 text-orange-700 dark:bg-orange-950 dark:text-orange-400 border-orange-200 gap-1 text-xs">
                               <AlertCircle className="h-3 w-3" />
-                              Incomplete
+                              Unfilled
                             </Badge>
                           )}
                         </TableCell>

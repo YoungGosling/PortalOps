@@ -91,22 +91,21 @@ export function EditPaymentModal({
         setAmount(payment.amount?.toString() || '');
         setCardholderName(payment.cardholder_name || '');
         setPaymentMethodId(payment.payment_method_id?.toString() || '');
-        setPaymentDate(convertToDateInput(payment.payment_date || '') || new Date().toISOString().split('T')[0]);
-        setUsageStartDate(convertToDateInput(payment.usage_start_date || '') || new Date().toISOString().split('T')[0]);
-        setUsageEndDate(convertToDateInput(payment.usage_end_date || '') || new Date().toISOString().split('T')[0]);
+        setPaymentDate(convertToDateInput(payment.payment_date || ''));
+        setUsageStartDate(convertToDateInput(payment.usage_start_date || ''));
+        setUsageEndDate(convertToDateInput(payment.usage_end_date || ''));
         setUploadedInvoices(payment.invoices || []);
         setSelectedFiles([]);
         setPendingDeleteInvoiceIds(new Set());
         setInvoiceToDelete(null);
       } else if (mode === 'add') {
         // Reset form for add mode
-        const today = new Date().toISOString().split('T')[0];
         setAmount('');
         setCardholderName('');
         setPaymentMethodId('');
-        setPaymentDate(today);
-        setUsageStartDate(today);
-        setUsageEndDate(today);
+        setPaymentDate('');
+        setUsageStartDate('');
+        setUsageEndDate('');
         setUploadedInvoices([]);
         setSelectedFiles([]);
         setPendingDeleteInvoiceIds(new Set());

@@ -51,13 +51,12 @@ export function AddPaymentModal({
   // Reset form when dialog opens
   useEffect(() => {
     if (open) {
-      const today = new Date().toISOString().split('T')[0];
       setAmount('');
       setCardholderName('');
       setPaymentMethodId('');
-      setPaymentDate(today);
-      setUsageStartDate(today);
-      setUsageEndDate(today);
+      setPaymentDate('');
+      setUsageStartDate('');
+      setUsageEndDate('');
       setReporter('');
     }
   }, [open]);

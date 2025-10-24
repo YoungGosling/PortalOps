@@ -319,41 +319,29 @@ export default function DashboardPage() {
                   </div>
                 </button>
 
-                <button 
-                  onClick={() => router.push('/payments')}
-                  className={`relative p-4 rounded-xl border-2 transition-all duration-200 text-left ${
-                    (stats?.incompletePayments ?? 0) > 0 
-                      ? 'border-red-200 bg-red-50 dark:border-red-900 dark:bg-red-950/30 shadow-md' 
-                      : 'border-transparent bg-muted/30 hover:bg-muted/50 hover:shadow-md'
-                  }`}
-                >
-                  <div className="flex flex-col items-center text-center gap-2">
-                    <div className={`p-3 rounded-full ${
-                      (stats?.incompletePayments ?? 0) > 0 
-                        ? 'bg-red-100 dark:bg-red-900/50' 
-                        : 'bg-amber-100 dark:bg-amber-900/50'
-                    }`}>
-                      <CreditCard className={`h-5 w-5 ${
-                        (stats?.incompletePayments ?? 0) > 0 
-                          ? 'text-red-600 dark:text-red-400' 
-                          : 'text-amber-600 dark:text-amber-400'
-                      }`} />
-                    </div>
-                    <div>
-                      <p className="font-semibold text-sm mb-0.5">
-                        View Payment
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        Update payment information
-                      </p>
-                    </div>
-                    {(stats?.incompletePayments ?? 0) > 0 && (
+                {(stats?.incompletePayments ?? 0) > 0 && (
+                  <button 
+                    onClick={() => router.push('/payments')}
+                    className="relative p-4 rounded-xl border-2 border-red-200 bg-red-50 dark:border-red-900 dark:bg-red-950/30 shadow-md transition-all duration-200 text-left"
+                  >
+                    <div className="flex flex-col items-center text-center gap-2">
+                      <div className="p-3 rounded-full bg-red-100 dark:bg-red-900/50">
+                        <CreditCard className="h-5 w-5 text-red-600 dark:text-red-400" />
+                      </div>
+                      <div>
+                        <p className="font-semibold text-sm mb-0.5">
+                          Renew Payment
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          Complete pending renewals
+                        </p>
+                      </div>
                       <span className="absolute -top-1.5 -right-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-red-500 text-white text-xs font-bold shadow-lg">
                         {stats?.incompletePayments}
                       </span>
-                    )}
-                  </div>
-                </button>
+                    </div>
+                  </button>
+                )}
 
                 <button 
                   onClick={() => router.push('/users')}

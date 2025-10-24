@@ -116,6 +116,9 @@ def update_payment_by_id_v2(
     invoices = payment_invoice.get_by_product_id(db, product_id=product_id)
     has_invoices = len(invoices) > 0
 
+    # Store old status for comparison
+    old_status = updated_obj.status
+
     if (
         updated_obj.amount is not None and
         updated_obj.cardholder_name and
@@ -129,6 +132,29 @@ def update_payment_by_id_v2(
         if updated_obj.status != 'complete':
             payment_info.update(db, db_obj=updated_obj,
                                 obj_in={"status": "complete"})
+
+            # If payment status changed from incomplete to complete, restore product status to Active
+            if old_status == 'incomplete' and product_id:
+                from app.models.payment import ProductStatus
+                from app.models.service import Product
+
+                active_status = db.query(ProductStatus).filter(
+                    ProductStatus.name == 'Active'
+                ).first()
+
+                if active_status:
+                    product = db.query(Product).filter(
+                        Product.id == product_id).first()
+                    if product and product.status_id != active_status.id:
+                        # Only update to Active if current status is Overdue
+                        overdue_status = db.query(ProductStatus).filter(
+                            ProductStatus.name == 'Overdue'
+                        ).first()
+
+                        if overdue_status and product.status_id == overdue_status.id:
+                            product.status_id = active_status.id
+                            db.add(product)
+                            db.commit()
     else:
         if updated_obj.status != 'incomplete':
             payment_info.update(db, db_obj=updated_obj, obj_in={
@@ -228,6 +254,9 @@ def update_payment_info_v2(
     invoices = payment_invoice.get_by_product_id(db, product_id=product_id)
     has_invoices = len(invoices) > 0
 
+    # Store old status for comparison
+    old_status = updated_obj.status
+
     if (
         updated_obj.amount is not None and
         updated_obj.cardholder_name and
@@ -241,6 +270,29 @@ def update_payment_info_v2(
         if updated_obj.status != 'complete':
             payment_info.update(db, db_obj=updated_obj,
                                 obj_in={"status": "complete"})
+
+            # If payment status changed from incomplete to complete, restore product status to Active
+            if old_status == 'incomplete':
+                from app.models.payment import ProductStatus
+                from app.models.service import Product
+
+                active_status = db.query(ProductStatus).filter(
+                    ProductStatus.name == 'Active'
+                ).first()
+
+                if active_status:
+                    product = db.query(Product).filter(
+                        Product.id == product_id).first()
+                    if product and product.status_id != active_status.id:
+                        # Only update to Active if current status is Overdue
+                        overdue_status = db.query(ProductStatus).filter(
+                            ProductStatus.name == 'Overdue'
+                        ).first()
+
+                        if overdue_status and product.status_id == overdue_status.id:
+                            product.status_id = active_status.id
+                            db.add(product)
+                            db.commit()
     else:
         if updated_obj.status != 'incomplete':
             payment_info.update(db, db_obj=updated_obj, obj_in={
@@ -517,6 +569,9 @@ async def upload_invoices(
                 db, product_id=product_id)
             has_invoices = len(invoices) > 0
 
+            # Store old status for comparison
+            old_status = existing_payment_info.status
+
             if (
                 existing_payment_info.amount is not None and
                 existing_payment_info.cardholder_name and
@@ -530,6 +585,29 @@ async def upload_invoices(
                 if existing_payment_info.status != 'complete':
                     payment_info.update(db, db_obj=existing_payment_info,
                                         obj_in={"status": "complete"})
+
+                    # If payment status changed from incomplete to complete, restore product status to Active
+                    if old_status == 'incomplete':
+                        from app.models.payment import ProductStatus
+                        from app.models.service import Product
+
+                        active_status = db.query(ProductStatus).filter(
+                            ProductStatus.name == 'Active'
+                        ).first()
+
+                        if active_status:
+                            product = db.query(Product).filter(
+                                Product.id == product_id).first()
+                            if product and product.status_id != active_status.id:
+                                # Only update to Active if current status is Overdue
+                                overdue_status = db.query(ProductStatus).filter(
+                                    ProductStatus.name == 'Overdue'
+                                ).first()
+
+                                if overdue_status and product.status_id == overdue_status.id:
+                                    product.status_id = active_status.id
+                                    db.add(product)
+                                    db.commit()
             else:
                 if existing_payment_info.status != 'incomplete':
                     payment_info.update(db, db_obj=existing_payment_info, obj_in={

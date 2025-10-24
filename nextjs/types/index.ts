@@ -16,6 +16,13 @@ export interface User {
 export interface ProductSimple {
   id: string;
   name: string;
+  status?: string;  // Product status name (e.g., 'Active', 'Inactive', 'Deprecated')
+}
+
+export interface AdminSimple {
+  id: string;
+  name: string;
+  email: string;
 }
 
 export interface Service {
@@ -24,6 +31,7 @@ export interface Service {
   vendor?: string;
   product_count: number;
   products?: ProductSimple[];
+  admins?: AdminSimple[];
   created_at?: string;
   updated_at?: string;
 }
@@ -164,6 +172,7 @@ export interface ServiceCreateRequest {
   name: string;
   vendor?: string;
   productIds?: string[];
+  adminUserIds?: string[];
 }
 
 export interface ServiceUpdateRequest {
@@ -171,6 +180,7 @@ export interface ServiceUpdateRequest {
   vendor?: string;
   associateProductIds?: string[];
   disassociateProductIds?: string[];
+  adminUserIds?: string[];
 }
 
 export interface ProductCreateRequest {

@@ -168,7 +168,6 @@ export default function UsersPage() {
                     <TableHead className="w-[150px]">Department</TableHead>
                     <TableHead className="w-[150px]">Position</TableHead>
                     <TableHead className="w-[120px]">Hire Date</TableHead>
-                    <TableHead className="w-[150px]">Roles</TableHead>
                     <TableHead className="w-[200px]">Products</TableHead>
                     <TableHead className="text-right w-[140px]">Actions</TableHead>
                   </TableRow>
@@ -192,8 +191,9 @@ export default function UsersPage() {
                             <div className="flex items-center gap-2">
                               <span className="font-semibold">{user.name}</span>
                               {hasAdminRole && (
-                                <Badge className="bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400 border-0 px-1.5 py-0.5">
+                                <Badge className="bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400 border-0 px-2 py-0.5 gap-1">
                                   <Shield className="h-3 w-3" />
+                                  <span className="text-xs font-medium">Admin</span>
                                 </Badge>
                               )}
                             </div>
@@ -247,31 +247,6 @@ export default function UsersPage() {
                             </div>
                           ) : (
                             <span className="text-xs text-muted-foreground">-</span>
-                          )}
-                        </TableCell>
-
-                        {/* Roles */}
-                        <TableCell>
-                          {user.roles && user.roles.length > 0 ? (
-                            <div className="flex flex-wrap gap-1">
-                              {user.roles.map((role) => (
-                                <Badge
-                                  key={role}
-                                  variant="outline"
-                                  className={`text-xs px-2 py-0.5 ${
-                                    role === 'Admin' 
-                                      ? 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400 border-amber-200'
-                                      : role === 'ServiceAdmin' 
-                                      ? 'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-400 border-blue-200'
-                                      : 'bg-purple-100 text-purple-700 dark:bg-purple-950 dark:text-purple-400 border-purple-200'
-                                  }`}
-                                >
-                                  {role}
-                                </Badge>
-                              ))}
-                            </div>
-                          ) : (
-                            <span className="text-xs text-muted-foreground">No roles</span>
                           )}
                         </TableCell>
 

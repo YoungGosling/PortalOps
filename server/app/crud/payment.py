@@ -141,17 +141,11 @@ class CRUDPaymentInfo(CRUDBase[PaymentInfo, PaymentInfoCreate, PaymentInfoUpdate
         return payment_register
 
     def get_incomplete_count(self, db: Session) -> int:
-        """Get count of products with incomplete or no payment info."""
-        # Count products that have no payments OR only have incomplete payments
-        products_with_complete = db.query(PaymentInfo.product_id).filter(
-            PaymentInfo.status == 'complete'
-        ).distinct().subquery()
-
-        total_products = db.query(func.count(Product.id)).scalar()
-        products_with_complete_count = db.query(
-            func.count(products_with_complete.c.product_id)).scalar()
-
-        return total_products - (products_with_complete_count or 0)
+        """Get count of incomplete payment records."""
+        # Count actual incomplete payment records (not products)
+        return db.query(func.count(PaymentInfo.id)).filter(
+            PaymentInfo.status == 'incomplete'
+        ).scalar() or 0
 
     def get_expiring_soon(self, db: Session, *, days_ahead: int = 30) -> List[PaymentInfo]:
         """Get payment info for products expiring within specified days."""
