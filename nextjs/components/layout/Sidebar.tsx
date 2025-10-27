@@ -126,11 +126,11 @@ export function Sidebar({ collapsed }: SidebarProps) {
       icon: Wallet,
       path: '/admin/payment-methods',
     },
-    {
-      label: 'User Administration',
-      icon: UserCheck,
-      path: '/admin/permissions',
-    },
+    // {
+    //   label: 'User Administration',
+    //   icon: UserCheck,
+    //   path: '/admin/permissions',
+    // },
   ];
 
   const setupItems = [
