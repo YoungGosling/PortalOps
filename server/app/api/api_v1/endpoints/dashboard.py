@@ -111,26 +111,33 @@ def get_upcoming_renewals(
     """
     Get upcoming payment renewals - products with expiry dates closest to today.
     Returns products sorted by expiry_date (earliest first).
-    Uses the latest payment record for each product.
+    Uses the latest payment record WITH expiry_date for each product.
     """
     from app.models.payment import PaymentMethod
 
-    # Get all products with their latest payment info
+    # Get all products with their services
     products_query = db.query(Product, Service).join(
         Service, Product.service_id == Service.id
     ).all()
 
     renewals_list = []
     for product, service in products_query:
-        # Get the latest payment for this product
-        latest_payment = payment_info.get_latest_by_product(db, product.id)
+        # Get the latest payment WITH expiry_date for this product
+        # Priority: payment_date DESC, then created_at DESC
+        latest_payment_with_expiry = db.query(PaymentInfo).filter(
+            PaymentInfo.product_id == product.id,
+            PaymentInfo.expiry_date.isnot(None)
+        ).order_by(
+            desc(PaymentInfo.payment_date).nulls_last(),
+            desc(PaymentInfo.created_at)
+        ).first()
 
-        if latest_payment and latest_payment.expiry_date:
+        if latest_payment_with_expiry:
             # Get payment method name if available
             payment_method_name = None
-            if latest_payment.payment_method_id:
+            if latest_payment_with_expiry.payment_method_id:
                 payment_method = db.query(PaymentMethod).filter(
-                    PaymentMethod.id == latest_payment.payment_method_id
+                    PaymentMethod.id == latest_payment_with_expiry.payment_method_id
                 ).first()
                 if payment_method:
                     payment_method_name = payment_method.name
@@ -139,11 +146,11 @@ def get_upcoming_renewals(
                 "productId": str(product.id),
                 "productName": product.name,
                 "serviceName": service.name,
-                "expiryDate": latest_payment.expiry_date.strftime("%m/%d/%Y"),
-                "amount": float(latest_payment.amount) if latest_payment.amount else None,
-                "cardholderName": latest_payment.cardholder_name,
+                "expiryDate": latest_payment_with_expiry.expiry_date.strftime("%m/%d/%Y"),
+                "amount": float(latest_payment_with_expiry.amount) if latest_payment_with_expiry.amount else None,
+                "cardholderName": latest_payment_with_expiry.cardholder_name,
                 "paymentMethod": payment_method_name,
-                "expiry_date_sort": latest_payment.expiry_date  # For sorting
+                "expiry_date_sort": latest_payment_with_expiry.expiry_date  # For sorting
             })
 
     # Sort by expiry date (earliest first) and limit
