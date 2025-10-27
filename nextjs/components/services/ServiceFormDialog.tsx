@@ -58,8 +58,8 @@ export function ServiceFormDialog({
   const fetchUsers = async () => {
     try {
       setLoadingUsers(true);
-      const users = await apiClient.getUsers();
-      setAllUsers(users);
+      const response = await apiClient.getUsers(undefined, 1, 100); // Fetch up to 100 users
+      setAllUsers(response.data);
     } catch (error) {
       console.error('Failed to load users:', error);
       toast.error('Failed to load users');

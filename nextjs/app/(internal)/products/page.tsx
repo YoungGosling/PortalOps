@@ -24,7 +24,7 @@ import {
 import { ProductFormDialog } from '@/components/products/ProductFormDialog';
 import { DeleteProductDialog } from '@/components/products/DeleteProductDialog';
 import { AddPaymentModal } from '@/components/payments/AddPaymentModal';
-import { Plus, Package, Filter, Loader2, Edit2, Trash2, Building, ChevronDown, ChevronUp, Calendar, DollarSign, Tag, Receipt, PlusCircle } from 'lucide-react';
+import { Plus, Package, Filter, Loader2, Edit2, Trash2, Building, ChevronDown, ChevronUp, Calendar, DollarSign, Tag, Receipt, PlusCircle, ChevronLeft, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function ProductsPage() {
@@ -42,12 +42,22 @@ export default function ProductsPage() {
   const [deletingProduct, setDeletingProduct] = useState<Product | null>(null);
   const [addPaymentModalOpen, setAddPaymentModalOpen] = useState(false);
   const [addingPaymentForProduct, setAddingPaymentForProduct] = useState<Product | null>(null);
+  const [dataLoaded, setDataLoaded] = useState(false);
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalProducts, setTotalProducts] = useState(0);
+  const [pageSize] = useState(20);
 
-  const fetchProducts = async (serviceId?: string) => {
+  const fetchProducts = async (serviceId?: string, page: number = currentPage) => {
     try {
       setLoading(true);
-      const data = await apiClient.getProducts(serviceId);
-      setProducts(data);
+      const response = await apiClient.getProducts(serviceId, page, pageSize);
+      setProducts(response.data);
+      setCurrentPage(response.pagination.page);
+      setTotalProducts(response.pagination.total);
+      setTotalPages(Math.ceil(response.pagination.total / response.pagination.limit));
     } catch (error) {
       toast.error('Failed to load products');
       console.error(error);
@@ -58,8 +68,9 @@ export default function ProductsPage() {
 
   const fetchServices = async () => {
     try {
-      const data = await apiClient.getServices();
-      setServices(data);
+      // Fetch all services without pagination for the filter dropdown
+      const response = await apiClient.getServices(1, 100);
+      setServices(response.data);
     } catch (error) {
       console.error('Failed to load services:', error);
     }
@@ -68,8 +79,9 @@ export default function ProductsPage() {
   const fetchPayments = async () => {
     try {
       setLoadingPayments(true);
-      const data = await apiClient.getPaymentRegister();
-      setPayments(data);
+      // Fetch all payments without pagination for product payment display
+      const response = await apiClient.getPaymentRegister(1, 1000);
+      setPayments(response.data);
     } catch (error) {
       console.error('Failed to load payments:', error);
     } finally {
@@ -87,19 +99,31 @@ export default function ProductsPage() {
   };
 
   useEffect(() => {
-    fetchProducts();
-    fetchServices();
-    fetchPayments();
-    fetchPaymentMethods();
+    if (!dataLoaded) {
+      fetchProducts();
+      fetchServices();
+      fetchPayments();
+      fetchPaymentMethods();
+      setDataLoaded(true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const handlePageChange = (page: number) => {
+    if (page < 1 || page > totalPages) return;
+    setCurrentPage(page);
+    const serviceId = selectedServiceFilter === 'all' ? undefined : selectedServiceFilter;
+    fetchProducts(serviceId, page);
+  };
 
   // Handle service filter change
   const handleServiceFilterChange = (value: string) => {
     setSelectedServiceFilter(value);
+    setCurrentPage(1); // Reset to page 1 when filter changes
     if (value === 'all') {
-      fetchProducts();
+      fetchProducts(undefined, 1);
     } else {
-      fetchProducts(value);
+      fetchProducts(value, 1);
     }
   };
 
@@ -552,6 +576,63 @@ export default function ProductsPage() {
             </div>
           </CardContent>
         </Card>
+      )}
+
+      {/* Pagination Controls */}
+      {!loading && products.length > 0 && totalPages > 1 && (
+        <div className="flex items-center justify-between px-2">
+          <div className="text-sm text-muted-foreground">
+            Showing {((currentPage - 1) * pageSize) + 1} to {Math.min(currentPage * pageSize, totalProducts)} of {totalProducts} products
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handlePageChange(currentPage - 1)}
+              disabled={currentPage === 1}
+              className="gap-1"
+            >
+              <ChevronLeft className="h-4 w-4" />
+              Previous
+            </Button>
+            <div className="flex items-center gap-1">
+              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                let pageNum;
+                if (totalPages <= 5) {
+                  pageNum = i + 1;
+                } else if (currentPage <= 3) {
+                  pageNum = i + 1;
+                } else if (currentPage >= totalPages - 2) {
+                  pageNum = totalPages - 4 + i;
+                } else {
+                  pageNum = currentPage - 2 + i;
+                }
+                
+                return (
+                  <Button
+                    key={pageNum}
+                    variant={currentPage === pageNum ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => handlePageChange(pageNum)}
+                    className="min-w-[40px]"
+                  >
+                    {pageNum}
+                  </Button>
+                );
+              })}
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handlePageChange(currentPage + 1)}
+              disabled={currentPage === totalPages}
+              className="gap-1"
+            >
+              Next
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
       )}
 
       {/* Product Form Dialog */}

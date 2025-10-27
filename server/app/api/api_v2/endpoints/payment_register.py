@@ -1,5 +1,5 @@
 from typing import List
-from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form, Query
 from sqlalchemy.orm import Session
 from app.db.database import get_db
 from app.crud import payment_info, payment_invoice, audit_log
@@ -20,6 +20,8 @@ os.makedirs(STORAGE_DIR, exist_ok=True)
 
 @router.get("")
 def read_payment_register_v2(
+    page: int = Query(1, ge=1),
+    limit: int = Query(20, ge=1, le=10000),
     current_user: User = Depends(require_admin),
     db: Session = Depends(get_db)
 ):
@@ -27,9 +29,12 @@ def read_payment_register_v2(
     Retrieve all payment records for all products for the payment register v2.
     Returns a flat list where each payment record is a separate item.
     Multiple payments for the same product will appear as multiple items.
+    Supports pagination.
     """
     # Get all payment records (one-to-many: multiple payments per product)
-    payment_register_data = payment_info.get_payment_register(db)
+    skip = (page - 1) * limit
+    payment_register_data, total = payment_info.get_payment_register(
+        db, skip=skip, limit=limit)
 
     # Enhance each item with invoice information
     for item in payment_register_data:
@@ -50,7 +55,14 @@ def read_payment_register_v2(
         # Add invoices to payment info
         item["paymentInfo"]["invoices"] = invoice_responses
 
-    return payment_register_data
+    return {
+        "data": payment_register_data,
+        "pagination": {
+            "total": total,
+            "page": page,
+            "limit": limit
+        }
+    }
 
 
 @router.put("/payments/{payment_id}", status_code=204)

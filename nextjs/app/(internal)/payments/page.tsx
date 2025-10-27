@@ -31,7 +31,9 @@ import {
   Building2,
   Package,
   Plus,
-  Trash2
+  Trash2,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -49,12 +51,22 @@ export default function PaymentsPage() {
   } | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletingPayment, setDeletingPayment] = useState<PaymentInfo | null>(null);
+  const [dataLoaded, setDataLoaded] = useState(false);
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalPayments, setTotalPayments] = useState(0);
+  const [pageSize] = useState(20);
 
-  const fetchPayments = async () => {
+  const fetchPayments = async (page: number = currentPage) => {
     try {
       setLoading(true);
-      const data = await apiClient.getPaymentRegister();
-      setPayments(sortPaymentsByCompleteness(data));
+      const response = await apiClient.getPaymentRegister(page, pageSize);
+      setPayments(sortPaymentsByCompleteness(response.data));
+      setCurrentPage(response.pagination.page);
+      setTotalPayments(response.pagination.total);
+      setTotalPages(Math.ceil(response.pagination.total / response.pagination.limit));
     } catch (error) {
       toast.error('Failed to load payment records');
       console.error(error);
@@ -73,9 +85,19 @@ export default function PaymentsPage() {
   };
 
   useEffect(() => {
-    fetchPayments();
-    fetchPaymentMethods();
+    if (!dataLoaded) {
+      fetchPayments();
+      fetchPaymentMethods();
+      setDataLoaded(true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const handlePageChange = (page: number) => {
+    if (page < 1 || page > totalPages) return;
+    setCurrentPage(page);
+    fetchPayments(page);
+  };
 
   const handleEdit = (payment: PaymentInfo) => {
     setModalMode('edit');
@@ -294,6 +316,63 @@ export default function PaymentsPage() {
             </div>
           </CardContent>
         </Card>
+      )}
+
+      {/* Pagination Controls */}
+      {!loading && payments.length > 0 && totalPages > 1 && (
+        <div className="flex items-center justify-between px-2">
+          <div className="text-sm text-muted-foreground">
+            Showing {((currentPage - 1) * pageSize) + 1} to {Math.min(currentPage * pageSize, totalPayments)} of {totalPayments} payment records
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handlePageChange(currentPage - 1)}
+              disabled={currentPage === 1}
+              className="gap-1"
+            >
+              <ChevronLeft className="h-4 w-4" />
+              Previous
+            </Button>
+            <div className="flex items-center gap-1">
+              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                let pageNum;
+                if (totalPages <= 5) {
+                  pageNum = i + 1;
+                } else if (currentPage <= 3) {
+                  pageNum = i + 1;
+                } else if (currentPage >= totalPages - 2) {
+                  pageNum = totalPages - 4 + i;
+                } else {
+                  pageNum = currentPage - 2 + i;
+                }
+                
+                return (
+                  <Button
+                    key={pageNum}
+                    variant={currentPage === pageNum ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => handlePageChange(pageNum)}
+                    className="min-w-[40px]"
+                  >
+                    {pageNum}
+                  </Button>
+                );
+              })}
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handlePageChange(currentPage + 1)}
+              disabled={currentPage === totalPages}
+              className="gap-1"
+            >
+              Next
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
       )}
 
       {/* Edit/Add Payment Modal */}

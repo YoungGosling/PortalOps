@@ -1,5 +1,5 @@
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 from app.db.database import get_db
 from app.crud import product as crud_product, audit_log
@@ -99,9 +99,11 @@ def create_product(
     }
 
 
-@router.get("", response_model=List[Product])
+@router.get("", response_model=dict)
 def get_products(
     serviceId: Optional[uuid.UUID] = None,
+    page: int = Query(1, ge=1),
+    limit: int = Query(20, ge=1, le=100),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -109,6 +111,7 @@ def get_products(
     Get all products that the current user has access to.
     Optionally filter by serviceId.
     Includes product status and latest payment information.
+    Supports pagination.
     """
     from app.crud import payment_info
     from app.models.payment import ProductStatus
@@ -119,13 +122,14 @@ def get_products(
     is_admin = any(role in user_role_names for role in [
                    'Admin', 'ServiceAdmin'])
 
+    skip = (page - 1) * limit
     if serviceId:
-        products = crud_product.get_by_service(
-            db, service_id=serviceId, user_id=current_user.id, is_admin=is_admin
+        products, total = crud_product.get_by_service(
+            db, service_id=serviceId, user_id=current_user.id, is_admin=is_admin, skip=skip, limit=limit
         )
     else:
-        products = crud_product.get_products_for_user(
-            db, user_id=current_user.id, is_admin=is_admin
+        products, total = crud_product.get_products_for_user(
+            db, user_id=current_user.id, is_admin=is_admin, skip=skip, limit=limit
         )
 
     # Add service_name, status, and latest payment info to each product
@@ -173,7 +177,14 @@ def get_products(
         }
         result.append(product_dict)
 
-    return result
+    return {
+        "data": result,
+        "pagination": {
+            "total": total,
+            "page": page,
+            "limit": limit
+        }
+    }
 
 
 @router.put("/{product_id}", response_model=Product)

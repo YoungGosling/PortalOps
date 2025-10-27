@@ -92,31 +92,62 @@ class CRUDService(CRUDBase[Service, ServiceCreate, ServiceUpdate]):
         return False
 
     def get_services_for_user(
-        self, db: Session, *, user_id: uuid.UUID, is_admin: bool = False
-    ) -> List[Service]:
-        """Get services filtered by user permissions with their products and admins."""
+        self, db: Session, *, user_id: uuid.UUID, is_admin: bool = False, skip: int = 0, limit: int = 100
+    ) -> tuple[List, int]:
+        """Get services filtered by user permissions with their products and admins.
+
+        Returns:
+            tuple: (list of service dicts, total count)
+        """
         if is_admin:
             # Admin can see all services
-            services = db.query(Service).all()
+            query = db.query(Service)
+            total = query.count()
+            services = query.offset(skip).limit(limit).all()
         else:
             # Non-admin users see only services they have permission for
-            services = db.query(Service).join(
+            query = db.query(Service).join(
                 PermissionAssignment,
                 Service.id == PermissionAssignment.service_id
             ).filter(
                 PermissionAssignment.user_id == user_id
-            ).distinct().all()
+            ).distinct()
+            total = query.count()
+            services = query.offset(skip).limit(limit).all()
 
-        # Add products, product count, and admins to each service
+        # Convert to dict format for JSON serialization
+        result = []
         for service in services:
+            from app.schemas.service import ServiceWithProducts, ProductSimple, AdminSimple
+
             products = db.query(Product).filter(
                 Product.service_id == service.id
             ).all()
-            service.products = products
-            service.productCount = len(products)
-            # Admins are already loaded via the relationship
 
-        return services
+            # Convert to schema format
+            service_dict = ServiceWithProducts(
+                id=service.id,
+                name=service.name,
+                vendor=service.vendor,
+                url=service.url,
+                created_at=service.created_at,
+                updated_at=service.updated_at,
+                productCount=len(products),
+                products=[ProductSimple(
+                    id=p.id,
+                    name=p.name,
+                    url=p.url,
+                    description=p.description
+                ) for p in products],
+                admins=[AdminSimple(
+                    id=admin.id,
+                    name=admin.name,
+                    email=admin.email
+                ) for admin in service.admins]
+            )
+            result.append(service_dict)
+
+        return result, total
 
     def get_with_products(
         self, db: Session, *, service_id: uuid.UUID, user_id: uuid.UUID, is_admin: bool = False

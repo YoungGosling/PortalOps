@@ -12,31 +12,47 @@ from datetime import date
 
 class CRUDProduct(CRUDBase[Product, ProductCreate, ProductUpdate]):
     def get_products_for_user(
-        self, db: Session, *, user_id: uuid.UUID, is_admin: bool = False
-    ) -> List[Product]:
-        """Get products filtered by user permissions."""
+        self, db: Session, *, user_id: uuid.UUID, is_admin: bool = False, skip: int = 0, limit: int = 100
+    ) -> tuple[List[Product], int]:
+        """Get products filtered by user permissions.
+
+        Returns:
+            tuple: (list of products, total count)
+        """
         if is_admin:
-            return db.query(Product).options(joinedload(Product.service)).all()
+            query = db.query(Product).options(joinedload(Product.service))
+            total = query.count()
+            products = query.offset(skip).limit(limit).all()
         else:
-            return db.query(Product).options(
+            query = db.query(Product).options(
                 joinedload(Product.service)
             ).join(
                 PermissionAssignment,
                 Product.id == PermissionAssignment.product_id
             ).filter(
                 PermissionAssignment.user_id == user_id
-            ).all()
+            )
+            total = query.count()
+            products = query.offset(skip).limit(limit).all()
+
+        return products, total
 
     def get_by_service(
-        self, db: Session, *, service_id: uuid.UUID, user_id: uuid.UUID, is_admin: bool = False
-    ) -> List[Product]:
-        """Get products by service, filtered by user permissions."""
+        self, db: Session, *, service_id: uuid.UUID, user_id: uuid.UUID, is_admin: bool = False, skip: int = 0, limit: int = 100
+    ) -> tuple[List[Product], int]:
+        """Get products by service, filtered by user permissions.
+
+        Returns:
+            tuple: (list of products, total count)
+        """
         if is_admin:
-            return db.query(Product).options(
+            query = db.query(Product).options(
                 joinedload(Product.service)
-            ).filter(Product.service_id == service_id).all()
+            ).filter(Product.service_id == service_id)
+            total = query.count()
+            products = query.offset(skip).limit(limit).all()
         else:
-            return db.query(Product).options(
+            query = db.query(Product).options(
                 joinedload(Product.service)
             ).join(
                 PermissionAssignment,
@@ -44,7 +60,11 @@ class CRUDProduct(CRUDBase[Product, ProductCreate, ProductUpdate]):
             ).filter(
                 Product.service_id == service_id,
                 PermissionAssignment.user_id == user_id
-            ).all()
+            )
+            total = query.count()
+            products = query.offset(skip).limit(limit).all()
+
+        return products, total
 
     def user_can_access(
         self, db: Session, *, product_id: uuid.UUID, user_id: uuid.UUID, is_admin: bool = False

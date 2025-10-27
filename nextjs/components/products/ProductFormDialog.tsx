@@ -72,8 +72,8 @@ export function ProductFormDialog({
   const fetchServices = async () => {
     try {
       setLoadingServices(true);
-      const data = await apiClient.getServices();
-      setServices(data);
+      const response = await apiClient.getServices(1, 100); // Fetch up to 100 services
+      setServices(response.data);
     } catch (error) {
       toast.error('Failed to load services');
       console.error(error);

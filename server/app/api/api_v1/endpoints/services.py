@@ -1,5 +1,5 @@
 from typing import List
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 from app.db.database import get_db
 from app.crud import service, product, audit_log
@@ -11,20 +11,32 @@ import uuid
 router = APIRouter()
 
 
-@router.get("", response_model=List[ServiceWithProducts])
+@router.get("", response_model=dict)
 def read_services(
+    page: int = Query(1, ge=1),
+    limit: int = Query(20, ge=1, le=100),
     current_user: User = Depends(require_any_admin_role),
     db: Session = Depends(get_db)
 ):
     """
     Retrieve services filtered by user permissions with their products.
+    Supports pagination.
     """
     user_roles = get_user_roles(current_user.id, db)
     is_admin = "Admin" in user_roles
 
-    services = service.get_services_for_user(
-        db, user_id=current_user.id, is_admin=is_admin)
-    return services
+    skip = (page - 1) * limit
+    services, total = service.get_services_for_user(
+        db, user_id=current_user.id, is_admin=is_admin, skip=skip, limit=limit)
+
+    return {
+        "data": services,
+        "pagination": {
+            "total": total,
+            "page": page,
+            "limit": limit
+        }
+    }
 
 
 @router.post("", response_model=Service, status_code=201)

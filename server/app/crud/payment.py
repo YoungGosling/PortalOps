@@ -47,27 +47,36 @@ class CRUDPaymentInfo(CRUDBase[PaymentInfo, PaymentInfoCreate, PaymentInfoUpdate
         db.refresh(db_obj)
         return db_obj
 
-    def get_payment_register(self, db: Session) -> List[dict]:
+    def get_payment_register(self, db: Session, skip: int = 0, limit: int = 100) -> tuple[List[dict], int]:
         """Get all payment records for all products for the payment register (one-to-many).
 
         Returns a flat list where each payment record is a separate item.
         Multiple payments for the same product will appear as multiple items.
         Includes orphaned payment records (where product_id is NULL due to product deletion).
+
+        Returns:
+            tuple: (list of payment records, total count)
         """
         from app.models.payment import ProductStatus
 
         # Query all payments with their products and services
         # Use LEFT OUTER JOIN to include orphaned payments (product_id = NULL)
-        payments_query = db.query(PaymentInfo, Product, Service, ProductStatus).outerjoin(
+        base_query = db.query(PaymentInfo, Product, Service, ProductStatus).outerjoin(
             Product, PaymentInfo.product_id == Product.id
         ).outerjoin(
             Service, Product.service_id == Service.id
         ).outerjoin(
             ProductStatus, Product.status_id == ProductStatus.id
-        ).order_by(
+        )
+
+        # Get total count
+        total = base_query.count()
+
+        # Apply ordering and pagination
+        payments_query = base_query.order_by(
             PaymentInfo.payment_date.desc().nulls_last(),
             PaymentInfo.created_at.desc()
-        ).all()
+        ).offset(skip).limit(limit).all()
 
         payment_register = []
         for payment, product, service, product_status in payments_query:
@@ -138,7 +147,7 @@ class CRUDPaymentInfo(CRUDBase[PaymentInfo, PaymentInfoCreate, PaymentInfoUpdate
             x["paymentInfo"]["paymentDate"] if x["paymentInfo"]["paymentDate"] else "",
         ), reverse=False)
 
-        return payment_register
+        return payment_register, total
 
     def get_incomplete_count(self, db: Session) -> int:
         """Get count of incomplete payment records."""

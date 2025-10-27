@@ -55,8 +55,8 @@ export default function UsersPage() {
 
   const fetchProducts = async () => {
     try {
-      const data = await apiClient.getProducts();
-      setProducts(data);
+      const response = await apiClient.getProducts(undefined, 1, 100);
+      setProducts(response.data);
     } catch (error) {
       console.error('Failed to load products:', error);
     }

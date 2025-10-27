@@ -16,7 +16,7 @@ import {
 } from '@/components/ui/table';
 import { ServiceFormDialog } from '@/components/services/ServiceFormDialog';
 import { DeleteServiceDialog } from '@/components/services/DeleteServiceDialog';
-import { Plus, Building, Loader2, Package, Edit2, Trash2, UserCog } from 'lucide-react';
+import { Plus, Building, Loader2, Package, Edit2, Trash2, UserCog, ChevronLeft, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function ServicesPage() {
@@ -26,12 +26,22 @@ export default function ServicesPage() {
   const [editingService, setEditingService] = useState<Service | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletingService, setDeletingService] = useState<Service | null>(null);
+  const [dataLoaded, setDataLoaded] = useState(false);
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalServices, setTotalServices] = useState(0);
+  const [pageSize] = useState(20);
 
-  const fetchServices = async () => {
+  const fetchServices = async (page: number = currentPage) => {
     try {
       setLoading(true);
-      const data = await apiClient.getServices();
-      setServices(data);
+      const response = await apiClient.getServices(page, pageSize);
+      setServices(response.data);
+      setCurrentPage(response.pagination.page);
+      setTotalServices(response.pagination.total);
+      setTotalPages(Math.ceil(response.pagination.total / response.pagination.limit));
     } catch (error) {
       toast.error('Failed to load services');
       console.error(error);
@@ -41,8 +51,18 @@ export default function ServicesPage() {
   };
 
   useEffect(() => {
-    fetchServices();
+    if (!dataLoaded) {
+      fetchServices();
+      setDataLoaded(true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const handlePageChange = (page: number) => {
+    if (page < 1 || page > totalPages) return;
+    setCurrentPage(page);
+    fetchServices(page);
+  };
 
   // Handle add service
   const handleAddService = () => {
@@ -74,7 +94,7 @@ export default function ServicesPage() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Service Provider</h1>
           <p className="text-muted-foreground mt-0.5">
-            {services.length} {services.length === 1 ? 'service' : 'services'} in directory
+            {totalServices > 0 ? `${totalServices} ${totalServices === 1 ? 'service' : 'services'} in directory` : 'No services in directory'}
           </p>
         </div>
         <Button onClick={handleAddService} size="default" className="gap-2">
@@ -212,6 +232,63 @@ export default function ServicesPage() {
             </div>
           </CardContent>
         </Card>
+      )}
+
+      {/* Pagination Controls */}
+      {!loading && services.length > 0 && totalPages > 1 && (
+        <div className="flex items-center justify-between px-2">
+          <div className="text-sm text-muted-foreground">
+            Showing {((currentPage - 1) * pageSize) + 1} to {Math.min(currentPage * pageSize, totalServices)} of {totalServices} services
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handlePageChange(currentPage - 1)}
+              disabled={currentPage === 1}
+              className="gap-1"
+            >
+              <ChevronLeft className="h-4 w-4" />
+              Previous
+            </Button>
+            <div className="flex items-center gap-1">
+              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                let pageNum;
+                if (totalPages <= 5) {
+                  pageNum = i + 1;
+                } else if (currentPage <= 3) {
+                  pageNum = i + 1;
+                } else if (currentPage >= totalPages - 2) {
+                  pageNum = totalPages - 4 + i;
+                } else {
+                  pageNum = currentPage - 2 + i;
+                }
+                
+                return (
+                  <Button
+                    key={pageNum}
+                    variant={currentPage === pageNum ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => handlePageChange(pageNum)}
+                    className="min-w-[40px]"
+                  >
+                    {pageNum}
+                  </Button>
+                );
+              })}
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handlePageChange(currentPage + 1)}
+              disabled={currentPage === totalPages}
+              className="gap-1"
+            >
+              Next
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
       )}
 
       {/* Service Form Dialog */}

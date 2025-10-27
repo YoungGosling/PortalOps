@@ -147,8 +147,8 @@ class ApiClient {
   }
 
   // Services
-  async getServices(): Promise<Service[]> {
-    return this.request<Service[]>('/api/services');
+  async getServices(page: number = 1, limit: number = 20): Promise<{ data: Service[]; pagination: { total: number; page: number; limit: number } }> {
+    return this.request<{ data: Service[]; pagination: { total: number; page: number; limit: number } }>(`/api/services?page=${page}&limit=${limit}`);
   }
 
   async createService(data: ServiceCreateRequest): Promise<Service> {
@@ -172,9 +172,12 @@ class ApiClient {
   }
 
   // Products
-  async getProducts(serviceId?: string): Promise<Product[]> {
-    const query = serviceId ? `?serviceId=${serviceId}` : '';
-    return this.request<Product[]>(`/api/products${query}`);
+  async getProducts(serviceId?: string, page: number = 1, limit: number = 20): Promise<{ data: Product[]; pagination: { total: number; page: number; limit: number } }> {
+    let query = `?page=${page}&limit=${limit}`;
+    if (serviceId) {
+      query += `&serviceId=${serviceId}`;
+    }
+    return this.request<{ data: Product[]; pagination: { total: number; page: number; limit: number } }>(`/api/products${query}`);
   }
 
   async createProduct(data: ProductCreateRequest): Promise<Product> {
@@ -198,10 +201,10 @@ class ApiClient {
   }
 
   // Payment Register
-  async getPaymentRegister(): Promise<PaymentInfo[]> {
-    const response = await this.request<any[]>('/api/v2/payment-register');
+  async getPaymentRegister(page: number = 1, limit: number = 20): Promise<{ data: PaymentInfo[]; pagination: { total: number; page: number; limit: number } }> {
+    const response = await this.request<{ data: any[]; pagination: any }>(`/api/v2/payment-register?page=${page}&limit=${limit}`);
     // Transform camelCase nested API response to snake_case flat structure
-    return response.map((item) => ({
+    const data = response.data.map((item) => ({
       id: item.paymentInfo?.id,
       product_id: item.productId,
       product_name: item.productName,
@@ -226,6 +229,11 @@ class ApiClient {
       created_at: item.paymentInfo?.createdAt,
       updated_at: item.paymentInfo?.updatedAt,
     }));
+    
+    return {
+      data,
+      pagination: response.pagination
+    };
   }
 
   async updatePaymentInfo(
@@ -480,15 +488,24 @@ class ApiClient {
 
   // v3: Get Services with Products (for tree selection)
   async getServicesWithProducts(): Promise<Service[]> {
-    const services = await this.getServices();
-    // For each service, fetch its products
+    const response = await this.getServices(1, 100); // Fetch up to 100 services
+    // For each service, fetch its products (limit is 100 max per backend API)
     const servicesWithProducts = await Promise.all(
-      services.map(async (service) => {
-        const products = await this.getProducts(service.id);
-        return {
-          ...service,
-          products,
-        };
+      response.data.map(async (service) => {
+        try {
+          const productsResponse = await this.getProducts(service.id, 1, 100);
+          return {
+            ...service,
+            products: productsResponse.data,
+          };
+        } catch (error) {
+          // If fetching products fails for a service, return service with empty products array
+          console.warn(`Failed to fetch products for service ${service.id}:`, error);
+          return {
+            ...service,
+            products: [],
+          };
+        }
       })
     );
     return servicesWithProducts;
