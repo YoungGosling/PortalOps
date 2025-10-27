@@ -7,6 +7,7 @@ from sqlalchemy import case
 from app.db.database import get_db
 from app.crud import workflow_task, user, audit_log, department
 from app.core.deps import get_current_active_user, require_admin, verify_hr_webhook_key
+from app.core.config import settings
 from app.schemas.workflow import WorkflowTask, WorkflowTaskUpdate, OnboardingWebhookRequest, ProductWithServiceAdmin
 from app.models.user import User
 from app.models.service import Product, Service
@@ -19,8 +20,8 @@ import aiofiles
 router = APIRouter()
 inbox_router = APIRouter()
 
-# Storage directory for checklist files
-STORAGE_DIR = "/home/evanzhang/EnterpriseProjects/PortalOpsStorage/checklist"
+# Storage directory for checklist files (configured via environment variable)
+STORAGE_DIR = settings.CHECKLIST_STORAGE_DIR
 os.makedirs(STORAGE_DIR, exist_ok=True)
 
 

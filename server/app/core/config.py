@@ -24,6 +24,12 @@ class Settings(BaseSettings):
     UPLOAD_DIR: str = "/uploads"
     MAX_FILE_SIZE: int = 10485760  # 10MB
 
+    # Invoice Storage Configuration
+    INVOICE_STORAGE_DIR: str = "/home/evanzhang/EnterpriseProjects/PortalOpsStorage/bills"
+
+    # Checklist Storage Configuration
+    CHECKLIST_STORAGE_DIR: str = "/home/evanzhang/EnterpriseProjects/PortalOpsStorage/checklist"
+
     # HR Webhook Configuration
     HR_WEBHOOK_API_KEY: str = "your-hr-webhook-secret-key"
 

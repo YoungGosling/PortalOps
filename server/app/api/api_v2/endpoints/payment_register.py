@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from app.db.database import get_db
 from app.crud import payment_info, payment_invoice, audit_log
 from app.core.deps import require_admin
+from app.core.config import settings
 from app.schemas.payment import PaymentRegisterItem
 from app.schemas.payment_invoice import PaymentInvoiceResponse
 from app.models.user import User
@@ -13,8 +14,8 @@ import aiofiles
 
 router = APIRouter()
 
-# Storage directory for invoice files
-STORAGE_DIR = "/home/evanzhang/EnterpriseProjects/PortalOpsStorage/bills"
+# Storage directory for invoice files (configured via environment variable)
+STORAGE_DIR = settings.INVOICE_STORAGE_DIR
 os.makedirs(STORAGE_DIR, exist_ok=True)
 
 
