@@ -112,17 +112,17 @@ export function Sidebar({ collapsed }: SidebarProps) {
 
   const adminItems = [
     {
-      label: 'Dept Master File',
+      label: 'Deparment Master',
       icon: Building2,
       path: '/admin/departments',
     },
     {
-      label: 'Prod Master File',
+      label: 'Product Master',
       icon: Tag,
       path: '/admin/product-statuses',
     },
     {
-      label: 'Payt Master File',
+      label: 'Payment Master',
       icon: Wallet,
       path: '/admin/payment-methods',
     },
