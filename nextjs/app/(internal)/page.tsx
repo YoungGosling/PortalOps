@@ -3,10 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { BarChart3, Users, Building, CreditCard, Loader2, DollarSign, Inbox, Clock, UserPlus, Activity, CalendarClock } from 'lucide-react';
-import { fetchDashboardStatsAction } from '@/api/dashboard/stats/action';
-import { fetchRecentActivitiesAction } from '@/api/dashboard/recent-activities/action';
-import { fetchUpcomingRenewalsAction } from '@/api/dashboard/upcoming-renewals/action';
-import { fetchPendingTasksCountAction } from '@/api/dashboard/pending-tasks-count/action';
+import { apiClient } from '@/lib/api';
 import { useAuth } from '@/providers/auth-provider';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
@@ -40,46 +37,16 @@ export default function DashboardPage() {
         
         // Fetch all data in parallel
         const [statsData, activitiesData, renewalsData, tasksData] = await Promise.all([
-          fetchDashboardStatsAction(),
-          fetchRecentActivitiesAction(4),
-          fetchUpcomingRenewalsAction(3),
-          fetchPendingTasksCountAction(),
+          apiClient.getDashboardStats(),
+          apiClient.getRecentActivities(4),
+          apiClient.getUpcomingRenewals(3),
+          apiClient.getPendingTasksCount(),
         ]);
         
-        // Transform snake_case to camelCase for stats
-        setStats({
-          totalServices: statsData.totalServices,
-          totalProducts: statsData.totalProducts,
-          totalUsers: statsData.totalUsers,
-          totalAmount: statsData.totalAmount,
-          incompletePayments: statsData.incompletePayments,
-        });
-        
-        // Extract activities array - backend already returns camelCase format
-        setActivities(activitiesData.map((activity) => ({
-          id: activity.id,
-          action: activity.action,
-          actorName: activity.actorName,
-          targetId: activity.targetId ?? undefined,
-          details: activity.details,
-          createdAt: activity.createdAt,
-        })));
-        
-        // Extract renewals array - backend already returns correct format
-        setRenewals(renewalsData.map((renewal) => ({
-          productId: renewal.productId,
-          productName: renewal.productName,
-          serviceName: renewal.serviceName,
-          expiryDate: renewal.expiryDate,
-          amount: renewal.amount ?? undefined,
-          cardholderName: renewal.cardholderName ?? undefined,
-          paymentMethod: renewal.paymentMethod ?? undefined,
-        })));
-        
-        // Transform snake_case to camelCase for pending tasks
-        setPendingTasks({
-          pendingCount: tasksData.pending_count,
-        });
+        setStats(statsData);
+        setActivities(activitiesData);
+        setRenewals(renewalsData);
+        setPendingTasks(tasksData);
         hasFetchedRef.current = true; // Mark as fetched
       } catch (error) {
         console.error('Failed to fetch dashboard data:', error);
@@ -352,29 +319,27 @@ export default function DashboardPage() {
                   </div>
                 </button>
 
-                {(stats?.incompletePayments ?? 0) > 0 && (
-                  <button 
-                    onClick={() => router.push('/payments')}
-                    className="relative p-4 rounded-xl border-2 border-red-200 bg-red-50 dark:border-red-900 dark:bg-red-950/30 shadow-md transition-all duration-200 text-left"
-                  >
-                    <div className="flex flex-col items-center text-center gap-2">
-                      <div className="p-3 rounded-full bg-red-100 dark:bg-red-900/50">
-                        <CreditCard className="h-5 w-5 text-red-600 dark:text-red-400" />
-                      </div>
-                      <div>
-                        <p className="font-semibold text-sm mb-0.5">
-                          Renew Payment
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          Complete pending renewals
-                        </p>
-                      </div>
-                      <span className="absolute -top-1.5 -right-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-red-500 text-white text-xs font-bold shadow-lg">
-                        {stats?.incompletePayments}
-                      </span>
+                <button 
+                  onClick={() => router.push('/payments')}
+                  className="relative p-4 rounded-xl border-2 border-red-200 bg-red-50 dark:border-red-900 dark:bg-red-950/30 shadow-md transition-all duration-200 text-left"
+                >
+                  <div className="flex flex-col items-center text-center gap-2">
+                    <div className="p-3 rounded-full bg-red-100 dark:bg-red-900/50">
+                      <CreditCard className="h-5 w-5 text-red-600 dark:text-red-400" />
                     </div>
-                  </button>
-                )}
+                    <div>
+                      <p className="font-semibold text-sm mb-0.5">
+                        Renew Payment
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Complete pending renewals
+                      </p>
+                    </div>
+                    <span className="absolute -top-1.5 -right-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-red-500 text-white text-xs font-bold shadow-lg">
+                      {stats?.incompletePayments}
+                    </span>
+                  </div>
+                </button>
 
                 <button 
                   onClick={() => router.push('/products')}
