@@ -160,10 +160,10 @@ export const authOptions: AuthOptions = {
   },
   events: {
     async signOut(message) {
-      console.log("User signed out:", message);
+      // console.log("User signed out:", message);
     },
     async session(message) {
-      console.log("Session accessed:", message);
+      // console.log("Session accessed:", message);
     }
   },
   debug: process.env.NODE_ENV === "development",
