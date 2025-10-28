@@ -3,7 +3,8 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
-import { apiClient } from '@/lib/api';
+import { fetchLoginAction } from '@/api/authentication/login/action';
+import { fetchUserProfileAction } from '@/api/authentication/me/action';
 import type { User, LoginRequest } from '@/types';
 
 interface AuthContextType {
@@ -34,8 +35,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return;
       }
 
-      const userData = await apiClient.getCurrentUser();
-      setUser(userData);
+      const userData = await fetchUserProfileAction();
+      // Transform to match User type (add assignedProductIds from assigned_services)
+      const assignedProductIds = userData.assigned_services?.flatMap(
+        (service) => service.products.map((product) => product.product_id)
+      ) || [];
+      setUser({
+        id: userData.id,
+        name: userData.name,
+        email: userData.email,
+        department: userData.department ?? undefined,
+        department_id: userData.department_id ?? undefined,
+        position: userData.position ?? undefined,
+        hire_date: userData.hire_date ?? undefined,
+        resignation_date: userData.resignation_date ?? undefined,
+        roles: (userData.roles || []) as ('Admin' | 'ServiceAdmin')[],
+        assignedProductIds,
+      });
     } catch (error) {
       console.error('Failed to fetch user:', error);
       localStorage.removeItem('access_token');
@@ -76,8 +92,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         try {
           setLoading(true);
           // Backend will recognize Azure ID token and sync user automatically
-          const userData = await apiClient.getCurrentUser();
-          setUser(userData);
+          const userData = await fetchUserProfileAction();
+          // Transform to match User type (add assignedProductIds from assigned_services)
+          const assignedProductIds = userData.assigned_services?.flatMap(
+            (service) => service.products.map((product) => product.product_id)
+          ) || [];
+          setUser({
+            id: userData.id,
+            name: userData.name,
+            email: userData.email,
+            department: userData.department ?? undefined,
+            department_id: userData.department_id ?? undefined,
+            position: userData.position ?? undefined,
+            hire_date: userData.hire_date ?? undefined,
+            resignation_date: userData.resignation_date ?? undefined,
+            roles: (userData.roles || []) as ('Admin' | 'ServiceAdmin')[],
+            assignedProductIds,
+          });
         } catch (error) {
           console.error('Failed to fetch Azure user from backend:', error);
           // On authentication error, clear user and redirect to sign in
@@ -103,14 +134,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = async (credentials: LoginRequest) => {
     try {
-      const response = await apiClient.login(credentials);
+      const response = await fetchLoginAction(credentials.email, credentials.password);
       
       // Store token in both localStorage and cookie
       localStorage.setItem('access_token', response.accessToken);
       document.cookie = `access_token=${response.accessToken}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`;
       
-      const userData = await apiClient.getCurrentUser();
-      setUser(userData);
+      const userData = await fetchUserProfileAction();
+      // Transform to match User type (add assignedProductIds from assigned_services)
+      const assignedProductIds = userData.assigned_services?.flatMap(
+        (service) => service.products.map((product) => product.product_id)
+      ) || [];
+      setUser({
+        id: userData.id,
+        name: userData.name,
+        email: userData.email,
+        department: userData.department ?? undefined,
+        department_id: userData.department_id ?? undefined,
+        position: userData.position ?? undefined,
+        hire_date: userData.hire_date ?? undefined,
+        resignation_date: userData.resignation_date ?? undefined,
+        roles: (userData.roles || []) as ('Admin' | 'ServiceAdmin')[],
+        assignedProductIds,
+      });
       
       router.push('/');
     } catch (error) {
