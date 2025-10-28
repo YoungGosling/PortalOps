@@ -3,7 +3,10 @@
 import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { BarChart3, Users, Building, CreditCard, Loader2, DollarSign, Inbox, Clock, UserPlus, Activity, CalendarClock } from 'lucide-react';
-import { apiClient } from '@/lib/api';
+import { fetchDashboardStatsAction } from '@/api/dashboard/stats/action';
+import { fetchRecentActivitiesAction } from '@/api/dashboard/recent-activities/action';
+import { fetchUpcomingRenewalsAction } from '@/api/dashboard/upcoming-renewals/action';
+import { fetchPendingTasksCountAction } from '@/api/dashboard/pending-tasks-count/action';
 import { useAuth } from '@/providers/auth-provider';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
@@ -37,16 +40,46 @@ export default function DashboardPage() {
         
         // Fetch all data in parallel
         const [statsData, activitiesData, renewalsData, tasksData] = await Promise.all([
-          apiClient.getDashboardStats(),
-          apiClient.getRecentActivities(4),
-          apiClient.getUpcomingRenewals(3),
-          apiClient.getPendingTasksCount(),
+          fetchDashboardStatsAction(),
+          fetchRecentActivitiesAction(4),
+          fetchUpcomingRenewalsAction(3),
+          fetchPendingTasksCountAction(),
         ]);
         
-        setStats(statsData);
-        setActivities(activitiesData);
-        setRenewals(renewalsData);
-        setPendingTasks(tasksData);
+        // Transform snake_case to camelCase for stats
+        setStats({
+          totalServices: statsData.totalServices,
+          totalProducts: statsData.totalProducts,
+          totalUsers: statsData.totalUsers,
+          totalAmount: statsData.totalAmount,
+          incompletePayments: statsData.incompletePayments,
+        });
+        
+        // Extract activities array - backend already returns camelCase format
+        setActivities(activitiesData.map((activity) => ({
+          id: activity.id,
+          action: activity.action,
+          actorName: activity.actorName,
+          targetId: activity.targetId ?? undefined,
+          details: activity.details,
+          createdAt: activity.createdAt,
+        })));
+        
+        // Extract renewals array - backend already returns correct format
+        setRenewals(renewalsData.map((renewal) => ({
+          productId: renewal.productId,
+          productName: renewal.productName,
+          serviceName: renewal.serviceName,
+          expiryDate: renewal.expiryDate,
+          amount: renewal.amount ?? undefined,
+          cardholderName: renewal.cardholderName ?? undefined,
+          paymentMethod: renewal.paymentMethod ?? undefined,
+        })));
+        
+        // Transform snake_case to camelCase for pending tasks
+        setPendingTasks({
+          pendingCount: tasksData.pending_count,
+        });
         hasFetchedRef.current = true; // Mark as fetched
       } catch (error) {
         console.error('Failed to fetch dashboard data:', error);
