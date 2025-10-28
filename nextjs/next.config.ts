@@ -1,12 +1,22 @@
-import type { NextConfig } from "next";
+import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
   /* config options here */
-  reactStrictMode: true,
+  experimental: {
+    serverActions: {
+      allowedOrigins: [
+        'localhost:9903', // localhost
+        'tdms-uat.cmd-systems.com', // Codespaces
+      ],
+    },
+  },
   images: {
-    domains: ['localhost'],
+    remotePatterns: [
+      {
+        hostname: 'tdms-uat.cmd-systems.com',
+      },
+    ],
   },
 };
 
 export default nextConfig;
-
