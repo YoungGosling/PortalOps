@@ -10,7 +10,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { apiClient } from '@/lib/api';
+import { fetchRemoveUserAction } from '@/api/users/remove_user/action';
 import type { User } from '@/types';
 import { toast } from 'sonner';
 import { AlertTriangle, Loader2, Info } from 'lucide-react';
@@ -36,7 +36,7 @@ export function DeleteUserDialog({
 
     try {
       setDeleting(true);
-      await apiClient.deleteUser(user.id);
+      await fetchRemoveUserAction(user.id);
       toast.success('User deleted successfully');
       onSuccess();
       onOpenChange(false);

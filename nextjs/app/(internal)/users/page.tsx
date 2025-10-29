@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { apiClient } from '@/lib/api';
+import { fetchListUserAction } from '@/api/users/list_user/action';
 import type { User, Product } from '@/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -40,8 +41,18 @@ export default function UsersPage() {
   const fetchUsers = async (page: number = currentPage) => {
     try {
       setLoading(true);
-      const response = await apiClient.getUsers(undefined, page, pageSize);
-      setUsers(response.data);
+      const response = await fetchListUserAction(undefined, undefined, page, pageSize);
+      // Convert null values to undefined to match User type
+      const users: User[] = response.data.map(user => ({
+        ...user,
+        department: user.department ?? undefined,
+        department_id: user.department_id ?? undefined,
+        position: user.position ?? undefined,
+        hire_date: user.hire_date ?? undefined,
+        resignation_date: user.resignation_date ?? undefined,
+        roles: user.roles as ('Admin' | 'ServiceAdmin')[],
+      }));
+      setUsers(users);
       setCurrentPage(response.pagination.page);
       setTotalUsers(response.pagination.total);
       setTotalPages(Math.ceil(response.pagination.total / response.pagination.limit));

@@ -16,6 +16,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { apiClient } from '@/lib/api';
+import { fetchAddUserAction } from '@/api/users/add_user/action';
 import type { WorkflowTask, ProductWithServiceAdmin, Service } from '@/types';
 import { toast } from 'sonner';
 import { Loader2, Printer, Upload, FileText, ListTodo, X, Download } from 'lucide-react';
@@ -274,7 +275,7 @@ export function WorkflowChecklistDialog({
         };
         
         try {
-          await apiClient.createUser(userData);
+          await fetchAddUserAction(userData);
           toast.success('User created successfully');
         } catch (userError: any) {
           throw new Error(`Failed to create user: ${userError.message || 'Unknown error'}`);

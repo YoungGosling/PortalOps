@@ -15,6 +15,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { apiClient } from '@/lib/api';
+import { fetchListUserAction } from '@/api/users/list_user/action';
 import type { Service, User } from '@/types';
 import { toast } from 'sonner';
 import { Loader2, X, Users } from 'lucide-react';
@@ -58,8 +59,18 @@ export function ServiceFormDialog({
   const fetchUsers = async () => {
     try {
       setLoadingUsers(true);
-      const response = await apiClient.getUsers(undefined, 1, 100); // Fetch up to 100 users
-      setAllUsers(response.data);
+      const response = await fetchListUserAction(undefined, undefined, 1, 100); // Fetch up to 100 users
+      // Convert null values to undefined to match User type
+      const users: User[] = response.data.map(user => ({
+        ...user,
+        department: user.department ?? undefined,
+        department_id: user.department_id ?? undefined,
+        position: user.position ?? undefined,
+        hire_date: user.hire_date ?? undefined,
+        resignation_date: user.resignation_date ?? undefined,
+        roles: user.roles as ('Admin' | 'ServiceAdmin')[],
+      }));
+      setAllUsers(users);
     } catch (error) {
       console.error('Failed to load users:', error);
       toast.error('Failed to load users');

@@ -20,6 +20,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { apiClient } from '@/lib/api';
+import { fetchAddUserAction } from '@/api/users/add_user/action';
+import { fetchUpdateUserAction } from '@/api/users/update_user/action';
 import type { User, Service, Department } from '@/types';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
@@ -199,11 +201,11 @@ export function UserFormDialog({
       
       if (isCreate) {
         // Create new user
-        await apiClient.createUser(userData);
+        await fetchAddUserAction(userData);
         toast.success(isOnboarding ? 'User onboarded successfully' : 'User created successfully');
       } else {
         // Update existing user
-        await apiClient.updateUser(user.id, userData);
+        await fetchUpdateUserAction(user.id, userData);
         toast.success('User updated successfully');
       }
 

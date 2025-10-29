@@ -45,11 +45,17 @@ def read_users(
         ).all()
         assigned_product_ids = [str(a.product_id) for a in product_assignments]
 
+        # v3: Get department name from relationship if department_id is set
+        # Legacy field (for backward compatibility)
+        department_name = u.department
+        if u.department_id and u.dept_ref:
+            department_name = u.dept_ref.name
+
         user_data.append({
             "id": str(u.id),
             "name": u.name,
             "email": u.email,
-            "department": u.department,
+            "department": department_name,
             "department_id": str(u.department_id) if u.department_id else None,
             "position": u.position,
             "hire_date": u.hire_date.isoformat() if u.hire_date else None,
