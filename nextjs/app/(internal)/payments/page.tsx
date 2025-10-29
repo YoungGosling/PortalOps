@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { queryPaymentRegisterV2Action } from '@/api/payment_register/query_payment_register_v2/action';
-import { apiClient } from '@/lib/api';
+import { fetchQueryPaymentMethodsAction } from '@/api/payment_method/query_payment_methods/action';
 import type { PaymentInfo, PaymentMethod } from '@/types';
 import { sortPaymentsByCompleteness } from '@/lib/billingUtils';
 import { Card, CardContent } from '@/components/ui/card';
@@ -106,7 +106,7 @@ export default function PaymentsPage() {
 
   const fetchPaymentMethods = async () => {
     try {
-      const data = await apiClient.getPaymentMethods();
+      const data = await fetchQueryPaymentMethodsAction();
       setPaymentMethods(data);
     } catch (error) {
       console.error('Failed to load payment methods:', error);

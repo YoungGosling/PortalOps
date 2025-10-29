@@ -1,7 +1,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { apiClient } from '@/lib/api';
+import { fetchQueryPaymentMethodsAction } from '@/api/payment_method/query_payment_methods/action';
+import { fetchAddPaymentMethodAction } from '@/api/payment_method/add_payment_method/action';
+import { fetchUpdatePaymentMethodAction } from '@/api/payment_method/update_payment_method/action';
+import { fetchRemovePaymentMethodAction } from '@/api/payment_method/remove_payment_method/action';
 import type { PaymentMethod, PaymentMethodCreateRequest, PaymentMethodUpdateRequest } from '@/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -37,7 +40,7 @@ export default function PaymentMethodsPage() {
   const fetchMethods = async () => {
     try {
       setLoading(true);
-      const data = await apiClient.getPaymentMethods();
+      const data = await fetchQueryPaymentMethodsAction();
       setMethods(data);
     } catch (error) {
       toast.error('Failed to load payment methods');
@@ -80,10 +83,10 @@ export default function PaymentMethodsPage() {
     try {
       setSubmitting(true);
       if (editingMethod) {
-        await apiClient.updatePaymentMethod(editingMethod.id, formData as PaymentMethodUpdateRequest);
+        await fetchUpdatePaymentMethodAction(editingMethod.id, formData as PaymentMethodUpdateRequest);
         toast.success('Payment method updated successfully');
       } else {
-        await apiClient.createPaymentMethod(formData);
+        await fetchAddPaymentMethodAction(formData);
         toast.success('Payment method created successfully');
       }
       setDialogOpen(false);
@@ -101,7 +104,7 @@ export default function PaymentMethodsPage() {
 
     try {
       setSubmitting(true);
-      await apiClient.deletePaymentMethod(deletingMethod.id);
+      await fetchRemovePaymentMethodAction(deletingMethod.id);
       toast.success('Payment method deleted successfully');
       setDeleteDialogOpen(false);
       fetchMethods();

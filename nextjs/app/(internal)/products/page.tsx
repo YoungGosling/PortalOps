@@ -1,10 +1,10 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { apiClient } from '@/lib/api'; // Keep for getPaymentMethods - no new API yet
 import { fetchQueryServicesAction } from '@/api/services/query_services/action';
 import { queryProductsAction } from '@/api/products/query_products/action';
 import { queryPaymentRegisterV2Action } from '@/api/payment_register/query_payment_register_v2/action';
+import { fetchQueryPaymentMethodsAction } from '@/api/payment_method/query_payment_methods/action';
 import type { Product, Service, PaymentInfo, PaymentMethod } from '@/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -141,7 +141,7 @@ export default function ProductsPage() {
 
   const fetchPaymentMethods = async () => {
     try {
-      const data = await apiClient.getPaymentMethods();
+      const data = await fetchQueryPaymentMethodsAction();
       setPaymentMethods(data);
     } catch (error) {
       console.error('Failed to load payment methods:', error);

@@ -20,10 +20,10 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { apiClient } from '@/lib/api'; // Keep for getProductStatuses - no new API yet
 import { fetchQueryServicesAction } from '@/api/services/query_services/action';
 import { createProductAction } from '@/api/products/create_product/action';
 import { updateProductAction } from '@/api/products/update_product/action';
+import { fetchQueryProductStatusesAction } from '@/api/product_status/query_product_statuses/action';
 import type { Product, Service, ProductStatus } from '@/types';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
@@ -99,7 +99,7 @@ export function ProductFormDialog({
   const fetchStatuses = async () => {
     try {
       setLoadingStatuses(true);
-      const data = await apiClient.getProductStatuses();
+      const data = await fetchQueryProductStatusesAction();
       setStatuses(data);
     } catch (error) {
       toast.error('Failed to load product statuses');

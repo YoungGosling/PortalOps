@@ -1,7 +1,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { apiClient } from '@/lib/api';
+import { fetchQueryProductStatusesAction } from '@/api/product_status/query_product_statuses/action';
+import { fetchAddProductStatusAction } from '@/api/product_status/add_product_status/action';
+import { fetchUpdateProductStatusAction } from '@/api/product_status/update_product_status/action';
+import { fetchRemoveProductStatusAction } from '@/api/product_status/remove_product_status/action';
 import type { ProductStatus, ProductStatusCreateRequest, ProductStatusUpdateRequest } from '@/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -37,7 +40,7 @@ export default function ProductStatusesPage() {
   const fetchStatuses = async () => {
     try {
       setLoading(true);
-      const data = await apiClient.getProductStatuses();
+      const data = await fetchQueryProductStatusesAction();
       setStatuses(data);
     } catch (error) {
       toast.error('Failed to load product statuses');
@@ -80,10 +83,10 @@ export default function ProductStatusesPage() {
     try {
       setSubmitting(true);
       if (editingStatus) {
-        await apiClient.updateProductStatus(editingStatus.id, formData as ProductStatusUpdateRequest);
+        await fetchUpdateProductStatusAction(editingStatus.id, formData as ProductStatusUpdateRequest);
         toast.success('Product status updated successfully');
       } else {
-        await apiClient.createProductStatus(formData);
+        await fetchAddProductStatusAction(formData);
         toast.success('Product status created successfully');
       }
       setDialogOpen(false);
@@ -101,7 +104,7 @@ export default function ProductStatusesPage() {
 
     try {
       setSubmitting(true);
-      await apiClient.deleteProductStatus(deletingStatus.id);
+      await fetchRemoveProductStatusAction(deletingStatus.id);
       toast.success('Product status deleted successfully');
       setDeleteDialogOpen(false);
       fetchStatuses();
