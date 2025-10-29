@@ -68,7 +68,7 @@ export default function PaymentsPage() {
       // Transform camelCase API response to snake_case for PaymentInfo type
       const transformedData: PaymentInfo[] = response.data.map((item) => ({
         id: item.paymentInfo?.id,
-        product_id: item.productId || undefined,
+        product_id: item.productId || null,
         product_name: item.productName || '',
         product_description: item.productDescription || undefined,
         service_name: item.serviceName || '',

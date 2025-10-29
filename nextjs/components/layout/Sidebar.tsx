@@ -34,6 +34,14 @@ interface SidebarProps {
   collapsed: boolean;
 }
 
+interface NavItem {
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  path: string;
+  show: boolean;
+  badge?: number;
+}
+
 export function Sidebar({ collapsed }: SidebarProps) {
   const pathname = usePathname();
   const { isAdmin } = useAuth();
@@ -70,7 +78,7 @@ export function Sidebar({ collapsed }: SidebarProps) {
 
   const isActive = (path: string) => pathname === path;
 
-  const navItems = [
+  const navItems: NavItem[] = [
     {
       label: 'Dashboard',
       icon: BarChart3,
