@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { apiClient } from '@/lib/api';
 import { fetchListUserAction } from '@/api/users/list_user/action';
+import { queryProductsAction } from '@/api/products/query_products/action';
 import type { User, Product } from '@/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -66,8 +66,13 @@ export default function UsersPage() {
 
   const fetchProducts = async () => {
     try {
-      const response = await apiClient.getProducts(undefined, 1, 100);
-      setProducts(response.data);
+      const response = await queryProductsAction(undefined, 1, 100);
+      // Convert null to undefined for Product type compatibility
+      const products: Product[] = response.products.map(p => ({
+        ...p,
+        description: p.description ?? undefined,
+      }));
+      setProducts(products);
     } catch (error) {
       console.error('Failed to load products:', error);
     }

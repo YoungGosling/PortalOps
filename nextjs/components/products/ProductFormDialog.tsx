@@ -22,8 +22,8 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { apiClient } from '@/lib/api'; // Keep for getProductStatuses - no new API yet
 import { fetchQueryServicesAction } from '@/api/services/query_services/action';
-import { fetchCreateProductAction } from '@/api/services/create_product/action';
-import { fetchUpdateProductAction } from '@/api/services/update_product/action';
+import { createProductAction } from '@/api/products/create_product/action';
+import { updateProductAction } from '@/api/products/update_product/action';
 import type { Product, Service, ProductStatus } from '@/types';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
@@ -128,17 +128,19 @@ export function ProductFormDialog({
 
       if (isEditMode && product) {
         // V2: Update existing product with new fields
-        await fetchUpdateProductAction(serviceId, product.id, {
+        await updateProductAction(product.id, {
           name: name.trim(),
-          description: description.trim() || undefined,
+          description: description.trim() || null,
+          serviceId: serviceId,
           statusId: parseInt(statusId),
         });
         toast.success('Product updated successfully');
       } else {
         // V2: Create new product with new fields
-        await fetchCreateProductAction(serviceId, {
+        await createProductAction({
           name: name.trim(),
-          description: description.trim() || undefined,
+          description: description.trim() || null,
+          serviceId: serviceId,
           statusId: parseInt(statusId),
         });
         toast.success('Product created successfully');

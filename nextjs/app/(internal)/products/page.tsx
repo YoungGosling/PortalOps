@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { apiClient } from '@/lib/api'; // Keep for getProducts, getPaymentRegister, getPaymentMethods - no new API yet
+import { apiClient } from '@/lib/api'; // Keep for getPaymentRegister, getPaymentMethods - no new API yet
 import { fetchQueryServicesAction } from '@/api/services/query_services/action';
+import { queryProductsAction } from '@/api/products/query_products/action';
 import type { Product, Service, PaymentInfo, PaymentMethod } from '@/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -54,11 +55,16 @@ export default function ProductsPage() {
   const fetchProducts = async (serviceId?: string, page: number = currentPage) => {
     try {
       setLoading(true);
-      const response = await apiClient.getProducts(serviceId, page, pageSize);
-      setProducts(response.data);
-      setCurrentPage(response.pagination.page);
-      setTotalProducts(response.pagination.total);
-      setTotalPages(Math.ceil(response.pagination.total / response.pagination.limit));
+      const response = await queryProductsAction(serviceId, page, pageSize);
+      // Convert null to undefined for Product type compatibility
+      const products: Product[] = response.products.map(p => ({
+        ...p,
+        description: p.description ?? undefined,
+      }));
+      setProducts(products);
+      setCurrentPage(response.page);
+      setTotalProducts(response.total);
+      setTotalPages(Math.ceil(response.total / response.limit));
     } catch (error) {
       toast.error('Failed to load products');
       console.error(error);
