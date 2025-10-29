@@ -76,9 +76,9 @@ export default function DashboardPage() {
           paymentMethod: renewal.paymentMethod ?? undefined,
         })));
         
-        // Transform snake_case to camelCase for pending tasks
+        // Set pending tasks data
         setPendingTasks({
-          pendingCount: tasksData.pending_count,
+          pendingCount: tasksData.pendingCount,
         });
         hasFetchedRef.current = true; // Mark as fetched
       } catch (error) {

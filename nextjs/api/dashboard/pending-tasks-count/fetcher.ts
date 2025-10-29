@@ -22,8 +22,9 @@ export async function fetchPendingTasksCount() {
   } catch (error) {
     console.error("Error fetching pending tasks count:", error);
     return {
-      pending_count: 0,
+      pendingCount: 0,
     };
   }
 }
+
 
