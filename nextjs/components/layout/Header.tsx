@@ -24,6 +24,7 @@ import {
   LogOut,
   ChevronDown,
 } from 'lucide-react';
+import { useState, useEffect } from 'react';
 
 interface HeaderProps {
   onToggleSidebar: () => void;
@@ -32,6 +33,11 @@ interface HeaderProps {
 export function Header({ onToggleSidebar }: HeaderProps) {
   const { user, logout, isAdmin } = useAuth();
   const { data: session } = useSession();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const handleLogout = async () => {
     // If user is authenticated via Azure AD (NextAuth session exists)
@@ -77,28 +83,51 @@ export function Header({ onToggleSidebar }: HeaderProps) {
         {/* Right Section */}
         <div className="ml-auto flex items-center gap-2">
           {/* User Profile Dropdown */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                className="flex items-center gap-2 h-9 px-2 hover:bg-primary/10 transition-colors"
-              >
-                <Avatar className="h-7 w-7 ring-2 ring-primary/20">
-                  <AvatarFallback className="bg-gradient-to-br from-primary to-info text-primary-foreground text-xs font-bold">
-                    {user ? getInitials(user.name) : 'U'}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="hidden sm:flex flex-col items-start text-xs">
-                  <span className="font-semibold">{user?.name || 'User'}</span>
-                  {user?.roles && user.roles.length > 0 && (
-                    <span className="text-muted-foreground text-[10px]">
-                      {user.roles[0]}
-                    </span>
-                  )}
-                </div>
-                <ChevronDown className="h-3 w-3 opacity-50" />
-              </Button>
-            </DropdownMenuTrigger>
+          {!mounted ? (
+            // Render a placeholder during SSR to avoid hydration mismatch
+            <Button
+              variant="ghost"
+              className="flex items-center gap-2 h-9 px-2 hover:bg-primary/10 transition-colors"
+              disabled
+            >
+              <Avatar className="h-7 w-7 ring-2 ring-primary/20">
+                <AvatarFallback className="bg-gradient-to-br from-primary to-info text-primary-foreground text-xs font-bold">
+                  {user ? getInitials(user.name) : 'U'}
+                </AvatarFallback>
+              </Avatar>
+              <div className="hidden sm:flex flex-col items-start text-xs">
+                <span className="font-semibold">{user?.name || 'User'}</span>
+                {user?.roles && user.roles.length > 0 && (
+                  <span className="text-muted-foreground text-[10px]">
+                    {user.roles[0]}
+                  </span>
+                )}
+              </div>
+              <ChevronDown className="h-3 w-3 opacity-50" />
+            </Button>
+          ) : (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  className="flex items-center gap-2 h-9 px-2 hover:bg-primary/10 transition-colors"
+                >
+                  <Avatar className="h-7 w-7 ring-2 ring-primary/20">
+                    <AvatarFallback className="bg-gradient-to-br from-primary to-info text-primary-foreground text-xs font-bold">
+                      {user ? getInitials(user.name) : 'U'}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="hidden sm:flex flex-col items-start text-xs">
+                    <span className="font-semibold">{user?.name || 'User'}</span>
+                    {user?.roles && user.roles.length > 0 && (
+                      <span className="text-muted-foreground text-[10px]">
+                        {user.roles[0]}
+                      </span>
+                    )}
+                  </div>
+                  <ChevronDown className="h-3 w-3 opacity-50" />
+                </Button>
+              </DropdownMenuTrigger>
             <DropdownMenuContent className="w-80 bg-white dark:bg-slate-900 border-2 shadow-2xl" align="end" sideOffset={8}>
               <div className="p-4 bg-gradient-to-br bg-gradient-to-r from-white to-white dark:from-slate-800 dark:to-slate-800 border-b-2 border-gray-200 dark:border-gray-700">
                 <div className="flex items-center gap-3">
@@ -137,6 +166,7 @@ export function Header({ onToggleSidebar }: HeaderProps) {
               </div>
             </DropdownMenuContent>
           </DropdownMenu>
+          )}
         </div>
       </div>
     </header>
