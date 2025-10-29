@@ -71,6 +71,9 @@ export default function UsersPage() {
       const products: Product[] = response.products.map(p => ({
         ...p,
         description: p.description ?? undefined,
+        latest_payment_date: p.latest_payment_date ?? undefined,
+        latest_usage_start_date: p.latest_usage_start_date ?? undefined,
+        latest_usage_end_date: p.latest_usage_end_date ?? undefined,
       }));
       setProducts(products);
     } catch (error) {
