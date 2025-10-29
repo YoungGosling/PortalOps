@@ -17,6 +17,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { apiClient } from '@/lib/api';
 import { fetchAddUserAction } from '@/api/users/add_user/action';
+import { fetchQueryServicesAction } from '@/api/services/query_services/action';
+import { queryProductsAction } from '@/api/products/query_products/action';
 import type { WorkflowTask, ProductWithServiceAdmin, Service } from '@/types';
 import { toast } from 'sonner';
 import { Loader2, Printer, Upload, FileText, ListTodo, X, Download } from 'lucide-react';
@@ -114,8 +116,33 @@ export function WorkflowChecklistDialog({
   const fetchServicesWithProducts = async () => {
     setLoadingServices(true);
     try {
-      const data = await apiClient.getServicesWithProducts();
-      setServices(data);
+      // Fetch services
+      const servicesResponse = await fetchQueryServicesAction(1, 100);
+      
+      // For each service, fetch its products
+      const servicesWithProducts: Service[] = await Promise.all(
+        servicesResponse.data.map(async (service) => {
+          try {
+            const productsResponse = await queryProductsAction(service.id, 1, 100);
+            return {
+              ...service,
+              vendor: service.vendor ?? undefined,
+              products: productsResponse.products,
+              product_count: productsResponse.products.length,
+            };
+          } catch (error) {
+            console.warn(`Failed to fetch products for service ${service.id}:`, error);
+            return {
+              ...service,
+              vendor: service.vendor ?? undefined,
+              products: [],
+              product_count: 0,
+            };
+          }
+        })
+      );
+      
+      setServices(servicesWithProducts);
     } catch (error: any) {
       console.error('Failed to fetch services:', error);
       toast.error(error.message || 'Failed to load services');
