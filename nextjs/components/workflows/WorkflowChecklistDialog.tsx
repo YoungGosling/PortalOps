@@ -451,8 +451,9 @@ export function WorkflowChecklistDialog({
                   </div>
                 ) : (
                   <>
-                    {selectedProductIds.length === 0 ? (
-                      <p className="text-sm text-muted-foreground">No products selected</p>
+                    {/* For offboarding, check assigned_products; for onboarding, check selectedProductIds */}
+                    {(isOffboarding ? (!taskDetails.assigned_products || taskDetails.assigned_products.length === 0) : selectedProductIds.length === 0) ? (
+                      <p className="text-sm text-muted-foreground">No products assigned</p>
                     ) : (
                       <div className="overflow-x-auto">
                         <table className="w-full text-sm">
