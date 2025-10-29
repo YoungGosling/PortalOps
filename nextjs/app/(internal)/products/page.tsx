@@ -1,9 +1,10 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { apiClient } from '@/lib/api'; // Keep for getPaymentRegister, getPaymentMethods - no new API yet
+import { apiClient } from '@/lib/api'; // Keep for getPaymentMethods - no new API yet
 import { fetchQueryServicesAction } from '@/api/services/query_services/action';
 import { queryProductsAction } from '@/api/products/query_products/action';
+import { queryPaymentRegisterV2Action } from '@/api/payment_register/query_payment_register_v2/action';
 import type { Product, Service, PaymentInfo, PaymentMethod } from '@/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -101,8 +102,36 @@ export default function ProductsPage() {
     try {
       setLoadingPayments(true);
       // Fetch all payments without pagination for product payment display
-      const response = await apiClient.getPaymentRegister(1, 1000);
-      setPayments(response.data);
+      const response = await queryPaymentRegisterV2Action(1, 1000);
+      
+      // Transform camelCase API response to snake_case for PaymentInfo type
+      const transformedData: PaymentInfo[] = response.data.map((item) => ({
+        id: item.paymentInfo?.id,
+        product_id: item.productId || undefined,
+        product_name: item.productName || '',
+        product_description: item.productDescription || undefined,
+        service_name: item.serviceName || '',
+        service_vendor: item.serviceVendor || undefined,
+        amount: item.paymentInfo?.amount ? (typeof item.paymentInfo.amount === 'number' ? item.paymentInfo.amount : parseFloat(item.paymentInfo.amount)) : undefined,
+        cardholder_name: item.paymentInfo?.cardholderName || undefined,
+        expiry_date: item.paymentInfo?.expiryDate || undefined,
+        payment_method: item.paymentInfo?.paymentMethod || undefined,
+        payment_method_id: item.paymentInfo?.paymentMethodId || undefined,
+        payment_method_description: item.paymentInfo?.paymentMethodDescription || undefined,
+        payment_date: item.paymentInfo?.paymentDate || undefined,
+        usage_start_date: item.paymentInfo?.usageStartDate || undefined,
+        usage_end_date: item.paymentInfo?.usageEndDate || undefined,
+        reporter: item.paymentInfo?.reporter || undefined,
+        bill_attachment_path: item.paymentInfo?.billAttachmentPath || undefined,
+        invoices: item.paymentInfo?.invoices || [],
+        is_complete: item.paymentInfo?.status === 'complete',
+        payment_status: item.paymentInfo?.status,
+        product_status: item.productStatus || undefined,
+        created_at: item.paymentInfo?.createdAt,
+        updated_at: item.paymentInfo?.updatedAt,
+      }));
+      
+      setPayments(transformedData);
     } catch (error) {
       console.error('Failed to load payments:', error);
     } finally {

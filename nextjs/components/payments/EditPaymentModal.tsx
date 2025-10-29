@@ -31,6 +31,9 @@ import {
 } from '@/components/ui/select';
 import { FileUpload } from '@/components/ui/file-upload';
 import { apiClient } from '@/lib/api';
+import { updatePaymentByIdAction } from '@/api/payment_register/update_payment_by_id/action';
+import { updatePaymentInfoV2Action } from '@/api/payment_register/update_payment_info_v2/action';
+import { createPaymentForProductAction } from '@/api/payment_register/create_payment_for_product/action';
 import type { PaymentInfo, PaymentMethod, PaymentInvoice } from '@/types';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
@@ -210,7 +213,7 @@ export function EditPaymentModal({
         formData.append('usage_start_date', usageStartDate);
         formData.append('usage_end_date', usageEndDate);
 
-        const response = await apiClient.createPaymentForProduct(productId, formData);
+        const response = await createPaymentForProductAction(productId, formData);
         
         // Step 2: Upload invoice files to the newly created payment
         if (selectedFiles.length > 0 && response.id) {
@@ -245,9 +248,9 @@ export function EditPaymentModal({
 
         // V2: Use payment ID if available (for one-to-many), otherwise use product ID (backward compat)
         if (payment.id) {
-          await apiClient.updatePaymentById(payment.id, formData);
+          await updatePaymentByIdAction(payment.id, formData);
         } else if (payment.product_id) {
-          await apiClient.updatePaymentInfo(payment.product_id, formData);
+          await updatePaymentInfoV2Action(payment.product_id, formData);
         } else {
           throw new Error('Cannot update payment: Missing payment ID and product ID');
         }

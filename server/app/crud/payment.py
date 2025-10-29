@@ -1,5 +1,5 @@
 from typing import List, Optional
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session
 from sqlalchemy import func, case, desc
 from app.crud.base import CRUDBase
 from app.models.payment import PaymentInfo, PaymentMethod
@@ -73,7 +73,17 @@ class CRUDPaymentInfo(CRUDBase[PaymentInfo, PaymentInfoCreate, PaymentInfoUpdate
         total = base_query.count()
 
         # Apply ordering and pagination
+        # Sort by status priority first (error=0, incomplete=1, complete=2),
+        # then by payment_date (newest first), then by created_at (newest first)
+        status_order = case(
+            (PaymentInfo.status == 'error', 0),
+            (PaymentInfo.status == 'incomplete', 1),
+            (PaymentInfo.status == 'complete', 2),
+            else_=3
+        )
+
         payments_query = base_query.order_by(
+            status_order,
             PaymentInfo.payment_date.desc().nulls_last(),
             PaymentInfo.created_at.desc()
         ).offset(skip).limit(limit).all()
@@ -139,14 +149,7 @@ class CRUDPaymentInfo(CRUDBase[PaymentInfo, PaymentInfoCreate, PaymentInfoUpdate
                 "paymentInfo": payment_info_dict
             })
 
-        # Sort by status priority: error first, incomplete second, complete last
-        # Within same status, sort by payment date (newest first)
-        payment_register.sort(key=lambda x: (
-            0 if x["paymentInfo"]["status"] == "error" else (
-                1 if x["paymentInfo"]["status"] == "incomplete" else 2),
-            x["paymentInfo"]["paymentDate"] if x["paymentInfo"]["paymentDate"] else "",
-        ), reverse=False)
-
+        # No need to sort here anymore - sorting is done at database level
         return payment_register, total
 
     def get_incomplete_count(self, db: Session) -> int:

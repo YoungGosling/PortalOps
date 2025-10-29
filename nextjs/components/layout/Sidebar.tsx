@@ -100,7 +100,6 @@ export function Sidebar({ collapsed }: SidebarProps) {
       icon: CreditCard,
       path: '/payments',
       show: true,
-      badge: incompleteCount > 0 ? incompleteCount : undefined,
     },
     {
       label: 'Employee Directory',

@@ -11,7 +11,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { apiClient } from '@/lib/api';
+import { deletePaymentByIdAction } from '@/api/payment_register/delete_payment_by_id/action';
 import type { PaymentInfo } from '@/types';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
@@ -39,7 +39,7 @@ export function DeletePaymentDialog({
 
       // Use payment ID if available, otherwise fall back to product_id
       if (payment.id) {
-        await apiClient.deletePaymentById(payment.id);
+        await deletePaymentByIdAction(payment.id);
       } else {
         // For backward compatibility with old data structure
         toast.error('Cannot delete payment: Payment ID not found');

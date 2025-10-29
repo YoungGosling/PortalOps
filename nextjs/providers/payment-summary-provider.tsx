@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { apiClient } from '@/lib/api';
+import { queryPaymentSummaryAction } from '@/api/payment_register/query_payment_summary/action';
 import { useAuth } from './auth-provider';
 
 interface PaymentSummaryContextType {
@@ -27,8 +27,8 @@ export function PaymentSummaryProvider({ children }: { children: React.ReactNode
     }
 
     try {
-      const summary = await apiClient.getPaymentSummary();
-      setIncompleteCount(summary.incomplete_count);
+      const summary = await queryPaymentSummaryAction();
+      setIncompleteCount(summary.incompleteCount);
     } catch (error) {
       console.error('Failed to fetch payment summary:', error);
       setIncompleteCount(0);

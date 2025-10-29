@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { queryPaymentRegisterV2Action } from '@/api/payment_register/query_payment_register_v2/action';
 import { apiClient } from '@/lib/api';
 import type { PaymentInfo, PaymentMethod } from '@/types';
 import { sortPaymentsByCompleteness } from '@/lib/billingUtils';
@@ -62,8 +63,36 @@ export default function PaymentsPage() {
   const fetchPayments = async (page: number = currentPage) => {
     try {
       setLoading(true);
-      const response = await apiClient.getPaymentRegister(page, pageSize);
-      setPayments(sortPaymentsByCompleteness(response.data));
+      const response = await queryPaymentRegisterV2Action(page, pageSize);
+      
+      // Transform camelCase API response to snake_case for PaymentInfo type
+      const transformedData: PaymentInfo[] = response.data.map((item) => ({
+        id: item.paymentInfo?.id,
+        product_id: item.productId || undefined,
+        product_name: item.productName || '',
+        product_description: item.productDescription || undefined,
+        service_name: item.serviceName || '',
+        service_vendor: item.serviceVendor || undefined,
+        amount: item.paymentInfo?.amount ? (typeof item.paymentInfo.amount === 'number' ? item.paymentInfo.amount : parseFloat(item.paymentInfo.amount)) : undefined,
+        cardholder_name: item.paymentInfo?.cardholderName || undefined,
+        expiry_date: item.paymentInfo?.expiryDate || undefined,
+        payment_method: item.paymentInfo?.paymentMethod || undefined,
+        payment_method_id: item.paymentInfo?.paymentMethodId || undefined,
+        payment_method_description: item.paymentInfo?.paymentMethodDescription || undefined,
+        payment_date: item.paymentInfo?.paymentDate || undefined,
+        usage_start_date: item.paymentInfo?.usageStartDate || undefined,
+        usage_end_date: item.paymentInfo?.usageEndDate || undefined,
+        reporter: item.paymentInfo?.reporter || undefined,
+        bill_attachment_path: item.paymentInfo?.billAttachmentPath || undefined,
+        invoices: item.paymentInfo?.invoices || [],
+        is_complete: item.paymentInfo?.status === 'complete',
+        payment_status: item.paymentInfo?.status,
+        product_status: item.productStatus || undefined,
+        created_at: item.paymentInfo?.createdAt,
+        updated_at: item.paymentInfo?.updatedAt,
+      }));
+      
+      setPayments(sortPaymentsByCompleteness(transformedData));
       setCurrentPage(response.pagination.page);
       setTotalPayments(response.pagination.total);
       setTotalPages(Math.ceil(response.pagination.total / response.pagination.limit));

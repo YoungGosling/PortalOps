@@ -19,7 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { apiClient } from '@/lib/api';
+import { createPaymentForProductAction } from '@/api/payment_register/create_payment_for_product/action';
 import type { Product, PaymentMethod } from '@/types';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
@@ -101,7 +101,7 @@ export function AddPaymentModal({
       formData.append('usage_end_date', usageEndDate);
       if (reporter) formData.append('reporter', reporter);
 
-      await apiClient.createPaymentForProduct(product.id, formData);
+      await createPaymentForProductAction(product.id, formData);
 
       toast.success('Payment record created successfully');
       onSuccess();
