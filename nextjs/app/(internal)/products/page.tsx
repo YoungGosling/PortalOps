@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { apiClient } from '@/lib/api';
+import { apiClient } from '@/lib/api'; // Keep for getProducts, getPaymentRegister, getPaymentMethods - no new API yet
+import { fetchQueryServicesAction } from '@/api/services/query_services/action';
 import type { Product, Service, PaymentInfo, PaymentMethod } from '@/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -69,8 +70,19 @@ export default function ProductsPage() {
   const fetchServices = async () => {
     try {
       // Fetch all services without pagination for the filter dropdown
-      const response = await apiClient.getServices(1, 100);
-      setServices(response.data);
+      const response = await fetchQueryServicesAction(1, 100);
+      // Transform response to match expected format
+      const services: Service[] = response.data.map(s => ({
+        id: s.id,
+        name: s.name,
+        vendor: s.vendor,
+        product_count: s.productCount || 0,
+        products: s.products,
+        admins: s.admins,
+        created_at: s.created_at,
+        updated_at: s.updated_at,
+      }));
+      setServices(services);
     } catch (error) {
       console.error('Failed to load services:', error);
     }

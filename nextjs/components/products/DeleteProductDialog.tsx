@@ -10,7 +10,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { apiClient } from '@/lib/api';
+import { fetchDeleteProductAction } from '@/api/services/delete_product/action';
 import type { Product } from '@/types';
 import { toast } from 'sonner';
 import { AlertTriangle, Loader2 } from 'lucide-react';
@@ -35,7 +35,7 @@ export function DeleteProductDialog({
 
     try {
       setDeleting(true);
-      await apiClient.deleteProduct(product.id);
+      await fetchDeleteProductAction(product.service_id, product.id);
       toast.success('Product deleted successfully');
       onSuccess();
       onOpenChange(false);

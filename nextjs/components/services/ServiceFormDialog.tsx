@@ -14,8 +14,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
-import { apiClient } from '@/lib/api';
 import { fetchListUserAction } from '@/api/users/list_user/action';
+import { fetchCreateServiceAction } from '@/api/services/create_service/action';
+import { fetchUpdateServiceAction } from '@/api/services/update_service/action';
 import type { Service, User } from '@/types';
 import { toast } from 'sonner';
 import { Loader2, X, Users } from 'lucide-react';
@@ -109,14 +110,14 @@ export function ServiceFormDialog({
 
       if (isEditMode && service) {
         // Update existing service
-        await apiClient.updateService(service.id, {
+        await fetchUpdateServiceAction(service.id, {
           name: name.trim(),
           adminUserIds: selectedAdminIds,
         });
         toast.success('Service updated successfully');
       } else {
         // Create new service
-        await apiClient.createService({
+        await fetchCreateServiceAction({
           name: name.trim(),
           adminUserIds: selectedAdminIds,
         });

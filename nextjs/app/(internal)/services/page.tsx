@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { apiClient } from '@/lib/api';
+import { fetchQueryServicesAction } from '@/api/services/query_services/action';
 import type { Service } from '@/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -37,8 +37,19 @@ export default function ServicesPage() {
   const fetchServices = async (page: number = currentPage) => {
     try {
       setLoading(true);
-      const response = await apiClient.getServices(page, pageSize);
-      setServices(response.data);
+      const response = await fetchQueryServicesAction(page, pageSize);
+      // Transform response to match expected format
+      const services: Service[] = response.data.map(s => ({
+        id: s.id,
+        name: s.name,
+        vendor: s.vendor,
+        product_count: s.productCount || 0,
+        products: s.products,
+        admins: s.admins,
+        created_at: s.created_at,
+        updated_at: s.updated_at,
+      }));
+      setServices(services);
       setCurrentPage(response.pagination.page);
       setTotalServices(response.pagination.total);
       setTotalPages(Math.ceil(response.pagination.total / response.pagination.limit));

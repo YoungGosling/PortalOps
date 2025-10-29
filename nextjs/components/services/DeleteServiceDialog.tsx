@@ -10,7 +10,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { apiClient } from '@/lib/api';
+import { fetchDeleteServiceAction } from '@/api/services/delete_service/action';
 import type { Service } from '@/types';
 import { toast } from 'sonner';
 import { AlertTriangle, Loader2, Info } from 'lucide-react';
@@ -35,7 +35,7 @@ export function DeleteServiceDialog({
 
     try {
       setDeleting(true);
-      await apiClient.deleteService(service.id);
+      await fetchDeleteServiceAction(service.id);
       toast.success('Service deleted successfully');
       onSuccess();
       onOpenChange(false);

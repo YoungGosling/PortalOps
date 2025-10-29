@@ -20,7 +20,10 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { apiClient } from '@/lib/api';
+import { apiClient } from '@/lib/api'; // Keep for getProductStatuses - no new API yet
+import { fetchQueryServicesAction } from '@/api/services/query_services/action';
+import { fetchCreateProductAction } from '@/api/services/create_product/action';
+import { fetchUpdateProductAction } from '@/api/services/update_product/action';
 import type { Product, Service, ProductStatus } from '@/types';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
@@ -72,8 +75,19 @@ export function ProductFormDialog({
   const fetchServices = async () => {
     try {
       setLoadingServices(true);
-      const response = await apiClient.getServices(1, 100); // Fetch up to 100 services
-      setServices(response.data);
+      const response = await fetchQueryServicesAction(1, 100); // Fetch up to 100 services
+      // Transform response to match expected format
+      const services: Service[] = response.data.map(s => ({
+        id: s.id,
+        name: s.name,
+        vendor: s.vendor,
+        product_count: s.productCount || 0,
+        products: s.products,
+        admins: s.admins,
+        created_at: s.created_at,
+        updated_at: s.updated_at,
+      }));
+      setServices(services);
     } catch (error) {
       toast.error('Failed to load services');
       console.error(error);
@@ -114,19 +128,17 @@ export function ProductFormDialog({
 
       if (isEditMode && product) {
         // V2: Update existing product with new fields
-        await apiClient.updateProduct(product.id, {
+        await fetchUpdateProductAction(serviceId, product.id, {
           name: name.trim(),
           description: description.trim() || undefined,
-          serviceId: serviceId,
           statusId: parseInt(statusId),
         });
         toast.success('Product updated successfully');
       } else {
         // V2: Create new product with new fields
-        await apiClient.createProduct({
+        await fetchCreateProductAction(serviceId, {
           name: name.trim(),
           description: description.trim() || undefined,
-          serviceId: serviceId,
           statusId: parseInt(statusId),
         });
         toast.success('Product created successfully');
