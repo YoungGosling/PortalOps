@@ -10,7 +10,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { apiClient } from '@/lib/api';
+import { deleteDepartmentAction } from '@/api/departments/remove_department/action';
 import type { Department } from '@/types';
 import { toast } from 'sonner';
 import { Loader2, AlertTriangle } from 'lucide-react';
@@ -35,7 +35,7 @@ export function DeleteDepartmentDialog({
 
     try {
       setLoading(true);
-      await apiClient.deleteDepartment(department.id);
+      await deleteDepartmentAction(department.id);
       toast.success('Department deleted successfully');
       onSuccess();
       onOpenChange(false);

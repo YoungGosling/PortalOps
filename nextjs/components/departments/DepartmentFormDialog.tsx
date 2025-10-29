@@ -14,6 +14,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { apiClient } from '@/lib/api';
+import { createDepartmentAction } from '@/api/departments/add_department/action';
+import { updateDepartmentAction } from '@/api/departments/update_department/action';
+import { fetchDepartmentProductsAction } from '@/api/departments/query_department_products/action';
+import { setDepartmentProductsAction } from '@/api/departments/set_department_products/action';
 import type { Department, Service, Product } from '@/types';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
@@ -75,7 +79,8 @@ export function DepartmentFormDialog({
   const fetchDepartmentProducts = async (departmentId: string) => {
     try {
       setLoadingProducts(true);
-      const products = await apiClient.getDepartmentProducts(departmentId);
+      const products = await fetchDepartmentProductsAction(departmentId);
+      // Products are used only for IDs, no type conversion needed
       setSelectedProductIds(products.map(p => p.id));
     } catch (error) {
       console.error('Failed to load department products:', error);
@@ -98,21 +103,21 @@ export function DepartmentFormDialog({
 
       if (isEditMode && department) {
         // Update existing department
-        await apiClient.updateDepartment(department.id, { name: name.trim() });
+        await updateDepartmentAction(department.id, { name: name.trim() });
         
         // Update product assignments
-        await apiClient.setDepartmentProducts(department.id, {
+        await setDepartmentProductsAction(department.id, {
           product_ids: selectedProductIds,
         });
         
         toast.success('Department updated successfully');
       } else {
         // Create new department
-        const newDept = await apiClient.createDepartment({ name: name.trim() });
+        const newDept = await createDepartmentAction({ name: name.trim() });
         
         // Set product assignments for new department
         if (selectedProductIds.length > 0) {
-          await apiClient.setDepartmentProducts(newDept.id, {
+          await setDepartmentProductsAction(newDept.id, {
             product_ids: selectedProductIds,
           });
         }

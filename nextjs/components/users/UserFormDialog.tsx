@@ -22,6 +22,8 @@ import {
 import { apiClient } from '@/lib/api';
 import { fetchAddUserAction } from '@/api/users/add_user/action';
 import { fetchUpdateUserAction } from '@/api/users/update_user/action';
+import { fetchDepartmentsAction } from '@/api/departments/query_departments/action';
+import { fetchDepartmentProductsAction } from '@/api/departments/query_department_products/action';
 import type { User, Service, Department } from '@/types';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
@@ -106,7 +108,7 @@ export function UserFormDialog({
   const fetchDepartments = async () => {
     try {
       setLoadingDepartments(true);
-      const data = await apiClient.getDepartments();
+      const data = await fetchDepartmentsAction();
       setDepartments(data);
     } catch (error) {
       console.error('Failed to load departments:', error);
@@ -123,7 +125,8 @@ export function UserFormDialog({
     // Fetch department products and auto-populate
     if (newDepartmentId) {
       try {
-        const deptProducts = await apiClient.getDepartmentProducts(newDepartmentId);
+        const deptProducts = await fetchDepartmentProductsAction(newDepartmentId);
+        // Products are used only for IDs, no type conversion needed
         const deptProductIds = deptProducts.map(p => p.id);
         
         // Merge with existing manual selections

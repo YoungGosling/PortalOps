@@ -2,6 +2,8 @@
 
 import { useState, useEffect, Fragment } from 'react';
 import { apiClient } from '@/lib/api';
+import { fetchDepartmentsAction } from '@/api/departments/query_departments/action';
+import { fetchDepartmentProductsAction } from '@/api/departments/query_department_products/action';
 import type { Department, Product } from '@/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -48,7 +50,7 @@ export default function DepartmentsPage() {
   const fetchDepartments = async () => {
     try {
       setLoading(true);
-      const data = await apiClient.getDepartments();
+      const data = await fetchDepartmentsAction();
       setDepartments(data.map(d => ({ ...d, productsExpanded: false })));
     } catch (error) {
       toast.error('Failed to load departments');
@@ -61,12 +63,24 @@ export default function DepartmentsPage() {
   const fetchDepartmentProducts = async (departmentId: string) => {
     try {
       setLoadingProducts(prev => new Set(prev).add(departmentId));
-      const products = await apiClient.getDepartmentProducts(departmentId);
+      const products = await fetchDepartmentProductsAction(departmentId);
+      
+      // Convert backend products to frontend Product type (handle nullable fields)
+      const convertedProducts: Product[] = products.map(p => ({
+        ...p,
+        description: p.description ?? undefined,
+        url: p.url ?? undefined,
+        service_name: p.service_name ?? undefined,
+        status: p.status ?? undefined,
+        latest_payment_date: p.latest_payment_date ?? undefined,
+        latest_usage_start_date: p.latest_usage_start_date ?? undefined,
+        latest_usage_end_date: p.latest_usage_end_date ?? undefined,
+      }));
       
       setDepartments(prev =>
         prev.map(d =>
           d.id === departmentId
-            ? { ...d, products, productsExpanded: true }
+            ? { ...d, products: convertedProducts, productsExpanded: true }
             : d
         )
       );
