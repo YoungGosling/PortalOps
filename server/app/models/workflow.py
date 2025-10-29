@@ -1,5 +1,5 @@
 from sqlalchemy import Column, String, Text, ForeignKey, DateTime, Date, CheckConstraint
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 import uuid
@@ -28,6 +28,8 @@ class WorkflowTask(Base):
     employee_resignation_date = Column(Date, nullable=True)
     attachment_path = Column(Text, nullable=True)
     attachment_original_name = Column(Text, nullable=True)
+    # Product assignments snapshot (saved before user deletion for offboarding)
+    product_assignments_snapshot = Column(JSONB, nullable=True)
     created_at = Column(DateTime(timezone=True),
                         server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), server_default=func.now(

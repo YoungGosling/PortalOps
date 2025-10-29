@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { apiClient } from '@/lib/api';
+import { queryTasksAction } from '@/api/inbox/query_tasks/action';
+import { deleteTaskAction } from '@/api/inbox/delete_task/action';
 import type { WorkflowTask } from '@/types';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -61,7 +62,7 @@ export default function InboxPage() {
   const fetchTasks = async (page: number = currentPage) => {
     try {
       setLoading(true);
-      const response = await apiClient.getTasks(page, pageSize);
+      const response = await queryTasksAction({ page, limit: pageSize });
       setTasks(response.data);
       setCurrentPage(response.pagination.page);
       setTotalTasks(response.pagination.total);
@@ -115,7 +116,7 @@ export default function InboxPage() {
     if (!deletingTask) return;
     
     try {
-      await apiClient.deleteTask(deletingTask.id);
+      await deleteTaskAction(deletingTask.id);
       toast.success('Task deleted successfully');
       setDeleteDialogOpen(false);
       setDeletingTask(null);

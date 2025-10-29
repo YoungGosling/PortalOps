@@ -15,10 +15,13 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { apiClient } from '@/lib/api';
 import { fetchAddUserAction } from '@/api/users/add_user/action';
 import { fetchQueryServicesAction } from '@/api/services/query_services/action';
 import { queryProductsAction } from '@/api/products/query_products/action';
+import { queryTaskAction } from '@/api/inbox/query_task/action';
+import { uploadAttachmentAction } from '@/api/inbox/upload_attachment/action';
+import { completeTaskAction } from '@/api/inbox/complete_task/action';
+import { downloadAttachmentAction } from '@/api/inbox/download_attachment/action';
 import type { WorkflowTask, ProductWithServiceAdmin, Service } from '@/types';
 import { toast } from 'sonner';
 import { Loader2, Printer, Upload, FileText, ListTodo, X, Download } from 'lucide-react';
@@ -80,7 +83,7 @@ export function WorkflowChecklistDialog({
       console.log('Fetching task details for task:', task.id);
       console.log('Task type:', task.type);
       
-      const details = await apiClient.getTaskWithDetails(task.id);
+      const details = await queryTaskAction(task.id);
       console.log('Received task details:', details);
       console.log('Assigned products:', details.assigned_products);
       
@@ -234,7 +237,7 @@ export function WorkflowChecklistDialog({
     if (!taskDetails) return;
     
     try {
-      const blob = await apiClient.downloadTaskAttachment(taskDetails.id);
+      const blob = await downloadAttachmentAction(taskDetails.id);
       
       // Use the original filename if available, otherwise generate one with proper extension
       const filename = taskDetails.attachment_original_name || `checklist_${taskDetails.employee_name}_${taskDetails.id}.pdf`;
@@ -283,7 +286,7 @@ export function WorkflowChecklistDialog({
       // Step 1: Upload attachment file first (if new file selected)
       if (attachmentFile) {
         try {
-          await apiClient.uploadTaskAttachment(taskDetails.id, attachmentFile);
+          await uploadAttachmentAction(taskDetails.id, attachmentFile);
           console.log('Attachment uploaded successfully');
         } catch (uploadError: any) {
           throw new Error(`Failed to upload attachment: ${uploadError.message || 'Unknown error'}`);
@@ -310,7 +313,7 @@ export function WorkflowChecklistDialog({
         
         // Step 3: Complete the task
         try {
-          await apiClient.completeTaskWithAttachment(taskDetails.id);
+          await completeTaskAction(taskDetails.id);
           toast.success('Onboarding completed successfully');
         } catch (taskError: any) {
           // Critical: User created but task completion failed
@@ -326,7 +329,7 @@ export function WorkflowChecklistDialog({
         }
       } else if (isOffboarding) {
         // For offboarding, complete the task (user will be deleted by backend)
-        await apiClient.completeTaskWithAttachment(taskDetails.id);
+        await completeTaskAction(taskDetails.id);
         toast.success('Offboarding completed successfully - user has been removed');
       }
       

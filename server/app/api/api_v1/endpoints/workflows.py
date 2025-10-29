@@ -16,6 +16,9 @@ from app.models.permission import PermissionAssignment
 import uuid
 import os
 import aiofiles
+import logging
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 inbox_router = APIRouter()
@@ -322,9 +325,15 @@ def read_task(
                     db, products)
 
     elif existing_task.type == "offboarding":
-        # Get user's current product assignments
-        if existing_task.target_user_id:
-            # Get all permission assignments for this user
+        # For offboarding, first try to use saved snapshot (if task is completed)
+        # Otherwise, get user's current product assignments
+        if existing_task.product_assignments_snapshot:
+            # Use saved snapshot (user may have been deleted)
+            task_dict["assigned_products"] = existing_task.product_assignments_snapshot
+            logger.info(
+                f"Using product assignments snapshot for offboarding task {task_id}")
+        elif existing_task.target_user_id:
+            # Get all permission assignments for this user (for pending tasks)
             permissions = db.query(PermissionAssignment).filter(
                 PermissionAssignment.user_id == existing_task.target_user_id,
                 PermissionAssignment.product_id.isnot(None)
@@ -540,37 +549,72 @@ def complete_task(
     elif existing_task.type == "offboarding":
         # For offboarding, delete the user
         if not existing_task.target_user_id:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Cannot offboard: target user not found"
-            )
+            logger.warning(
+                f"Offboarding task {task_id} has no target_user_id, skipping user deletion but marking as complete")
+            # Still mark task as completed even if target_user_id is missing
+            workflow_task.update(db, db_obj=existing_task,
+                                 obj_in={"status": "completed"})
+        else:
+            target_user = user.get(db, existing_task.target_user_id)
+            if target_user:
+                # IMPORTANT: Save product assignments snapshot BEFORE deleting user
+                # (permissions will be CASCADE deleted with the user)
+                permissions = db.query(PermissionAssignment).filter(
+                    PermissionAssignment.user_id == existing_task.target_user_id,
+                    PermissionAssignment.product_id.isnot(None)
+                ).all()
 
-        target_user = user.get(db, existing_task.target_user_id)
-        if target_user:
-            # Log before deletion (audit trail)
-            audit_log.log_action(
-                db,
-                actor_user_id=current_user.id,
-                action="user.offboard",
-                target_id=str(existing_task.target_user_id),
-                details={
-                    "task_id": str(task_id),
-                    "email": target_user.email,
-                    "name": target_user.name,
-                    "department": existing_task.employee_department,
-                    "position": existing_task.employee_position,
-                    "hire_date": str(existing_task.employee_hire_date) if existing_task.employee_hire_date else None,
-                    "resignation_date": str(existing_task.employee_resignation_date) if existing_task.employee_resignation_date else None,
-                    "attachment": existing_task.attachment_path
-                }
-            )
+                product_ids = [p.product_id for p in permissions]
+                product_assignments_snapshot = []
 
-            # Delete the user (CASCADE will handle related records)
-            user.remove(db, id=existing_task.target_user_id)
+                if product_ids:
+                    products = db.query(Product).options(
+                        joinedload(Product.service)
+                    ).filter(Product.id.in_(product_ids)).all()
+                    product_assignments_snapshot = _build_product_list_with_admins(
+                        db, products)
 
-        # Mark task as completed
-        workflow_task.update(db, db_obj=existing_task,
-                             obj_in={"status": "completed"})
+                logger.info(
+                    f"Saved {len(product_assignments_snapshot)} product assignments for offboarding task {task_id}")
+
+                # Log before deletion (audit trail)
+                audit_log.log_action(
+                    db,
+                    actor_user_id=current_user.id,
+                    action="user.offboard",
+                    target_id=str(existing_task.target_user_id),
+                    details={
+                        "task_id": str(task_id),
+                        "email": target_user.email,
+                        "name": target_user.name,
+                        "department": existing_task.employee_department,
+                        "position": existing_task.employee_position,
+                        "hire_date": str(existing_task.employee_hire_date) if existing_task.employee_hire_date else None,
+                        "resignation_date": str(existing_task.employee_resignation_date) if existing_task.employee_resignation_date else None,
+                        "attachment": existing_task.attachment_path,
+                        "product_count": len(product_assignments_snapshot)
+                    }
+                )
+
+                # Delete the user (CASCADE will handle related records)
+                user.remove(db, id=existing_task.target_user_id)
+                logger.info(
+                    f"User {existing_task.target_user_id} deleted successfully for offboarding task {task_id}")
+
+                # Mark task as completed and save product assignments snapshot
+                workflow_task.update(db, db_obj=existing_task,
+                                     obj_in={
+                                         "status": "completed",
+                                         "product_assignments_snapshot": product_assignments_snapshot
+                                     })
+            else:
+                logger.warning(
+                    f"User {existing_task.target_user_id} not found for offboarding task {task_id}, already deleted or invalid ID")
+                # Mark task as completed even if user not found
+                workflow_task.update(db, db_obj=existing_task,
+                                     obj_in={"status": "completed"})
+
+            logger.info(f"Offboarding task {task_id} marked as completed")
 
     # Log task completion
     audit_log.log_action(
