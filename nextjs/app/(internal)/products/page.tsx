@@ -75,7 +75,7 @@ export default function ProductsPage() {
       const services: Service[] = response.data.map(s => ({
         id: s.id,
         name: s.name,
-        vendor: s.vendor,
+        vendor: s.vendor ?? undefined, // Convert null to undefined
         product_count: s.productCount || 0,
         products: s.products,
         admins: s.admins,
