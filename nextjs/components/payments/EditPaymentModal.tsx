@@ -30,10 +30,12 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { FileUpload } from '@/components/ui/file-upload';
-import { apiClient } from '@/lib/api';
 import { updatePaymentByIdAction } from '@/api/payment_register/update_payment_by_id/action';
 import { updatePaymentInfoV2Action } from '@/api/payment_register/update_payment_info_v2/action';
 import { createPaymentForProductAction } from '@/api/payment_register/create_payment_for_product/action';
+import { uploadInvoicesAction } from '@/api/invoices/upload_invoices/action';
+import { deleteInvoiceAction } from '@/api/invoices/delete_invoice/action';
+import { getInvoiceAction } from '@/api/invoices/get_invoice/action';
 import type { PaymentInfo, PaymentMethod, PaymentInvoice } from '@/types';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
@@ -136,7 +138,7 @@ export function EditPaymentModal({
 
   const handleDownloadInvoice = async (invoiceId: string) => {
     try {
-      const blob = await apiClient.downloadInvoice(invoiceId);
+      const blob = await getInvoiceAction(invoiceId);
       
       // Find the invoice to get the original filename
       const invoice = uploadedInvoices.find(inv => inv.id === invoiceId);
@@ -217,7 +219,7 @@ export function EditPaymentModal({
         
         // Step 2: Upload invoice files to the newly created payment
         if (selectedFiles.length > 0 && response.id) {
-          await apiClient.uploadInvoices(response.id, selectedFiles);
+          await uploadInvoicesAction(response.id, selectedFiles);
         }
 
         toast.success('Payment record created successfully');
@@ -229,7 +231,7 @@ export function EditPaymentModal({
         if (pendingDeleteInvoiceIds.size > 0) {
           for (const invoiceId of pendingDeleteInvoiceIds) {
             try {
-              await apiClient.deleteInvoice(invoiceId);
+              await deleteInvoiceAction(invoiceId);
             } catch (error) {
               console.error(`Failed to delete invoice ${invoiceId}:`, error);
               // Continue with other deletions even if one fails
@@ -262,7 +264,7 @@ export function EditPaymentModal({
           if (!paymentId) {
             throw new Error('Payment ID is required for invoice upload');
           }
-          await apiClient.uploadInvoices(paymentId, selectedFiles);
+          await uploadInvoicesAction(paymentId, selectedFiles);
         }
 
         toast.success('Payment information updated successfully');
