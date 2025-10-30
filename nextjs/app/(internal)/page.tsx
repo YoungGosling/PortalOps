@@ -90,8 +90,11 @@ export default function DashboardPage() {
       }
     };
 
-    fetchDashboardData();
-  }, [user?.email]); // Only depend on user email to avoid unnecessary re-renders
+    // Only fetch once when user is available
+    if (user && !hasFetchedRef.current) {
+      fetchDashboardData();
+    }
+  }, [user]); // Depend on user object but with hasFetchedRef guard
 
   if (loading) {
     return (

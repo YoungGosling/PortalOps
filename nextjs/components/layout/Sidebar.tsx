@@ -3,7 +3,6 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/providers/auth-provider';
-import { usePaymentSummary } from '@/providers/payment-summary-provider';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
@@ -45,7 +44,6 @@ interface NavItem {
 export function Sidebar({ collapsed }: SidebarProps) {
   const pathname = usePathname();
   const { isAdmin } = useAuth();
-  const { incompleteCount } = usePaymentSummary();
   
   // Initialize adminOpen from localStorage or check if current path is admin
   const [adminOpen, setAdminOpen] = useState(() => {

@@ -3,7 +3,6 @@ import type {
   Service,
   Product,
   PaymentInfo,
-  PaymentSummary,
   WorkflowTask,
   BillAttachment,
   LoginRequest,
@@ -306,10 +305,6 @@ class ApiClient {
         body: data instanceof FormData ? data : JSON.stringify(data),
       }
     );
-  }
-
-  async getPaymentSummary(): Promise<PaymentSummary> {
-    return this.request<PaymentSummary>('/api/payment-register/summary');
   }
 
   // Invoice Management

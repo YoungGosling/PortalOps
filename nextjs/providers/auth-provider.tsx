@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { fetchLoginAction } from '@/api/authentication/login/action';
@@ -69,6 +69,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  // Track if we've already fetched user data to prevent refetch on tab visibility change
+  const hasFetchedUserRef = useRef(false);
+
   // Handle Azure AD session
   useEffect(() => {
     if (sessionStatus === 'loading') {
@@ -77,6 +80,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     if (sessionStatus === 'authenticated' && session?.user) {
+      // Skip if already fetched to prevent refetch on tab focus/visibility change
+      if (hasFetchedUserRef.current) {
+        return;
+      }
+
       // Check if session has valid tokens
       if (!session.tokens?.id_token || !session.tokens?.access_token) {
         console.error('Session has no valid tokens, signing out...');
@@ -109,6 +117,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             roles: (userData.roles || []) as ('Admin' | 'ServiceAdmin')[],
             assignedProductIds,
           });
+          hasFetchedUserRef.current = true; // Mark as fetched
         } catch (error) {
           console.error('Failed to fetch Azure user from backend:', error);
           // On authentication error, clear user and redirect to sign in
@@ -127,8 +136,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     if (sessionStatus === 'unauthenticated') {
+      // Skip if already fetched
+      if (hasFetchedUserRef.current) {
+        return;
+      }
       // No Azure session, check for regular token-based auth
       fetchUser();
+      hasFetchedUserRef.current = true;
     }
   }, [session, sessionStatus]);
 

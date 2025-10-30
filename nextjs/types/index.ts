@@ -126,10 +126,6 @@ export interface BillAttachment {
   file_size?: number;
 }
 
-export interface PaymentSummary {
-  incomplete_count: number;
-}
-
 export interface DashboardStats {
   totalServices: number;
   totalProducts: number;
