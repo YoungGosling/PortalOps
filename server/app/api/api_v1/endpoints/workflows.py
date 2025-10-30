@@ -314,8 +314,15 @@ def read_task(
 
     # Get product assignments based on task type
     if existing_task.type == "onboarding":
-        # Get department's default products
-        if existing_task.employee_department:
+        # For completed onboarding tasks, use saved snapshot (actual assigned products)
+        # For pending onboarding tasks, use department's default products
+        if existing_task.product_assignments_snapshot:
+            # Use saved snapshot for completed tasks (shows actual assigned products)
+            task_dict["assigned_products"] = existing_task.product_assignments_snapshot
+            logger.info(
+                f"Using product assignments snapshot for completed onboarding task {task_id}")
+        elif existing_task.employee_department:
+            # Get department's default products for pending tasks
             dept = department.get_by_name(
                 db, name=existing_task.employee_department)
             if dept:
@@ -527,10 +534,32 @@ def complete_task(
                 detail="User must be created before completing onboarding task"
             )
 
-        # Update task with the created user's ID
+        # IMPORTANT: Save product assignments snapshot for the onboarded user
+        # This ensures that when viewing completed onboarding tasks, we see the actual
+        # products assigned to the user (including any manually added), not just department defaults
+        permissions = db.query(PermissionAssignment).filter(
+            PermissionAssignment.user_id == created_user.id,
+            PermissionAssignment.product_id.isnot(None)
+        ).all()
+
+        product_ids = [p.product_id for p in permissions]
+        product_assignments_snapshot = []
+
+        if product_ids:
+            products = db.query(Product).options(
+                joinedload(Product.service)
+            ).filter(Product.id.in_(product_ids)).all()
+            product_assignments_snapshot = _build_product_list_with_admins(
+                db, products)
+
+        logger.info(
+            f"Saved {len(product_assignments_snapshot)} product assignments for onboarding task {task_id}")
+
+        # Update task with the created user's ID and product assignments snapshot
         workflow_task.update(db, db_obj=existing_task, obj_in={
             "target_user_id": created_user.id,
-            "status": "completed"
+            "status": "completed",
+            "product_assignments_snapshot": product_assignments_snapshot
         })
 
         # Log the action
