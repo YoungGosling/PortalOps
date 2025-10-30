@@ -26,9 +26,9 @@ class PaymentInfoCreate(BaseModel):
     cardholder_name: Optional[str] = None
     expiry_date: Optional[date] = None
     payment_method_id: Optional[int] = None
-    payment_date: date
-    usage_start_date: date
-    usage_end_date: date
+    payment_date: Optional[date] = None
+    usage_start_date: Optional[date] = None
+    usage_end_date: Optional[date] = None
     reporter: str
 
 

@@ -51,12 +51,9 @@ class PaymentInfo(Base):
     expiry_date = Column(Date, nullable=True)
     payment_method_id = Column(Integer, ForeignKey(
         "payment_methods.id", ondelete="RESTRICT"), nullable=True)
-    payment_date = Column(Date, nullable=False,
-                          server_default=func.current_date())
-    usage_start_date = Column(Date, nullable=False,
-                              server_default=func.current_date())
-    usage_end_date = Column(Date, nullable=False,
-                            server_default=func.current_date())
+    payment_date = Column(Date, nullable=True)
+    usage_start_date = Column(Date, nullable=True)
+    usage_end_date = Column(Date, nullable=True)
     reporter = Column(String(255), nullable=False, default="System")
     created_at = Column(DateTime(timezone=True),
                         server_default=func.now(), nullable=False)
@@ -67,7 +64,7 @@ class PaymentInfo(Base):
     __table_args__ = (
         CheckConstraint("status IN ('incomplete', 'complete', 'error')",
                         name="payment_info_status_check"),
-        CheckConstraint("usage_end_date >= usage_start_date",
+        CheckConstraint("usage_start_date IS NULL OR usage_end_date IS NULL OR usage_end_date >= usage_start_date",
                         name="chk_usage_date_range"),
     )
 

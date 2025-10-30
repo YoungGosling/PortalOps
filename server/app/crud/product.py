@@ -98,13 +98,13 @@ class CRUDProduct(CRUDBase[Product, ProductCreate, ProductUpdate]):
         product = self.create(db, obj_in=obj_in)
 
         # Create an incomplete payment record linked to this product
-        today = date.today()
+        # Date fields are set to None to indicate they need to be filled in
         payment_record = PaymentInfo(
             product_id=product.id,
             status="incomplete",
-            payment_date=today,
-            usage_start_date=today,
-            usage_end_date=today,
+            payment_date=None,
+            usage_start_date=None,
+            usage_end_date=None,
             reporter=reporter
         )
 
