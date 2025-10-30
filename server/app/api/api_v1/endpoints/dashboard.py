@@ -109,9 +109,9 @@ def get_upcoming_renewals(
     db: Session = Depends(get_db)
 ):
     """
-    Get upcoming payment renewals - products with expiry dates closest to today.
-    Returns products sorted by expiry_date (earliest first).
-    Uses the latest payment record WITH expiry_date for each product.
+    Get upcoming payment renewals - products with usage end dates closest to expiring.
+    Returns products sorted by usage_end_date (earliest first).
+    Uses the latest payment record WITH usage_end_date for each product.
     """
     from app.models.payment import PaymentMethod
 
@@ -122,22 +122,22 @@ def get_upcoming_renewals(
 
     renewals_list = []
     for product, service in products_query:
-        # Get the latest payment WITH expiry_date for this product
+        # Get the latest payment WITH usage_end_date for this product
         # Priority: payment_date DESC, then created_at DESC
-        latest_payment_with_expiry = db.query(PaymentInfo).filter(
+        latest_payment_with_end_date = db.query(PaymentInfo).filter(
             PaymentInfo.product_id == product.id,
-            PaymentInfo.expiry_date.isnot(None)
+            PaymentInfo.usage_end_date.isnot(None)
         ).order_by(
             desc(PaymentInfo.payment_date).nulls_last(),
             desc(PaymentInfo.created_at)
         ).first()
 
-        if latest_payment_with_expiry:
+        if latest_payment_with_end_date:
             # Get payment method name if available
             payment_method_name = None
-            if latest_payment_with_expiry.payment_method_id:
+            if latest_payment_with_end_date.payment_method_id:
                 payment_method = db.query(PaymentMethod).filter(
-                    PaymentMethod.id == latest_payment_with_expiry.payment_method_id
+                    PaymentMethod.id == latest_payment_with_end_date.payment_method_id
                 ).first()
                 if payment_method:
                     payment_method_name = payment_method.name
@@ -146,17 +146,17 @@ def get_upcoming_renewals(
                 "productId": str(product.id),
                 "productName": product.name,
                 "serviceName": service.name,
-                "expiryDate": latest_payment_with_expiry.expiry_date.strftime("%m/%d/%Y"),
-                "amount": float(latest_payment_with_expiry.amount) if latest_payment_with_expiry.amount else None,
-                "cardholderName": latest_payment_with_expiry.cardholder_name,
+                "expiryDate": latest_payment_with_end_date.usage_end_date.strftime("%m/%d/%Y"),
+                "amount": float(latest_payment_with_end_date.amount) if latest_payment_with_end_date.amount else None,
+                "cardholderName": latest_payment_with_end_date.cardholder_name,
                 "paymentMethod": payment_method_name,
-                "expiry_date_sort": latest_payment_with_expiry.expiry_date  # For sorting
+                "usage_end_date_sort": latest_payment_with_end_date.usage_end_date  # For sorting
             })
 
-    # Sort by expiry date (earliest first) and limit
-    renewals_list.sort(key=lambda x: x["expiry_date_sort"])
+    # Sort by usage end date (earliest first) and limit
+    renewals_list.sort(key=lambda x: x["usage_end_date_sort"])
     result = [
-        {k: v for k, v in item.items() if k != "expiry_date_sort"}
+        {k: v for k, v in item.items() if k != "usage_end_date_sort"}
         for item in renewals_list[:limit]
     ]
 
