@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, Fragment } from 'react';
-import { apiClient } from '@/lib/api';
 import { fetchDepartmentsAction } from '@/api/departments/query_departments/action';
 import { fetchDepartmentProductsAction } from '@/api/departments/query_department_products/action';
 import type { Department, Product } from '@/types';
