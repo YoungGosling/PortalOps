@@ -3,7 +3,7 @@ import { z } from "zod";
 export const PaymentInfoV2Schema = z.object({
   id: z.string().uuid().optional(),
   status: z.string().default("incomplete"),
-  amount: z.union([z.string(), z.number()]).nullable().optional(),
+  amount: z.number().nullable().optional(),
   cardholderName: z.string().nullable().optional(),
   expiryDate: z.string().nullable().optional(),
   paymentMethod: z.string().nullable().optional(),

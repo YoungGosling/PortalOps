@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 export const UpdatePaymentByIdRequestSchema = z.object({
-  amount: z.string().optional(),
+  amount: z.number().optional(),
   cardholder_name: z.string().optional(),
   expiry_date: z.string().optional(),
   payment_method_id: z.number().int().optional(),

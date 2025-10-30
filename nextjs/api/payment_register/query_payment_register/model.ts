@@ -2,7 +2,7 @@ import { z } from "zod";
 
 export const PaymentInfoSchema = z.object({
   status: z.string().default("incomplete"),
-  amount: z.string().nullable().optional(),
+  amount: z.number().nullable().optional(),
   cardholderName: z.string().nullable().optional(),
   expiryDate: z.string().nullable().optional(),
   paymentMethod: z.string().nullable().optional(),

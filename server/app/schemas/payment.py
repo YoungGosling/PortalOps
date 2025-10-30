@@ -1,13 +1,12 @@
 from pydantic import BaseModel, Field
 from typing import Optional, List
-from decimal import Decimal
 from datetime import datetime, date
 import uuid
 
 
 class PaymentInfoBase(BaseModel):
     status: str = "incomplete"
-    amount: Optional[Decimal] = None
+    amount: Optional[float] = None
     cardholderName: Optional[str] = None
     expiryDate: Optional[str] = None  # Changed to string for MM/DD/YYYY format
     paymentMethod: Optional[str] = None
@@ -23,7 +22,7 @@ class PaymentInfoBase(BaseModel):
 class PaymentInfoCreate(BaseModel):
     product_id: uuid.UUID
     status: str = "incomplete"
-    amount: Optional[Decimal] = None
+    amount: Optional[float] = None
     cardholder_name: Optional[str] = None
     expiry_date: Optional[date] = None
     payment_method_id: Optional[int] = None
@@ -35,7 +34,7 @@ class PaymentInfoCreate(BaseModel):
 
 class PaymentInfoUpdate(BaseModel):
     status: Optional[str] = None
-    amount: Optional[Decimal] = None
+    amount: Optional[float] = None
     cardholder_name: Optional[str] = None
     expiry_date: Optional[date] = None
     payment_method_id: Optional[int] = None

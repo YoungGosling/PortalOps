@@ -41,7 +41,7 @@ def read_payment_register_summary(
 @router.put("/{product_id}", status_code=204)
 async def update_payment_info(
     product_id: uuid.UUID,
-    amount: Optional[str] = Form(None),
+    amount: Optional[float] = Form(None),
     cardholder_name: Optional[str] = Form(None),
     expiry_date: Optional[str] = Form(None),
     payment_method_id: Optional[int] = Form(None),
@@ -82,7 +82,7 @@ async def update_payment_info(
 
     # Convert form data to proper types
     if amount is not None:
-        update_data['amount'] = Decimal(amount)
+        update_data['amount'] = float(amount)
     if cardholder_name is not None:
         update_data['cardholder_name'] = cardholder_name
     if expiry_date is not None:

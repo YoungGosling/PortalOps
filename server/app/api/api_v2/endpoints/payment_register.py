@@ -69,7 +69,7 @@ def read_payment_register_v2(
 @router.put("/payments/{payment_id}", status_code=204)
 def update_payment_by_id_v2(
     payment_id: uuid.UUID,
-    amount: str = Form(None),
+    amount: float = Form(None),
     cardholder_name: str = Form(None),
     expiry_date: str = Form(None),
     payment_method_id: int = Form(None),
@@ -84,7 +84,6 @@ def update_payment_by_id_v2(
     Update a specific payment record by payment ID.
     Supports one-to-many relationship where multiple payments can exist per product.
     """
-    from decimal import Decimal
     from datetime import date
 
     # Get the payment by payment ID
@@ -100,7 +99,7 @@ def update_payment_by_id_v2(
 
     # Convert form data to proper types
     if amount is not None:
-        update_data['amount'] = Decimal(amount)
+        update_data['amount'] = float(amount)
     if cardholder_name is not None:
         update_data['cardholder_name'] = cardholder_name
     if expiry_date is not None:
