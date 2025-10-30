@@ -323,13 +323,17 @@ def read_task(
                 f"Using product assignments snapshot for completed onboarding task {task_id}")
         elif existing_task.employee_department:
             # Get department's default products for pending tasks
+            # Filter only Active products to avoid assigning inactive/overdue products
             dept = department.get_by_name(
                 db, name=existing_task.employee_department)
             if dept:
                 products = department.get_department_products(
                     db, department_id=dept.id)
+                # Filter only Active products (status.name == 'Active')
+                active_products = [
+                    p for p in products if p.status and p.status.name == 'Active']
                 task_dict["assigned_products"] = _build_product_list_with_admins(
-                    db, products)
+                    db, active_products)
 
     elif existing_task.type == "offboarding":
         # For offboarding, first try to use saved snapshot (if task is completed)

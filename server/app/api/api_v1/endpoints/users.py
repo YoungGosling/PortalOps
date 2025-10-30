@@ -99,11 +99,16 @@ def create_user(
         user.assign_role(db, user_id=new_user.id, role_name=user_in.role)
 
     # v3: Get department products if department_id is set
+    # Only include Active products to avoid assigning inactive/overdue products
     department_product_ids = []
     if user_in.department_id:
         from app.crud import department as dept_crud
+        dept_products = dept_crud.get_department_products(
+            db, department_id=user_in.department_id)
+        # Filter only Active products (status.name == 'Active')
         department_product_ids = [
-            str(p.id) for p in dept_crud.get_department_products(db, department_id=user_in.department_id)
+            str(p.id) for p in dept_products
+            if p.status and p.status.name == 'Active'
         ]
 
     # Combine department products with manually assigned products
@@ -271,11 +276,16 @@ def update_user(
         user.assign_role(db, user_id=user_id, role_name=user_update.role)
 
     # v3: Get department products if department_id is set
+    # Only include Active products to avoid assigning inactive/overdue products
     department_product_ids = []
     if user_update.department_id:
         from app.crud import department as dept_crud
+        dept_products = dept_crud.get_department_products(
+            db, department_id=user_update.department_id)
+        # Filter only Active products (status.name == 'Active')
         department_product_ids = [
-            str(p.id) for p in dept_crud.get_department_products(db, department_id=user_update.department_id)
+            str(p.id) for p in dept_products
+            if p.status and p.status.name == 'Active'
         ]
 
     # Combine department products with manually assigned products

@@ -152,14 +152,15 @@ export function UserFormDialog({
     if (newDepartmentId) {
       try {
         const deptProducts = await fetchDepartmentProductsAction(newDepartmentId);
-        // Products are used only for IDs, no type conversion needed
-        const deptProductIds = deptProducts.map(p => p.id);
+        // Filter only Active products to avoid assigning inactive/overdue products
+        const activeProducts = deptProducts.filter(p => !p.status || p.status === 'Active');
+        const deptProductIds = activeProducts.map(p => p.id);
         
         // Merge with existing manual selections
         const allProductIds = Array.from(new Set([...selectedProductIds, ...deptProductIds]));
         setSelectedProductIds(allProductIds);
         
-        toast.success(`Auto-assigned ${deptProductIds.length} products from department`);
+        toast.success(`Auto-assigned ${deptProductIds.length} active products from department`);
       } catch (error) {
         console.error('Failed to load department products:', error);
         toast.error('Failed to load department products');
