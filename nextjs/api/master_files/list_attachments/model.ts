@@ -15,3 +15,4 @@ export const ListAttachmentsResponseSchema = z.array(BillAttachmentSchema);
 export type BillAttachment = z.infer<typeof BillAttachmentSchema>;
 export type ListAttachmentsResponse = z.infer<typeof ListAttachmentsResponseSchema>;
 
+

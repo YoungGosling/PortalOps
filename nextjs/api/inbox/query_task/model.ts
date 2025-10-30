@@ -8,3 +8,4 @@ export interface QueryTaskParams {
 // Response type
 export type QueryTaskResponse = WorkflowTask;
 
+

@@ -12,3 +12,4 @@ async function setDepartmentProductsAction(
 
 export { setDepartmentProductsAction };
 
+

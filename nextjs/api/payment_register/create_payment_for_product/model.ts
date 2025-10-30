@@ -20,3 +20,4 @@ export const CreatePaymentForProductResponseSchema = z.object({
 export type CreatePaymentForProductRequest = z.infer<typeof CreatePaymentForProductRequestSchema>;
 export type CreatePaymentForProductResponse = z.infer<typeof CreatePaymentForProductResponseSchema>;
 
+

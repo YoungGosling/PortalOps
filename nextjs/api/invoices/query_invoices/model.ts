@@ -15,3 +15,4 @@ export const QueryInvoicesResponseSchema = z.array(MasterFileInvoiceSchema);
 export type MasterFileInvoice = z.infer<typeof MasterFileInvoiceSchema>;
 export type QueryInvoicesResponse = z.infer<typeof QueryInvoicesResponseSchema>;
 
+

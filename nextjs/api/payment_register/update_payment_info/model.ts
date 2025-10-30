@@ -14,3 +14,4 @@ export const UpdatePaymentInfoRequestSchema = z.object({
 
 export type UpdatePaymentInfoRequest = z.infer<typeof UpdatePaymentInfoRequestSchema>;
 
+

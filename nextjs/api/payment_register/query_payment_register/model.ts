@@ -32,3 +32,4 @@ export type PaymentInfo = z.infer<typeof PaymentInfoSchema>;
 export type PaymentRegisterItem = z.infer<typeof PaymentRegisterItemSchema>;
 export type QueryPaymentRegisterResponse = z.infer<typeof QueryPaymentRegisterResponseSchema>;
 
+

@@ -16,3 +16,4 @@ export const AddPaymentMethodResponseSchema = z.object({
 export type AddPaymentMethodRequest = z.infer<typeof AddPaymentMethodRequestSchema>;
 export type AddPaymentMethodResponse = z.infer<typeof AddPaymentMethodResponseSchema>;
 
+

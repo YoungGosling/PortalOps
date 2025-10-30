@@ -16,3 +16,4 @@ export const UpdateProductStatusResponseSchema = z.object({
 export type UpdateProductStatusRequest = z.infer<typeof UpdateProductStatusRequestSchema>;
 export type UpdateProductStatusResponse = z.infer<typeof UpdateProductStatusResponseSchema>;
 
+

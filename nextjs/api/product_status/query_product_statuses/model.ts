@@ -13,3 +13,4 @@ export const QueryProductStatusesResponseSchema = z.array(ProductStatusSchema);
 export type ProductStatus = z.infer<typeof ProductStatusSchema>;
 export type QueryProductStatusesResponse = z.infer<typeof QueryProductStatusesResponseSchema>;
 
+

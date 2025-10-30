@@ -19,3 +19,4 @@ export const HrOffboardingResponseSchema = z.object({
 
 export type HrOffboardingResponse = z.infer<typeof HrOffboardingResponseSchema>;
 
+
