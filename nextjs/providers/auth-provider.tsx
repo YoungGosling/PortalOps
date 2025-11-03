@@ -2,9 +2,10 @@
 
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { useSession } from 'next-auth/react';
+import { useSession, signOut } from 'next-auth/react';
 import { fetchLoginAction } from '@/api/authentication/login/action';
 import { fetchUserProfileAction } from '@/api/authentication/me/action';
+import { UnauthorizedError } from '@/lib/errors';
 import type { User, LoginRequest } from '@/types';
 
 interface AuthContextType {
@@ -54,15 +55,39 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
     } catch (error) {
       console.error('Failed to fetch user:', error);
-      localStorage.removeItem('access_token');
-      document.cookie = 'access_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
-      setUser(null);
       
-      // Redirect to signin page if token is invalid or expired
-      // Note: The API client will handle 401 errors and redirect automatically
-      // This is a fallback for other error cases
-      if (window.location.pathname !== '/signin' && window.location.pathname !== '/signup') {
-        router.push('/signin');
+      // Check if this is an authentication error (401)
+      // Server actions serialize errors, so we check the name property instead of instanceof
+      const isUnauthorized = error instanceof UnauthorizedError || 
+                            (error as any)?.name === 'UnauthorizedError' ||
+                            (error as Error)?.message?.includes('Failed to fetch user profile: Unauthorized');
+      
+      if (isUnauthorized) {
+        console.log('Authentication expired, automatically signing out...');
+        // Clear local storage and cookies
+        localStorage.removeItem('access_token');
+        document.cookie = 'access_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+        setUser(null);
+        
+        // If user has a NextAuth session, sign them out properly
+        // This will clear the NextAuth session and redirect to signin
+        if (session) {
+          await signOut({ callbackUrl: '/signin', redirect: true });
+        } else {
+          // For traditional auth, just redirect
+          if (window.location.pathname !== '/signin' && window.location.pathname !== '/signup') {
+            router.push('/signin');
+          }
+        }
+      } else {
+        // Handle other errors
+        localStorage.removeItem('access_token');
+        document.cookie = 'access_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+        setUser(null);
+        
+        if (window.location.pathname !== '/signin' && window.location.pathname !== '/signup') {
+          router.push('/signin');
+        }
       }
     } finally {
       setLoading(false);
@@ -120,11 +145,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           hasFetchedUserRef.current = true; // Mark as fetched
         } catch (error) {
           console.error('Failed to fetch Azure user from backend:', error);
-          // On authentication error, clear user and redirect to sign in
-          // This prevents infinite retry loops
-          setUser(null);
-          if (window.location.pathname !== '/signin' && window.location.pathname !== '/signup') {
-            router.push('/signin');
+          
+          // Check if this is an authentication error (401)
+          // Server actions serialize errors, so we check the name property instead of instanceof
+          const isUnauthorized = error instanceof UnauthorizedError || 
+                                (error as any)?.name === 'UnauthorizedError' ||
+                                (error as Error)?.message?.includes('Failed to fetch user profile: Unauthorized');
+          
+          if (isUnauthorized) {
+            console.log('Azure AD authentication expired, automatically signing out...');
+            setUser(null);
+            // Sign out from NextAuth to clear the expired session
+            await signOut({ callbackUrl: '/signin', redirect: true });
+          } else {
+            // On other errors, clear user and redirect to sign in
+            // This prevents infinite retry loops
+            setUser(null);
+            if (window.location.pathname !== '/signin' && window.location.pathname !== '/signup') {
+              router.push('/signin');
+            }
           }
         } finally {
           setLoading(false);
