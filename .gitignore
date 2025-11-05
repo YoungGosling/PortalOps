@@ -154,3 +154,5 @@ temp/
 .cursor/
 
 /doc/
+
+/database/
