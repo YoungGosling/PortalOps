@@ -504,7 +504,7 @@ export function WorkflowChecklistDialog({
                             <tr className="border-b">
                               <th className="text-left p-2">Service Provider</th>
                               <th className="text-left p-2">Product</th>
-                              <th className="text-left p-2">Service Admin</th>
+                              <th className="text-left p-2">Provider Admin</th>
                               {isOffboarding && !readOnly && (
                                 <th className="text-center p-2 w-[60px]">
                                   <Checkbox

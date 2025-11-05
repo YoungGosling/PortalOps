@@ -163,7 +163,7 @@ export function PrintableChecklist({ task, selectedProducts }: PrintableChecklis
               <tr>
                 <th style={{ width: '20%' }}>Service Provider</th>
                 <th style={{ width: '20%' }}>Product</th>
-                <th style={{ width: '25%' }}>Service Admin</th>
+                <th style={{ width: '25%' }}>Provider Admin</th>
                 <th className="print-checkbox-col">
                   {isOnboarding ? 'Assign' : 'Delete'}
                 </th>
