@@ -36,7 +36,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return;
       }
 
-      const userData = await fetchUserProfileAction();
+      const userData = await fetchUserProfileAction(token);
       // Transform to match User type (add assignedProductIds from assigned_services)
       const assignedProductIds = userData.assigned_services?.flatMap(
         (service) => service.products.map((product) => product.product_id)
@@ -125,6 +125,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         try {
           setLoading(true);
           // Backend will recognize Azure ID token and sync user automatically
+          // Don't pass token - let fetchWithToken get it from NextAuth session
           const userData = await fetchUserProfileAction();
           // Transform to match User type (add assignedProductIds from assigned_services)
           const assignedProductIds = userData.assigned_services?.flatMap(
@@ -193,7 +194,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       localStorage.setItem('access_token', response.accessToken);
       document.cookie = `access_token=${response.accessToken}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`;
       
-      const userData = await fetchUserProfileAction();
+      // Pass the token explicitly to the server action
+      const userData = await fetchUserProfileAction(response.accessToken);
       // Transform to match User type (add assignedProductIds from assigned_services)
       const assignedProductIds = userData.assigned_services?.flatMap(
         (service) => service.products.map((product) => product.product_id)

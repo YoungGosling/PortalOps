@@ -2,8 +2,8 @@
 
 import { fetchUserProfile } from "./fetcher";
 
-async function fetchUserProfileAction() {
-  return await fetchUserProfile();
+async function fetchUserProfileAction(token?: string) {
+  return await fetchUserProfile(token);
 }
 
 export { fetchUserProfileAction };
