@@ -15,19 +15,20 @@ router = APIRouter()
 def read_services(
     page: int = Query(1, ge=1),
     limit: int = Query(20, ge=1, le=100),
+    search: str = Query(None),
     current_user: User = Depends(require_any_admin_role),
     db: Session = Depends(get_db)
 ):
     """
     Retrieve services filtered by user permissions with their products.
-    Supports pagination.
+    Supports pagination and search by service name.
     """
     user_roles = get_user_roles(current_user.id, db)
     is_admin = "Admin" in user_roles
 
     skip = (page - 1) * limit
     services, total = service.get_services_for_user(
-        db, user_id=current_user.id, is_admin=is_admin, skip=skip, limit=limit)
+        db, user_id=current_user.id, is_admin=is_admin, skip=skip, limit=limit, search=search)
 
     return {
         "data": services,

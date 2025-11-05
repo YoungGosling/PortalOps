@@ -12,15 +12,21 @@ from datetime import date
 
 class CRUDProduct(CRUDBase[Product, ProductCreate, ProductUpdate]):
     def get_products_for_user(
-        self, db: Session, *, user_id: uuid.UUID, is_admin: bool = False, skip: int = 0, limit: int = 100
+        self, db: Session, *, user_id: uuid.UUID, is_admin: bool = False, skip: int = 0, limit: int = 100, search: Optional[str] = None
     ) -> tuple[List[Product], int]:
         """Get products filtered by user permissions.
+
+        Args:
+            search: Optional search string to filter by product name (case-insensitive)
 
         Returns:
             tuple: (list of products, total count)
         """
         if is_admin:
             query = db.query(Product).options(joinedload(Product.service))
+            # Apply search filter if provided
+            if search:
+                query = query.filter(Product.name.ilike(f"%{search}%"))
             total = query.count()
             products = query.offset(skip).limit(limit).all()
         else:
@@ -32,15 +38,21 @@ class CRUDProduct(CRUDBase[Product, ProductCreate, ProductUpdate]):
             ).filter(
                 PermissionAssignment.user_id == user_id
             )
+            # Apply search filter if provided
+            if search:
+                query = query.filter(Product.name.ilike(f"%{search}%"))
             total = query.count()
             products = query.offset(skip).limit(limit).all()
 
         return products, total
 
     def get_by_service(
-        self, db: Session, *, service_id: uuid.UUID, user_id: uuid.UUID, is_admin: bool = False, skip: int = 0, limit: int = 100
+        self, db: Session, *, service_id: uuid.UUID, user_id: uuid.UUID, is_admin: bool = False, skip: int = 0, limit: int = 100, search: Optional[str] = None
     ) -> tuple[List[Product], int]:
         """Get products by service, filtered by user permissions.
+
+        Args:
+            search: Optional search string to filter by product name (case-insensitive)
 
         Returns:
             tuple: (list of products, total count)
@@ -49,6 +61,9 @@ class CRUDProduct(CRUDBase[Product, ProductCreate, ProductUpdate]):
             query = db.query(Product).options(
                 joinedload(Product.service)
             ).filter(Product.service_id == service_id)
+            # Apply search filter if provided
+            if search:
+                query = query.filter(Product.name.ilike(f"%{search}%"))
             total = query.count()
             products = query.offset(skip).limit(limit).all()
         else:
@@ -61,6 +76,9 @@ class CRUDProduct(CRUDBase[Product, ProductCreate, ProductUpdate]):
                 Product.service_id == service_id,
                 PermissionAssignment.user_id == user_id
             )
+            # Apply search filter if provided
+            if search:
+                query = query.filter(Product.name.ilike(f"%{search}%"))
             total = query.count()
             products = query.offset(skip).limit(limit).all()
 

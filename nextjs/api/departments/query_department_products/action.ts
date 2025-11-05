@@ -9,3 +9,7 @@ async function fetchDepartmentProductsAction(departmentId: string) {
 export { fetchDepartmentProductsAction };
 
 
+
+
+
+

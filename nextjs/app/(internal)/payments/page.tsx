@@ -18,7 +18,7 @@ import {
 } from '@/components/ui/table';
 import { EditPaymentModal } from '@/components/payments/EditPaymentModal';
 import { DeletePaymentDialog } from '@/components/payments/DeletePaymentDialog';
-import { 
+import {
   CreditCard, 
   CheckCircle2, 
   AlertCircle, 
@@ -34,9 +34,12 @@ import {
   Plus,
   Trash2,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Search,
+  X
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { Input } from '@/components/ui/input';
 
 export default function PaymentsPage() {
   const [payments, setPayments] = useState<PaymentInfo[]>([]);
@@ -53,6 +56,7 @@ export default function PaymentsPage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletingPayment, setDeletingPayment] = useState<PaymentInfo | null>(null);
   const [dataLoaded, setDataLoaded] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -60,10 +64,10 @@ export default function PaymentsPage() {
   const [totalPayments, setTotalPayments] = useState(0);
   const [pageSize] = useState(20);
 
-  const fetchPayments = async (page: number = currentPage) => {
+  const fetchPayments = async (page: number = currentPage, search?: string) => {
     try {
       setLoading(true);
-      const response = await queryPaymentRegisterV2Action(page, pageSize);
+      const response = await queryPaymentRegisterV2Action(page, pageSize, search);
       
       // Transform camelCase API response to snake_case for PaymentInfo type
       const transformedData: PaymentInfo[] = response.data.map((item) => ({
@@ -125,7 +129,7 @@ export default function PaymentsPage() {
   const handlePageChange = (page: number) => {
     if (page < 1 || page > totalPages) return;
     setCurrentPage(page);
-    fetchPayments(page);
+    fetchPayments(page, searchQuery || undefined);
   };
 
   const handleEdit = (payment: PaymentInfo) => {
@@ -152,7 +156,14 @@ export default function PaymentsPage() {
   };
 
   const handleModalSuccess = () => {
-    fetchPayments();
+    fetchPayments(currentPage, searchQuery || undefined);
+  };
+
+  // Handle search
+  const handleSearch = (query: string) => {
+    setSearchQuery(query);
+    setCurrentPage(1); // Reset to page 1 when searching
+    fetchPayments(1, query || undefined);
   };
 
   return (
@@ -163,6 +174,25 @@ export default function PaymentsPage() {
           <p className="text-muted-foreground mt-0.5">
             {payments.length} {payments.length === 1 ? 'payment record' : 'payment records'} • {payments.filter(p => !p.is_complete).length} incomplete
           </p>
+        </div>
+        {/* Search Box */}
+        <div className="relative w-[300px]">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search by product..."
+            value={searchQuery}
+            onChange={(e) => handleSearch(e.target.value)}
+            className="pl-10 pr-10"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => handleSearch('')}
+              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+              aria-label="Clear search"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
         </div>
       </div>
 
@@ -176,9 +206,14 @@ export default function PaymentsPage() {
             <div className="p-4 rounded-full bg-green-50 dark:bg-green-950 mb-4">
               <CreditCard className="h-12 w-12 text-green-600 dark:text-green-400" />
             </div>
-            <h3 className="text-xl font-semibold mb-2">No payment records found</h3>
+            <h3 className="text-xl font-semibold mb-2">
+              {searchQuery ? 'No matching payment records found' : 'No payment records found'}
+            </h3>
             <p className="text-sm text-muted-foreground text-center max-w-md">
-              Payment records will appear here once products are created
+              {searchQuery
+                ? `No payment records match "${searchQuery}". Try a different search term.`
+                : 'Payment records will appear here once products are created'
+              }
             </p>
           </CardContent>
         </Card>

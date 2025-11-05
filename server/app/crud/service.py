@@ -92,9 +92,12 @@ class CRUDService(CRUDBase[Service, ServiceCreate, ServiceUpdate]):
         return False
 
     def get_services_for_user(
-        self, db: Session, *, user_id: uuid.UUID, is_admin: bool = False, skip: int = 0, limit: int = 100
+        self, db: Session, *, user_id: uuid.UUID, is_admin: bool = False, skip: int = 0, limit: int = 100, search: Optional[str] = None
     ) -> tuple[List, int]:
         """Get services filtered by user permissions with their products and admins.
+
+        Args:
+            search: Optional search string to filter by service name (case-insensitive)
 
         Returns:
             tuple: (list of service dicts, total count)
@@ -102,6 +105,9 @@ class CRUDService(CRUDBase[Service, ServiceCreate, ServiceUpdate]):
         if is_admin:
             # Admin can see all services
             query = db.query(Service)
+            # Apply search filter if provided
+            if search:
+                query = query.filter(Service.name.ilike(f"%{search}%"))
             total = query.count()
             services = query.offset(skip).limit(limit).all()
         else:
@@ -111,7 +117,11 @@ class CRUDService(CRUDBase[Service, ServiceCreate, ServiceUpdate]):
                 Service.id == PermissionAssignment.service_id
             ).filter(
                 PermissionAssignment.user_id == user_id
-            ).distinct()
+            )
+            # Apply search filter if provided
+            if search:
+                query = query.filter(Service.name.ilike(f"%{search}%"))
+            query = query.distinct()
             total = query.count()
             services = query.offset(skip).limit(limit).all()
 

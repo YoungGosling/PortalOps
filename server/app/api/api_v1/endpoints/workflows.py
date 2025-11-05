@@ -8,6 +8,7 @@ from app.db.database import get_db
 from app.crud import workflow_task, user, audit_log, department
 from app.core.deps import get_current_active_user, require_admin, verify_hr_webhook_key
 from app.core.config import settings
+from app.schemas import workflow as workflow_schema
 from app.schemas.workflow import WorkflowTask, WorkflowTaskUpdate, OnboardingWebhookRequest, ProductWithServiceAdmin
 from app.models.user import User
 from app.models.service import Product, Service
@@ -193,6 +194,7 @@ def hr_offboarding_webhook(
 @inbox_router.get("/tasks")
 def read_user_tasks(
     status: Optional[str] = Query(None),
+    search: Optional[str] = Query(None, description="Search by employee name"),
     page: int = Query(1, ge=1),
     limit: int = Query(20, ge=1, le=100),
     current_user: User = Depends(require_admin),
@@ -200,6 +202,7 @@ def read_user_tasks(
 ):
     """
     Get paginated list of workflow tasks. Returns pending tasks first.
+    Supports filtering by status and searching by employee name.
     """
     from app.models.workflow import WorkflowTask as WorkflowTaskModel
 
@@ -209,6 +212,11 @@ def read_user_tasks(
     # Filter by status if provided
     if status:
         query = query.filter(WorkflowTaskModel.status == status)
+
+    # Filter by employee name if search query provided (case-insensitive partial match)
+    if search:
+        query = query.filter(
+            WorkflowTaskModel.employee_name.ilike(f"%{search}%"))
 
     # Sort: pending first, then by created_at descending
     query = query.order_by(
@@ -496,6 +504,7 @@ async def download_task_attachment(
 @inbox_router.post("/tasks/{task_id}/complete", status_code=204)
 def complete_task(
     task_id: uuid.UUID,
+    request: Optional[workflow_schema.TaskCompleteRequest] = None,
     current_user: User = Depends(require_admin),
     db: Session = Depends(get_db)
 ):
@@ -580,7 +589,13 @@ def complete_task(
         )
 
     elif existing_task.type == "offboarding":
-        # For offboarding, delete the user
+        # Extract product IDs to remove from request
+        product_ids_to_remove = []
+        if request and request.product_ids_to_remove:
+            product_ids_to_remove = [
+                uuid.UUID(pid) for pid in request.product_ids_to_remove]
+
+        # For offboarding, handle partial or full removal
         if not existing_task.target_user_id:
             logger.warning(
                 f"Offboarding task {task_id} has no target_user_id, skipping user deletion but marking as complete")
@@ -590,16 +605,23 @@ def complete_task(
         else:
             target_user = user.get(db, existing_task.target_user_id)
             if target_user:
-                # IMPORTANT: Save product assignments snapshot BEFORE deleting user
-                # (permissions will be CASCADE deleted with the user)
+                # Get all current product assignments
                 permissions = db.query(PermissionAssignment).filter(
                     PermissionAssignment.user_id == existing_task.target_user_id,
                     PermissionAssignment.product_id.isnot(None)
                 ).all()
 
                 product_ids = [p.product_id for p in permissions]
-                product_assignments_snapshot = []
 
+                # Determine if this is full or partial offboarding
+                is_full_removal = (
+                    not product_ids_to_remove or
+                    len(product_ids_to_remove) == 0 or
+                    set(product_ids_to_remove) == set(product_ids)
+                )
+
+                # Save product assignments snapshot BEFORE any changes
+                product_assignments_snapshot = []
                 if product_ids:
                     products = db.query(Product).options(
                         joinedload(Product.service)
@@ -610,29 +632,91 @@ def complete_task(
                 logger.info(
                     f"Saved {len(product_assignments_snapshot)} product assignments for offboarding task {task_id}")
 
-                # Log before deletion (audit trail)
-                audit_log.log_action(
-                    db,
-                    actor_user_id=current_user.id,
-                    action="user.offboard",
-                    target_id=str(existing_task.target_user_id),
-                    details={
-                        "task_id": str(task_id),
-                        "email": target_user.email,
-                        "name": target_user.name,
-                        "department": existing_task.employee_department,
-                        "position": existing_task.employee_position,
-                        "hire_date": str(existing_task.employee_hire_date) if existing_task.employee_hire_date else None,
-                        "resignation_date": str(existing_task.employee_resignation_date) if existing_task.employee_resignation_date else None,
-                        "attachment": existing_task.attachment_path,
-                        "product_count": len(product_assignments_snapshot)
-                    }
-                )
+                if is_full_removal:
+                    # Full removal: delete the user entirely
+                    logger.info(
+                        f"Full offboarding: deleting user {existing_task.target_user_id}")
 
-                # Delete the user (CASCADE will handle related records)
-                user.remove(db, id=existing_task.target_user_id)
-                logger.info(
-                    f"User {existing_task.target_user_id} deleted successfully for offboarding task {task_id}")
+                    # Log before deletion (audit trail)
+                    audit_log.log_action(
+                        db,
+                        actor_user_id=current_user.id,
+                        action="user.offboard",
+                        target_id=str(existing_task.target_user_id),
+                        details={
+                            "task_id": str(task_id),
+                            "email": target_user.email,
+                            "name": target_user.name,
+                            "department": existing_task.employee_department,
+                            "position": existing_task.employee_position,
+                            "hire_date": str(existing_task.employee_hire_date) if existing_task.employee_hire_date else None,
+                            "resignation_date": str(existing_task.employee_resignation_date) if existing_task.employee_resignation_date else None,
+                            "attachment": existing_task.attachment_path,
+                            "product_count": len(product_assignments_snapshot),
+                            "removal_type": "full"
+                        }
+                    )
+
+                    # Delete the user (CASCADE will handle related records)
+                    user.remove(db, id=existing_task.target_user_id)
+                    logger.info(
+                        f"User {existing_task.target_user_id} deleted successfully for offboarding task {task_id}")
+                else:
+                    # Partial removal: mark as resigned and remove selected product permissions
+                    logger.info(
+                        f"Partial offboarding: removing {len(product_ids_to_remove)} products from user {existing_task.target_user_id}")
+
+                    # Set resignation date
+                    target_user.resignation_date = existing_task.employee_resignation_date
+                    db.commit()
+
+                    # Remove only the selected product permissions
+                    if product_ids_to_remove:
+                        db.query(PermissionAssignment).filter(
+                            PermissionAssignment.user_id == existing_task.target_user_id,
+                            PermissionAssignment.product_id.in_(
+                                product_ids_to_remove)
+                        ).delete(synchronize_session=False)
+                        db.commit()
+
+                    # IMPORTANT: For partial offboarding, save snapshot of REMAINING products only
+                    # (not all original products, so completed task shows what user still has access to)
+                    remaining_product_ids = [
+                        pid for pid in product_ids if pid not in product_ids_to_remove]
+                    product_assignments_snapshot = []
+
+                    if remaining_product_ids:
+                        remaining_products = db.query(Product).options(
+                            joinedload(Product.service)
+                        ).filter(Product.id.in_(remaining_product_ids)).all()
+                        product_assignments_snapshot = _build_product_list_with_admins(
+                            db, remaining_products)
+
+                    logger.info(
+                        f"Saved {len(product_assignments_snapshot)} remaining product assignments for partial offboarding task {task_id}")
+
+                    # Log partial offboarding
+                    audit_log.log_action(
+                        db,
+                        actor_user_id=current_user.id,
+                        action="user.offboard.partial",
+                        target_id=str(existing_task.target_user_id),
+                        details={
+                            "task_id": str(task_id),
+                            "email": target_user.email,
+                            "name": target_user.name,
+                            "department": existing_task.employee_department,
+                            "position": existing_task.employee_position,
+                            "resignation_date": str(existing_task.employee_resignation_date) if existing_task.employee_resignation_date else None,
+                            "attachment": existing_task.attachment_path,
+                            "products_removed_count": len(product_ids_to_remove),
+                            "products_remaining_count": len(remaining_product_ids),
+                            "removal_type": "partial"
+                        }
+                    )
+
+                    logger.info(
+                        f"User {existing_task.target_user_id} marked as resigned with {len(remaining_product_ids)} products remaining")
 
                 # Mark task as completed and save product assignments snapshot
                 workflow_task.update(db, db_obj=existing_task,

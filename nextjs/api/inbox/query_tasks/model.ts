@@ -3,6 +3,7 @@ import { WorkflowTask } from '@/types';
 // Query parameters
 export interface QueryTasksParams {
   status?: string;
+  search?: string;
   page?: number;
   limit?: number;
 }
@@ -16,5 +17,9 @@ export interface QueryTasksResponse {
     limit: number;
   };
 }
+
+
+
+
 
 

@@ -6,3 +6,7 @@ export const DeleteDepartmentResponseSchema = z.void();
 export type DeleteDepartmentResponse = z.infer<typeof DeleteDepartmentResponseSchema>;
 
 
+
+
+
+

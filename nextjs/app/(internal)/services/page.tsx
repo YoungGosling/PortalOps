@@ -16,8 +16,9 @@ import {
 } from '@/components/ui/table';
 import { ServiceFormDialog } from '@/components/services/ServiceFormDialog';
 import { DeleteServiceDialog } from '@/components/services/DeleteServiceDialog';
-import { Plus, Building, Loader2, Package, Edit2, Trash2, UserCog, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Plus, Building, Loader2, Package, Edit2, Trash2, UserCog, ChevronLeft, ChevronRight, Search, X } from 'lucide-react';
 import { toast } from 'sonner';
+import { Input } from '@/components/ui/input';
 
 export default function ServicesPage() {
   const [services, setServices] = useState<Service[]>([]);
@@ -27,6 +28,7 @@ export default function ServicesPage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletingService, setDeletingService] = useState<Service | null>(null);
   const [dataLoaded, setDataLoaded] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -34,10 +36,10 @@ export default function ServicesPage() {
   const [totalServices, setTotalServices] = useState(0);
   const [pageSize] = useState(20);
 
-  const fetchServices = async (page: number = currentPage) => {
+  const fetchServices = async (page: number = currentPage, search?: string) => {
     try {
       setLoading(true);
-      const response = await fetchQueryServicesAction(page, pageSize);
+      const response = await fetchQueryServicesAction(page, pageSize, search);
       // Transform response to match expected format
       const services: Service[] = response.data.map(s => ({
         id: s.id,
@@ -72,7 +74,7 @@ export default function ServicesPage() {
   const handlePageChange = (page: number) => {
     if (page < 1 || page > totalPages) return;
     setCurrentPage(page);
-    fetchServices(page);
+    fetchServices(page, searchQuery || undefined);
   };
 
   // Handle add service
@@ -95,7 +97,14 @@ export default function ServicesPage() {
 
   // Handle dialog success
   const handleDialogSuccess = () => {
-    fetchServices();
+    fetchServices(currentPage, searchQuery || undefined);
+  };
+
+  // Handle search
+  const handleSearch = (query: string) => {
+    setSearchQuery(query);
+    setCurrentPage(1); // Reset to page 1 when searching
+    fetchServices(1, query || undefined);
   };
 
   return (
@@ -108,10 +117,31 @@ export default function ServicesPage() {
             {totalServices > 0 ? `${totalServices} ${totalServices === 1 ? 'service' : 'services'} in directory` : 'No services in directory'}
           </p>
         </div>
-        <Button onClick={handleAddService} size="default" className="gap-2">
-          <Plus className="h-4 w-4" />
-          Add Service
-        </Button>
+        <div className="flex items-center gap-3">
+          {/* Search Box */}
+          <div className="relative w-[300px]">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search services..."
+              value={searchQuery}
+              onChange={(e) => handleSearch(e.target.value)}
+              className="pl-10 pr-10"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => handleSearch('')}
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                aria-label="Clear search"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+          <Button onClick={handleAddService} size="default" className="gap-2">
+            <Plus className="h-4 w-4" />
+            Add Service
+          </Button>
+        </div>
       </div>
 
       {loading ? (
@@ -124,9 +154,14 @@ export default function ServicesPage() {
             <div className="p-4 rounded-full bg-blue-50 dark:bg-blue-950 mb-4">
               <Building className="h-12 w-12 text-blue-600 dark:text-blue-400" />
             </div>
-            <h3 className="text-xl font-semibold mb-2">No services found</h3>
+            <h3 className="text-xl font-semibold mb-2">
+              {searchQuery ? 'No matching services found' : 'No services found'}
+            </h3>
             <p className="text-sm text-muted-foreground text-center max-w-md mb-6">
-              Get started by creating your first enterprise service. Services help you organize and manage products across your organization.
+              {searchQuery 
+                ? `No services match "${searchQuery}". Try a different search term.`
+                : 'Get started by creating your first enterprise service. Services help you organize and manage products across your organization.'
+              }
             </p>
             <Button onClick={handleAddService} size="lg" className="gap-2">
               <Plus className="h-4 w-4" />

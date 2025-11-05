@@ -15,3 +15,7 @@ export const SetDepartmentProductsResponseSchema = z.object({
 export type SetDepartmentProductsResponse = z.infer<typeof SetDepartmentProductsResponseSchema>;
 
 
+
+
+
+

@@ -8,6 +8,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
   Table,
   TableBody,
   TableCell,
@@ -17,9 +24,10 @@ import {
 } from '@/components/ui/table';
 import { UserFormDialog } from '@/components/users/UserFormDialog';
 import { DeleteUserDialog } from '@/components/users/DeleteUserDialog';
-import { Plus, Users as UsersIcon, Pencil, Trash2, Mail, Briefcase, Shield, UserCircle2, Loader2, Building2, Calendar, User as UserIcon, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Plus, Users as UsersIcon, Pencil, Trash2, Mail, Briefcase, Shield, UserCircle2, Loader2, Building2, Calendar, User as UserIcon, ChevronLeft, ChevronRight, Search, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/providers/auth-provider';
+import { Input } from '@/components/ui/input';
 
 export default function UsersPage() {
   const { isAdmin } = useAuth();
@@ -31,6 +39,12 @@ export default function UsersPage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletingUser, setDeletingUser] = useState<User | null>(null);
   const [dataLoaded, setDataLoaded] = useState(false); // Track if data has been loaded
+  const [searchQuery, setSearchQuery] = useState('');
+  const [productsDialogOpen, setProductsDialogOpen] = useState(false);
+  const [selectedUserProducts, setSelectedUserProducts] = useState<{
+    userName: string;
+    products: Product[];
+  } | null>(null);
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -38,10 +52,10 @@ export default function UsersPage() {
   const [totalUsers, setTotalUsers] = useState(0);
   const [pageSize] = useState(20); // Users per page
 
-  const fetchUsers = async (page: number = currentPage) => {
+  const fetchUsers = async (page: number = currentPage, search?: string) => {
     try {
       setLoading(true);
-      const response = await fetchListUserAction(undefined, undefined, page, pageSize);
+      const response = await fetchListUserAction(search, undefined, page, pageSize);
       // Convert null values to undefined to match User type
       const users: User[] = response.data.map(user => ({
         ...user,
@@ -113,14 +127,14 @@ export default function UsersPage() {
 
   // Handle dialog success
   const handleDialogSuccess = () => {
-    fetchUsers(currentPage);
+    fetchUsers(currentPage, searchQuery || undefined);
   };
 
   // Handle page change
   const handlePageChange = (newPage: number) => {
     if (newPage >= 1 && newPage <= totalPages) {
       setCurrentPage(newPage);
-      fetchUsers(newPage);
+      fetchUsers(newPage, searchQuery || undefined);
     }
   };
 
@@ -130,6 +144,22 @@ export default function UsersPage() {
       return [];
     }
     return products.filter(product => user.assignedProductIds.includes(product.id));
+  };
+
+  // Handle search
+  const handleSearch = (query: string) => {
+    setSearchQuery(query);
+    setCurrentPage(1); // Reset to page 1 when searching
+    fetchUsers(1, query || undefined);
+  };
+
+  // Handle showing all products for a user
+  const handleShowAllProducts = (user: User, userProducts: Product[]) => {
+    setSelectedUserProducts({
+      userName: user.name,
+      products: userProducts,
+    });
+    setProductsDialogOpen(true);
   };
 
   if (!isAdmin()) {
@@ -166,10 +196,31 @@ export default function UsersPage() {
             {totalUsers > 0 ? `${totalUsers} ${totalUsers === 1 ? 'employee' : 'employees'} in directory` : 'No employees in directory'}
           </p>
         </div>
-        <Button onClick={handleAddUser} size="default" className="gap-2">
-          <Plus className="h-4 w-4" />
-          Add User
-        </Button>
+        <div className="flex items-center gap-3">
+          {/* Search Box */}
+          <div className="relative w-[300px]">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search employees..."
+              value={searchQuery}
+              onChange={(e) => handleSearch(e.target.value)}
+              className="pl-10 pr-10"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => handleSearch('')}
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                aria-label="Clear search"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+          <Button onClick={handleAddUser} size="default" className="gap-2">
+            <Plus className="h-4 w-4" />
+            Add User
+          </Button>
+        </div>
       </div>
 
       {loading ? (
@@ -182,9 +233,14 @@ export default function UsersPage() {
             <div className="p-4 rounded-full bg-purple-50 dark:bg-purple-950 mb-4">
               <UsersIcon className="h-12 w-12 text-purple-600 dark:text-purple-400" />
             </div>
-            <h3 className="text-xl font-semibold mb-2">No users found</h3>
+            <h3 className="text-xl font-semibold mb-2">
+              {searchQuery ? 'No matching employees found' : 'No users found'}
+            </h3>
             <p className="text-sm text-muted-foreground text-center max-w-md mb-6">
-              Get started by creating your first user account. Users can be assigned roles and access to specific services.
+              {searchQuery
+                ? `No employees match "${searchQuery}". Try a different search term.`
+                : 'Get started by creating your first user account. Users can be assigned roles and access to specific services.'
+              }
             </p>
             <Button onClick={handleAddUser} size="lg" className="gap-2">
               <Plus className="h-4 w-4" />
@@ -230,6 +286,11 @@ export default function UsersPage() {
                                 <Badge className="bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400 border-0 px-2 py-0.5 gap-1">
                                   <Shield className="h-3 w-3" />
                                   <span className="text-xs font-medium">Admin</span>
+                                </Badge>
+                              )}
+                              {user.resignation_date && (
+                                <Badge variant="secondary" className="px-2 py-0.5">
+                                  <span className="text-xs font-medium">Resigned ({user.resignation_date})</span>
                                 </Badge>
                               )}
                             </div>
@@ -300,12 +361,14 @@ export default function UsersPage() {
                                 </Badge>
                               ))}
                               {userProducts.length > 2 && (
-                                <Badge
+                                <Button
                                   variant="outline"
-                                  className="text-xs bg-muted"
+                                  size="sm"
+                                  className="h-6 px-2 text-xs bg-muted hover:bg-muted/80"
+                                  onClick={() => handleShowAllProducts(user, userProducts)}
                                 >
-                                  +{userProducts.length - 2}
-                                </Badge>
+                                  +{userProducts.length - 2} more
+                                </Button>
                               )}
                             </div>
                           ) : (
@@ -418,6 +481,40 @@ export default function UsersPage() {
         user={deletingUser}
         onSuccess={handleDialogSuccess}
       />
+
+      {/* Products Dialog */}
+      <Dialog open={productsDialogOpen} onOpenChange={setProductsDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <UserCircle2 className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+              {selectedUserProducts?.userName}'s Products
+            </DialogTitle>
+            <DialogDescription>
+              All products assigned to this employee
+            </DialogDescription>
+          </DialogHeader>
+          <div className="mt-4">
+            {selectedUserProducts && selectedUserProducts.products.length > 0 ? (
+              <div className="flex flex-wrap gap-2 max-h-[400px] overflow-y-auto">
+                {selectedUserProducts.products.map((product) => (
+                  <Badge
+                    key={product.id}
+                    variant="outline"
+                    className="text-sm bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-400 border-green-200 px-3 py-1.5"
+                  >
+                    {product.name}
+                  </Badge>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                No products assigned
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

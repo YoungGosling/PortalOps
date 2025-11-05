@@ -37,10 +37,13 @@ import {
   RefreshCw,
   ChevronLeft,
   ChevronRight,
-  CheckCircle2
+  CheckCircle2,
+  Search,
+  X
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/providers/auth-provider';
+import { Input } from '@/components/ui/input';
 
 export default function InboxPage() {
   const { isAdmin } = useAuth();
@@ -52,6 +55,7 @@ export default function InboxPage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletingTask, setDeletingTask] = useState<WorkflowTask | null>(null);
   const [dataLoaded, setDataLoaded] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -59,10 +63,10 @@ export default function InboxPage() {
   const [totalTasks, setTotalTasks] = useState(0);
   const [pageSize] = useState(20);
 
-  const fetchTasks = async (page: number = currentPage) => {
+  const fetchTasks = async (page: number = currentPage, search?: string) => {
     try {
       setLoading(true);
-      const response = await queryTasksAction({ page, limit: pageSize });
+      const response = await queryTasksAction({ page, limit: pageSize, search });
       setTasks(response.data);
       setCurrentPage(response.pagination.page);
       setTotalTasks(response.pagination.total);
@@ -88,11 +92,18 @@ export default function InboxPage() {
   const handlePageChange = (page: number) => {
     if (page < 1 || page > totalPages) return;
     setCurrentPage(page);
-    fetchTasks(page);
+    fetchTasks(page, searchQuery || undefined);
   };
 
   const handleRefresh = () => {
-    fetchTasks(currentPage);
+    fetchTasks(currentPage, searchQuery || undefined);
+  };
+
+  const handleSearch = (query: string) => {
+    console.log('[Inbox handleSearch] Search query:', query);
+    setSearchQuery(query);
+    setCurrentPage(1);
+    fetchTasks(1, query || undefined);
   };
 
   const handleStartTask = (task: WorkflowTask) => {
@@ -163,10 +174,31 @@ export default function InboxPage() {
             {totalTasks > 0 ? `${totalTasks} ${totalTasks === 1 ? 'task' : 'tasks'} in inbox` : 'No tasks in inbox'}
           </p>
         </div>
-        <Button onClick={handleRefresh} variant="outline" size="default" className="gap-2">
-          <RefreshCw className="h-4 w-4" />
-          Refresh
-        </Button>
+        <div className="flex items-center gap-3">
+          {/* Search Box */}
+          <div className="relative w-[300px]">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search by employee name..."
+              value={searchQuery}
+              onChange={(e) => handleSearch(e.target.value)}
+              className="pl-10 pr-10"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => handleSearch('')}
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                aria-label="Clear search"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+          <Button onClick={handleRefresh} variant="outline" size="default" className="gap-2">
+            <RefreshCw className="h-4 w-4" />
+            Refresh
+          </Button>
+        </div>
       </div>
 
       {loading ? (
@@ -177,10 +209,14 @@ export default function InboxPage() {
         <Card className="border-0 shadow-sm">
           <CardContent className="flex flex-col items-center justify-center py-16">
             <InboxIcon className="h-16 w-16 text-muted-foreground mb-4" />
-            <h3 className="text-xl font-semibold mb-2">No tasks found</h3>
+            <h3 className="text-xl font-semibold mb-2">
+              {searchQuery ? 'No matching tasks found' : 'No tasks found'}
+            </h3>
             <p className="text-sm text-muted-foreground text-center max-w-md">
-              Workflow tasks will appear here when triggered by the HR system.
-              Onboarding and offboarding requests will be listed for your review.
+              {searchQuery
+                ? `No tasks match "${searchQuery}". Try a different search term.`
+                : 'Workflow tasks will appear here when triggered by the HR system. Onboarding and offboarding requests will be listed for your review.'
+              }
             </p>
           </CardContent>
         </Card>
@@ -219,7 +255,7 @@ export default function InboxPage() {
                                 <>
                                   <Clock className="h-4 w-4 text-orange-500" />
                                   <Badge variant="outline" className="text-orange-600 border-orange-600 text-xs">
-                                    Action Required
+                                    Pending
                                   </Badge>
                                 </>
                               ) : (

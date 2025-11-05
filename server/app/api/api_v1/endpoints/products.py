@@ -104,12 +104,13 @@ def get_products(
     serviceId: Optional[uuid.UUID] = None,
     page: int = Query(1, ge=1),
     limit: int = Query(20, ge=1, le=100),
+    search: str = Query(None),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """
     Get all products that the current user has access to.
-    Optionally filter by serviceId.
+    Optionally filter by serviceId and search by product name.
     Includes product status and latest payment information.
     Supports pagination.
     """
@@ -125,11 +126,11 @@ def get_products(
     skip = (page - 1) * limit
     if serviceId:
         products, total = crud_product.get_by_service(
-            db, service_id=serviceId, user_id=current_user.id, is_admin=is_admin, skip=skip, limit=limit
+            db, service_id=serviceId, user_id=current_user.id, is_admin=is_admin, skip=skip, limit=limit, search=search
         )
     else:
         products, total = crud_product.get_products_for_user(
-            db, user_id=current_user.id, is_admin=is_admin, skip=skip, limit=limit
+            db, user_id=current_user.id, is_admin=is_admin, skip=skip, limit=limit, search=search
         )
 
     # Add service_name, status, and latest payment info to each product

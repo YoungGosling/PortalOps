@@ -27,8 +27,9 @@ import {
 import { ProductFormDialog } from '@/components/products/ProductFormDialog';
 import { DeleteProductDialog } from '@/components/products/DeleteProductDialog';
 import { AddPaymentModal } from '@/components/payments/AddPaymentModal';
-import { Plus, Package, Filter, Loader2, Edit2, Trash2, Building, ChevronDown, ChevronUp, Calendar, DollarSign, Tag, Receipt, PlusCircle, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Plus, Package, Filter, Loader2, Edit2, Trash2, Building, ChevronDown, ChevronUp, Calendar, DollarSign, Tag, Receipt, PlusCircle, ChevronLeft, ChevronRight, Search, X } from 'lucide-react';
 import { toast } from 'sonner';
+import { Input } from '@/components/ui/input';
 
 export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -46,6 +47,7 @@ export default function ProductsPage() {
   const [addPaymentModalOpen, setAddPaymentModalOpen] = useState(false);
   const [addingPaymentForProduct, setAddingPaymentForProduct] = useState<Product | null>(null);
   const [dataLoaded, setDataLoaded] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -53,10 +55,10 @@ export default function ProductsPage() {
   const [totalProducts, setTotalProducts] = useState(0);
   const [pageSize] = useState(20);
 
-  const fetchProducts = async (serviceId?: string, page: number = currentPage) => {
+  const fetchProducts = async (serviceId?: string, page: number = currentPage, search?: string) => {
     try {
       setLoading(true);
-      const response = await queryProductsAction(serviceId, page, pageSize);
+      const response = await queryProductsAction(serviceId, page, pageSize, search);
       // Convert null to undefined for Product type compatibility
       const products: Product[] = response.products.map(p => ({
         ...p,
@@ -163,7 +165,7 @@ export default function ProductsPage() {
     if (page < 1 || page > totalPages) return;
     setCurrentPage(page);
     const serviceId = selectedServiceFilter === 'all' ? undefined : selectedServiceFilter;
-    fetchProducts(serviceId, page);
+    fetchProducts(serviceId, page, searchQuery || undefined);
   };
 
   // Handle service filter change
@@ -171,9 +173,9 @@ export default function ProductsPage() {
     setSelectedServiceFilter(value);
     setCurrentPage(1); // Reset to page 1 when filter changes
     if (value === 'all') {
-      fetchProducts(undefined, 1);
+      fetchProducts(undefined, 1, searchQuery || undefined);
     } else {
-      fetchProducts(value, 1);
+      fetchProducts(value, 1, searchQuery || undefined);
     }
   };
 
@@ -255,15 +257,20 @@ export default function ProductsPage() {
   // Handle dialog success
   const handleDialogSuccess = () => {
     // Re-fetch products based on current filter
-    if (selectedServiceFilter === 'all') {
-      fetchProducts();
-    } else {
-      fetchProducts(selectedServiceFilter);
-    }
+    const serviceId = selectedServiceFilter === 'all' ? undefined : selectedServiceFilter;
+    fetchProducts(serviceId, currentPage, searchQuery || undefined);
     // Also refresh services in case counts changed
     fetchServices();
     // Refresh payments to get latest payment info
     fetchPayments();
+  };
+
+  // Handle search
+  const handleSearch = (query: string) => {
+    setSearchQuery(query);
+    setCurrentPage(1); // Reset to page 1 when searching
+    const serviceId = selectedServiceFilter === 'all' ? undefined : selectedServiceFilter;
+    fetchProducts(serviceId, 1, query || undefined);
   };
 
   return (
@@ -276,10 +283,31 @@ export default function ProductsPage() {
             View and manage all products across services
           </p>
         </div>
-        <Button onClick={handleAddProduct} size="default" className="gap-2">
-          <Plus className="h-4 w-4" />
-          Add Product
-        </Button>
+        <div className="flex items-center gap-3">
+          {/* Search Box */}
+          <div className="relative w-[300px]">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search products..."
+              value={searchQuery}
+              onChange={(e) => handleSearch(e.target.value)}
+              className="pl-10 pr-10"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => handleSearch('')}
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                aria-label="Clear search"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+          <Button onClick={handleAddProduct} size="default" className="gap-2">
+            <Plus className="h-4 w-4" />
+            Add Product
+          </Button>
+        </div>
       </div>
 
       {/* Service Filter Card */}
@@ -321,11 +349,16 @@ export default function ProductsPage() {
             <div className="p-4 rounded-full bg-green-50 dark:bg-green-950 mb-4">
               <Package className="h-12 w-12 text-green-600 dark:text-green-400" />
             </div>
-            <h3 className="text-xl font-semibold mb-2">No products found</h3>
+            <h3 className="text-xl font-semibold mb-2">
+              {searchQuery ? 'No matching products found' : 'No products found'}
+            </h3>
             <p className="text-sm text-muted-foreground text-center max-w-md mb-6">
-              {selectedServiceFilter !== 'all' 
-                ? 'No products found for the selected service. Try selecting a different service or add a new product.'
-                : 'Get started by creating your first product and assigning it to a service'}
+              {searchQuery
+                ? `No products match "${searchQuery}". Try a different search term.`
+                : selectedServiceFilter !== 'all' 
+                  ? 'No products found for the selected service. Try selecting a different service or add a new product.'
+                  : 'Get started by creating your first product and assigning it to a service'
+              }
             </p>
             <Button onClick={handleAddProduct} size="lg" className="gap-2">
               <Plus className="h-4 w-4" />

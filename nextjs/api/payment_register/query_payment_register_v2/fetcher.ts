@@ -3,12 +3,16 @@ import { fetchWithToken } from "@/lib/utils";
 
 export async function queryPaymentRegisterV2(
   page: number = 1,
-  limit: number = 20
+  limit: number = 20,
+  search?: string
 ) {
   try {
     const params = new URLSearchParams();
     params.append("page", page.toString());
     params.append("limit", limit.toString());
+    if (search) {
+      params.append("search", search);
+    }
 
     const response = await fetchWithToken(
       `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v2/payment-register?${params.toString()}`,
@@ -38,5 +42,9 @@ export async function queryPaymentRegisterV2(
     };
   }
 }
+
+
+
+
 
 

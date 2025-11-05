@@ -1,10 +1,15 @@
 import { QueryServicesResponseSchema } from "./model";
 import { fetchWithToken } from "@/lib/utils";
 
-export async function fetchQueryServices(page: number = 1, limit: number = 20) {
+export async function fetchQueryServices(page: number = 1, limit: number = 20, search?: string) {
   try {
+    const params = new URLSearchParams();
+    params.append("page", page.toString());
+    params.append("limit", limit.toString());
+    if (search) params.append("search", search);
+
     const response = await fetchWithToken(
-      `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/services?page=${page}&limit=${limit}`,
+      `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/services?${params.toString()}`,
       {
         method: "GET",
         headers: {

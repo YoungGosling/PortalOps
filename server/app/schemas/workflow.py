@@ -4,6 +4,11 @@ from datetime import datetime, date
 import uuid
 
 
+class TaskCompleteRequest(BaseModel):
+    """Request body for completing a task with optional product removal list"""
+    product_ids_to_remove: Optional[List[str]] = None
+
+
 class WorkflowTaskBase(BaseModel):
     type: str
     status: str = "pending"

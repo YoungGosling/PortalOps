@@ -23,6 +23,7 @@ os.makedirs(STORAGE_DIR, exist_ok=True)
 def read_payment_register_v2(
     page: int = Query(1, ge=1),
     limit: int = Query(20, ge=1, le=10000),
+    search: str = Query(None),
     current_user: User = Depends(require_admin),
     db: Session = Depends(get_db)
 ):
@@ -30,12 +31,12 @@ def read_payment_register_v2(
     Retrieve all payment records for all products for the payment register v2.
     Returns a flat list where each payment record is a separate item.
     Multiple payments for the same product will appear as multiple items.
-    Supports pagination.
+    Supports pagination and search by product name.
     """
     # Get all payment records (one-to-many: multiple payments per product)
     skip = (page - 1) * limit
     payment_register_data, total = payment_info.get_payment_register(
-        db, skip=skip, limit=limit)
+        db, skip=skip, limit=limit, search=search)
 
     # Enhance each item with invoice information
     for item in payment_register_data:

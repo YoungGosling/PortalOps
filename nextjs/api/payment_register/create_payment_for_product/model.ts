@@ -21,3 +21,7 @@ export type CreatePaymentForProductRequest = z.infer<typeof CreatePaymentForProd
 export type CreatePaymentForProductResponse = z.infer<typeof CreatePaymentForProductResponseSchema>;
 
 
+
+
+
+

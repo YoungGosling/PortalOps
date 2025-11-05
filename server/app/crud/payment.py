@@ -47,12 +47,15 @@ class CRUDPaymentInfo(CRUDBase[PaymentInfo, PaymentInfoCreate, PaymentInfoUpdate
         db.refresh(db_obj)
         return db_obj
 
-    def get_payment_register(self, db: Session, skip: int = 0, limit: int = 100) -> tuple[List[dict], int]:
+    def get_payment_register(self, db: Session, skip: int = 0, limit: int = 100, search: Optional[str] = None) -> tuple[List[dict], int]:
         """Get all payment records for all products for the payment register (one-to-many).
 
         Returns a flat list where each payment record is a separate item.
         Multiple payments for the same product will appear as multiple items.
         Includes orphaned payment records (where product_id is NULL due to product deletion).
+
+        Args:
+            search: Optional search string to filter by product name (case-insensitive)
 
         Returns:
             tuple: (list of payment records, total count)
@@ -68,6 +71,10 @@ class CRUDPaymentInfo(CRUDBase[PaymentInfo, PaymentInfoCreate, PaymentInfoUpdate
         ).outerjoin(
             ProductStatus, Product.status_id == ProductStatus.id
         )
+
+        # Apply search filter if provided
+        if search:
+            base_query = base_query.filter(Product.name.ilike(f"%{search}%"))
 
         # Get total count
         total = base_query.count()

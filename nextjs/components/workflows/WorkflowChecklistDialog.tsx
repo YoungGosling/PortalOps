@@ -46,6 +46,7 @@ export function WorkflowChecklistDialog({
   const [loading, setLoading] = useState(false);
   const [taskDetails, setTaskDetails] = useState<WorkflowTask | null>(null);
   const [selectedProductIds, setSelectedProductIds] = useState<string[]>([]);
+  const [selectedProductIdsToRemove, setSelectedProductIdsToRemove] = useState<Set<string>>(new Set());
   const [attachmentFile, setAttachmentFile] = useState<File | null>(null);
   const [isPrinting, setIsPrinting] = useState(false);
   const [showProductSelector, setShowProductSelector] = useState(false);
@@ -70,6 +71,7 @@ export function WorkflowChecklistDialog({
     } else {
       setTaskDetails(null);
       setSelectedProductIds([]);
+      setSelectedProductIdsToRemove(new Set());
       setAttachmentFile(null);
       setShowProductSelector(false);
       setServices([]);
@@ -95,9 +97,11 @@ export function WorkflowChecklistDialog({
         setSelectedProductIds(details.assigned_products.map(p => p.product_id));
       }
       
-      // For offboarding, log the assigned products
+      // For offboarding, initialize selectedProductIdsToRemove with all products (default: full removal)
       if (details.type === 'offboarding' && details.assigned_products) {
         console.log('Offboarding assigned products:', details.assigned_products);
+        const allProductIds = details.assigned_products.map(p => p.product_id);
+        setSelectedProductIdsToRemove(new Set(allProductIds));
       }
     } catch (error: any) {
       console.error('Failed to fetch task details:', error);
@@ -162,6 +166,35 @@ export function WorkflowChecklistDialog({
         ? prev.filter(id => id !== productId)
         : [...prev, productId]
     );
+  };
+
+  // Toggle product removal checkbox for offboarding
+  const handleProductRemovalToggle = (productId: string) => {
+    setSelectedProductIdsToRemove(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(productId)) {
+        newSet.delete(productId);
+      } else {
+        newSet.add(productId);
+      }
+      return newSet;
+    });
+  };
+
+  // Toggle all products for removal (select all / deselect all)
+  const handleToggleAllProductsRemoval = () => {
+    if (!taskDetails?.assigned_products) return;
+    
+    const allProductIds = taskDetails.assigned_products.map(p => p.product_id);
+    const allSelected = allProductIds.every(id => selectedProductIdsToRemove.has(id));
+    
+    if (allSelected) {
+      // Deselect all
+      setSelectedProductIdsToRemove(new Set());
+    } else {
+      // Select all
+      setSelectedProductIdsToRemove(new Set(allProductIds));
+    }
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -328,9 +361,16 @@ export function WorkflowChecklistDialog({
           throw taskError;
         }
       } else if (isOffboarding) {
-        // For offboarding, complete the task (user will be deleted by backend)
-        await completeTaskAction(taskDetails.id);
-        toast.success('Offboarding completed successfully - user has been removed');
+        // For offboarding, complete the task with selected products to remove
+        const productsToRemove = Array.from(selectedProductIdsToRemove);
+        await completeTaskAction(taskDetails.id, productsToRemove);
+        
+        // Show different success message based on whether it's full or partial offboarding
+        if (selectedProductIdsToRemove.size === taskDetails.assigned_products?.length) {
+          toast.success('Offboarding completed successfully - user has been removed');
+        } else {
+          toast.success('Offboarding completed - user marked as resigned with remaining products');
+        }
       }
       
       // Only close dialog and refresh if everything succeeded
@@ -465,6 +505,15 @@ export function WorkflowChecklistDialog({
                               <th className="text-left p-2">Service Provider</th>
                               <th className="text-left p-2">Product</th>
                               <th className="text-left p-2">Service Admin</th>
+                              {isOffboarding && !readOnly && (
+                                <th className="text-center p-2 w-[60px]">
+                                  <Checkbox
+                                    checked={taskDetails?.assigned_products?.length ? 
+                                      taskDetails.assigned_products.every(p => selectedProductIdsToRemove.has(p.product_id)) : false}
+                                    onCheckedChange={handleToggleAllProductsRemoval}
+                                  />
+                                </th>
+                              )}
                             </tr>
                           </thead>
                           <tbody>
@@ -501,11 +550,38 @@ export function WorkflowChecklistDialog({
                                       ? product.service_admins.map(a => a.name).join(' / ')
                                       : 'N/A'}
                                   </td>
+                                  {!readOnly && (
+                                    <td className="p-2 text-center">
+                                      <Checkbox
+                                        checked={selectedProductIdsToRemove.has(product.product_id)}
+                                        onCheckedChange={() => handleProductRemovalToggle(product.product_id)}
+                                      />
+                                    </td>
+                                  )}
                                 </tr>
                               ))
                             )}
                           </tbody>
                         </table>
+                      </div>
+                    )}
+                    
+                    {/* Warning message for offboarding */}
+                    {isOffboarding && !readOnly && taskDetails?.assigned_products && taskDetails.assigned_products.length > 0 && (
+                      <div className="mt-4">
+                        {selectedProductIdsToRemove.size === taskDetails.assigned_products.length ? (
+                          <div className="flex items-start gap-2 p-3 bg-yellow-50 border border-yellow-200 rounded-md dark:bg-yellow-950/20 dark:border-yellow-900">
+                            <div className="text-yellow-700 dark:text-yellow-300 text-sm">
+                              <strong>Warning:</strong> This employee will be completely removed from the system
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="flex items-start gap-2 p-3 bg-blue-50 border border-blue-200 rounded-md dark:bg-blue-950/20 dark:border-blue-900">
+                            <div className="text-blue-700 dark:text-blue-300 text-sm">
+                              <strong>Note:</strong> This employee will be marked as resigned but remain in the system with unchecked products
+                            </div>
+                          </div>
+                        )}
                       </div>
                     )}
                   </>
