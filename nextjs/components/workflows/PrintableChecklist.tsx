@@ -15,7 +15,7 @@ export function PrintableChecklist({ task, selectedProducts }: PrintableChecklis
 
   return (
     <div className="print-checklist">
-      <style jsx global>{`
+      <style dangerouslySetInnerHTML={{__html: `
         @media print {
           body * {
             visibility: hidden;
@@ -114,7 +114,7 @@ export function PrintableChecklist({ task, selectedProducts }: PrintableChecklis
             margin: 15mm;
           }
         }
-      `}</style>
+      `}} />
 
       <div className="print-header">
         <h1 className="print-title">PortalOps - Enterprise Service Management</h1>

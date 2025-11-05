@@ -1,0 +1,5515 @@
+{
+  openapi 3.1.0,
+  info {
+    title PortalOps,
+    description Enterprise Portal Operations Management System,
+    version 1.0.0
+  },
+  paths {
+    health {
+      get {
+        summary Health Check,
+        description Health check endpoint.,
+        operationId health_check_health_get,
+        responses {
+          200 {
+            description Successful Response,
+            content {
+              applicationjson {
+                schema {
+
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    apiauthlogin {
+      post {
+        tags [
+          authentication
+        ],
+        summary Login,
+        description OAuth2 compatible token login, get an access token for future requests.,
+        operationId login_api_auth_login_post,
+        requestBody {
+          content {
+            applicationjson {
+              schema {
+                $ref #componentsschemasLoginRequest
+              }
+            }
+          },
+          required true
+        },
+        responses {
+          200 {
+            description Successful Response,
+            content {
+              applicationjson {
+                schema {
+                  $ref #componentsschemasToken
+                }
+              }
+            }
+          },
+          422 {
+            description Validation Error,
+            content {
+              applicationjson {
+                schema {
+                  $ref #componentsschemasHTTPValidationError
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    apiauthme {
+      get {
+        tags [
+          authentication
+        ],
+        summary Read Users Me,
+        description Get current user profile with roles and assigned services (v2).,
+        operationId read_users_me_api_auth_me_get,
+        responses {
+          200 {
+            description Successful Response,
+            content {
+              applicationjson {
+                schema {
+
+                }
+              }
+            }
+          }
+        },
+        security [
+          {
+            HTTPBearer []
+          }
+        ]
+      }
+    },
+    apidashboardstats {
+      get {
+        tags [
+          dashboard
+        ],
+        summary Get Dashboard Stats,
+        description Get dashboard statistics including total services, products, users, total amount, and incomplete payments.,
+        operationId get_dashboard_stats_api_dashboard_stats_get,
+        responses {
+          200 {
+            description Successful Response,
+            content {
+              applicationjson {
+                schema {
+
+                }
+              }
+            }
+          }
+        },
+        security [
+          {
+            HTTPBearer []
+          }
+        ]
+      }
+    },
+    apidashboardrecent-activities {
+      get {
+        tags [
+          dashboard
+        ],
+        summary Get Recent Activities,
+        description Get recent activity logs from audit_logs table.nReturns recent activities like user creation, workflow tasks, paymentproduct updates, etc.,
+        operationId get_recent_activities_api_dashboard_recent_activities_get,
+        security [
+          {
+            HTTPBearer []
+          }
+        ],
+        parameters [
+          {
+            name limit,
+            in query,
+            required false,
+            schema {
+              type integer,
+              maximum 100,
+              minimum 1,
+              default 10,
+              title Limit
+            }
+          }
+        ],
+        responses {
+          200 {
+            description Successful Response,
+            content {
+              applicationjson {
+                schema {
+
+                }
+              }
+            }
+          },
+          422 {
+            description Validation Error,
+            content {
+              applicationjson {
+                schema {
+                  $ref #componentsschemasHTTPValidationError
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    apidashboardupcoming-renewals {
+      get {
+        tags [
+          dashboard
+        ],
+        summary Get Upcoming Renewals,
+        description Get upcoming payment renewals - products with expiry dates closest to today.nReturns products sorted by expiry_date (earliest first).nUses the latest payment record for each product.,
+        operationId get_upcoming_renewals_api_dashboard_upcoming_renewals_get,
+        security [
+          {
+            HTTPBearer []
+          }
+        ],
+        parameters [
+          {
+            name limit,
+            in query,
+            required false,
+            schema {
+              type integer,
+              maximum 10,
+              minimum 1,
+              default 3,
+              title Limit
+            }
+          }
+        ],
+        responses {
+          200 {
+            description Successful Response,
+            content {
+              applicationjson {
+                schema {
+
+                }
+              }
+            }
+          },
+          422 {
+            description Validation Error,
+            content {
+              applicationjson {
+                schema {
+                  $ref #componentsschemasHTTPValidationError
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    apidashboardpending-tasks-count {
+      get {
+        tags [
+          dashboard
+        ],
+        summary Get Pending Tasks Count,
+        description Get count of pending workflow tasks (onboardingoffboarding).nFor admin users, returns the total count of all pending tasks (visible to all admins).nFor non-admin users, returns 0.,
+        operationId get_pending_tasks_count_api_dashboard_pending_tasks_count_get,
+        responses {
+          200 {
+            description Successful Response,
+            content {
+              applicationjson {
+                schema {
+
+                }
+              }
+            }
+          }
+        },
+        security [
+          {
+            HTTPBearer []
+          }
+        ]
+      }
+    },
+    apiusers {
+      get {
+        tags [
+          users
+        ],
+        summary Read Users,
+        description Retrieve users with pagination and search.nOptionally filter by productId.,
+        operationId read_users_api_users_get,
+        security [
+          {
+            HTTPBearer []
+          }
+        ],
+        parameters [
+          {
+            name search,
+            in query,
+            required false,
+            schema {
+              anyOf [
+                {
+                  type string
+                },
+                {
+                  type null
+                }
+              ],
+              title Search
+            }
+          },
+          {
+            name productId,
+            in query,
+            required false,
+            schema {
+              anyOf [
+                {
+                  type string,
+                  format uuid
+                },
+                {
+                  type null
+                }
+              ],
+              title Productid
+            }
+          },
+          {
+            name page,
+            in query,
+            required false,
+            schema {
+              type integer,
+              minimum 1,
+              default 1,
+              title Page
+            }
+          },
+          {
+            name limit,
+            in query,
+            required false,
+            schema {
+              type integer,
+              maximum 100,
+              minimum 1,
+              default 20,
+              title Limit
+            }
+          }
+        ],
+        responses {
+          200 {
+            description Successful Response,
+            content {
+              applicationjson {
+                schema {
+                  type object,
+                  title Response Read Users Api Users Get
+                }
+              }
+            }
+          },
+          422 {
+            description Validation Error,
+            content {
+              applicationjson {
+                schema {
+                  $ref #componentsschemasHTTPValidationError
+                }
+              }
+            }
+          }
+        }
+      },
+      post {
+        tags [
+          users
+        ],
+        summary Create User,
+        description Create new user with optional role and product assignments.nv3 Auto-assign department products if department_id is provided.,
+        operationId create_user_api_users_post,
+        security [
+          {
+            HTTPBearer []
+          }
+        ],
+        requestBody {
+          required true,
+          content {
+            applicationjson {
+              schema {
+                $ref #componentsschemasUserCreate
+              }
+            }
+          }
+        },
+        responses {
+          200 {
+            description Successful Response,
+            content {
+              applicationjson {
+                schema {
+                  $ref #componentsschemasUser
+                }
+              }
+            }
+          },
+          422 {
+            description Validation Error,
+            content {
+              applicationjson {
+                schema {
+                  $ref #componentsschemasHTTPValidationError
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    apiusers{user_id}permissions {
+      put {
+        tags [
+          users
+        ],
+        summary Update User Permissions,
+        description Update user's roles and permissions.,
+        operationId update_user_permissions_api_users__user_id__permissions_put,
+        security [
+          {
+            HTTPBearer []
+          }
+        ],
+        parameters [
+          {
+            name user_id,
+            in path,
+            required true,
+            schema {
+              type string,
+              format uuid,
+              title User Id
+            }
+          }
+        ],
+        requestBody {
+          required true,
+          content {
+            applicationjson {
+              schema {
+                $ref #componentsschemasUserPermissionUpdate
+              }
+            }
+          }
+        },
+        responses {
+          204 {
+            description Successful Response
+          },
+          422 {
+            description Validation Error,
+            content {
+              applicationjson {
+                schema {
+                  $ref #componentsschemasHTTPValidationError
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    apiusers{user_id} {
+      get {
+        tags [
+          users
+        ],
+        summary Read User,
+        description Get user by ID.,
+        operationId read_user_api_users__user_id__get,
+        security [
+          {
+            HTTPBearer []
+          }
+        ],
+        parameters [
+          {
+            name user_id,
+            in path,
+            required true,
+            schema {
+              type string,
+              format uuid,
+              title User Id
+            }
+          }
+        ],
+        responses {
+          200 {
+            description Successful Response,
+            content {
+              applicationjson {
+                schema {
+                  $ref #componentsschemasUser
+                }
+              }
+            }
+          },
+          422 {
+            description Validation Error,
+            content {
+              applicationjson {
+                schema {
+                  $ref #componentsschemasHTTPValidationError
+                }
+              }
+            }
+          }
+        }
+      },
+      put {
+        tags [
+          users
+        ],
+        summary Update User,
+        description Update user (v2 - unified update including basic info and permissions).nv3 Auto-assign department products if department_id is changed.,
+        operationId update_user_api_users__user_id__put,
+        security [
+          {
+            HTTPBearer []
+          }
+        ],
+        parameters [
+          {
+            name user_id,
+            in path,
+            required true,
+            schema {
+              type string,
+              format uuid,
+              title User Id
+            }
+          }
+        ],
+        requestBody {
+          required true,
+          content {
+            applicationjson {
+              schema {
+                $ref #componentsschemasUserUpdateV2
+              }
+            }
+          }
+        },
+        responses {
+          200 {
+            description Successful Response,
+            content {
+              applicationjson {
+                schema {
+                  $ref #componentsschemasUser
+                }
+              }
+            }
+          },
+          422 {
+            description Validation Error,
+            content {
+              applicationjson {
+                schema {
+                  $ref #componentsschemasHTTPValidationError
+                }
+              }
+            }
+          }
+        }
+      },
+      delete {
+        tags [
+          users
+        ],
+        summary Delete User,
+        description Delete user.,
+        operationId delete_user_api_users__user_id__delete,
+        security [
+          {
+            HTTPBearer []
+          }
+        ],
+        parameters [
+          {
+            name user_id,
+            in path,
+            required true,
+            schema {
+              type string,
+              format uuid,
+              title User Id
+            }
+          }
+        ],
+        responses {
+          204 {
+            description Successful Response
+          },
+          422 {
+            description Validation Error,
+            content {
+              applicationjson {
+                schema {
+                  $ref #componentsschemasHTTPValidationError
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    apiservices {
+      get {
+        tags [
+          services
+        ],
+        summary Read Services,
+        description Retrieve services filtered by user permissions with their products.nSupports pagination.,
+        operationId read_services_api_services_get,
+        security [
+          {
+            HTTPBearer []
+          }
+        ],
+        parameters [
+          {
+            name page,
+            in query,
+            required false,
+            schema {
+              type integer,
+              minimum 1,
+              default 1,
+              title Page
+            }
+          },
+          {
+            name limit,
+            in query,
+            required false,
+            schema {
+              type integer,
+              maximum 100,
+              minimum 1,
+              default 20,
+              title Limit
+            }
+          }
+        ],
+        responses {
+          200 {
+            description Successful Response,
+            content {
+              applicationjson {
+                schema {
+                  type object,
+                  title Response Read Services Api Services Get
+                }
+              }
+            }
+          },
+          422 {
+            description Validation Error,
+            content {
+              applicationjson {
+                schema {
+                  $ref #componentsschemasHTTPValidationError
+                }
+              }
+            }
+          }
+        }
+      },
+      post {
+        tags [
+          services
+        ],
+        summary Create Service,
+        description Create new service and optionally associate products.,
+        operationId create_service_api_services_post,
+        security [
+          {
+            HTTPBearer []
+          }
+        ],
+        requestBody {
+          required true,
+          content {
+            applicationjson {
+              schema {
+                $ref #componentsschemasServiceCreate
+              }
+            }
+          }
+        },
+        responses {
+          201 {
+            description Successful Response,
+            content {
+              applicationjson {
+                schema {
+                  $ref #componentsschemasService
+                }
+              }
+            }
+          },
+          422 {
+            description Validation Error,
+            content {
+              applicationjson {
+                schema {
+                  $ref #componentsschemasHTTPValidationError
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    apiservices{service_id} {
+      get {
+        tags [
+          services
+        ],
+        summary Read Service,
+        description Get service by ID with products filtered by user permissions.,
+        operationId read_service_api_services__service_id__get,
+        security [
+          {
+            HTTPBearer []
+          }
+        ],
+        parameters [
+          {
+            name service_id,
+            in path,
+            required true,
+            schema {
+              type string,
+              format uuid,
+              title Service Id
+            }
+          }
+        ],
+        responses {
+          200 {
+            description Successful Response,
+            content {
+              applicationjson {
+                schema {
+                  $ref #componentsschemasServiceWithProducts
+                }
+              }
+            }
+          },
+          422 {
+            description Validation Error,
+            content {
+              applicationjson {
+                schema {
+                  $ref #componentsschemasHTTPValidationError
+                }
+              }
+            }
+          }
+        }
+      },
+      put {
+        tags [
+          services
+        ],
+        summary Update Service,
+        description Update service and manage product associations.,
+        operationId update_service_api_services__service_id__put,
+        security [
+          {
+            HTTPBearer []
+          }
+        ],
+        parameters [
+          {
+            name service_id,
+            in path,
+            required true,
+            schema {
+              type string,
+              format uuid,
+              title Service Id
+            }
+          }
+        ],
+        requestBody {
+          required true,
+          content {
+            applicationjson {
+              schema {
+                $ref #componentsschemasServiceUpdate
+              }
+            }
+          }
+        },
+        responses {
+          200 {
+            description Successful Response,
+            content {
+              applicationjson {
+                schema {
+                  $ref #componentsschemasService
+                }
+              }
+            }
+          },
+          422 {
+            description Validation Error,
+            content {
+              applicationjson {
+                schema {
+                  $ref #componentsschemasHTTPValidationError
+                }
+              }
+            }
+          }
+        }
+      },
+      delete {
+        tags [
+          services
+        ],
+        summary Delete Service,
+        description Delete service (non-destructive - products become unassociated).,
+        operationId delete_service_api_services__service_id__delete,
+        security [
+          {
+            HTTPBearer []
+          }
+        ],
+        parameters [
+          {
+            name service_id,
+            in path,
+            required true,
+            schema {
+              type string,
+              format uuid,
+              title Service Id
+            }
+          }
+        ],
+        responses {
+          204 {
+            description Successful Response
+          },
+          422 {
+            description Validation Error,
+            content {
+              applicationjson {
+                schema {
+                  $ref #componentsschemasHTTPValidationError
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    apiservices{service_id}products {
+      post {
+        tags [
+          services
+        ],
+        summary Create Product,
+        description Create new product for a service.,
+        operationId create_product_api_services__service_id__products_post,
+        security [
+          {
+            HTTPBearer []
+          }
+        ],
+        parameters [
+          {
+            name service_id,
+            in path,
+            required true,
+            schema {
+              type string,
+              format uuid,
+              title Service Id
+            }
+          }
+        ],
+        requestBody {
+          required true,
+          content {
+            applicationjson {
+              schema {
+                $ref #componentsschemasProductCreate
+              }
+            }
+          }
+        },
+        responses {
+          201 {
+            description Successful Response,
+            content {
+              applicationjson {
+                schema {
+                  $ref #componentsschemasProduct
+                }
+              }
+            }
+          },
+          422 {
+            description Validation Error,
+            content {
+              applicationjson {
+                schema {
+                  $ref #componentsschemasHTTPValidationError
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    apiservices{service_id}products{product_id} {
+      get {
+        tags [
+          services
+        ],
+        summary Read Product,
+        description Get product by ID.,
+        operationId read_product_api_services__service_id__products__product_id__get,
+        security [
+          {
+            HTTPBearer []
+          }
+        ],
+        parameters [
+          {
+            name service_id,
+            in path,
+            required true,
+            schema {
+              type string,
+              format uuid,
+              title Service Id
+            }
+          },
+          {
+            name product_id,
+            in path,
+            required true,
+            schema {
+              type string,
+              format uuid,
+              title Product Id
+            }
+          }
+        ],
+        responses {
+          200 {
+            description Successful Response,
+            content {
+              applicationjson {
+                schema {
+                  $ref #componentsschemasProduct
+                }
+              }
+            }
+          },
+          422 {
+            description Validation Error,
+            content {
+              applicationjson {
+                schema {
+                  $ref #componentsschemasHTTPValidationError
+                }
+              }
+            }
+          }
+        }
+      },
+      put {
+        tags [
+          services
+        ],
+        summary Update Product,
+        description Update product.,
+        operationId update_product_api_services__service_id__products__product_id__put,
+        security [
+          {
+            HTTPBearer []
+          }
+        ],
+        parameters [
+          {
+            name service_id,
+            in path,
+            required true,
+            schema {
+              type string,
+              format uuid,
+              title Service Id
+            }
+          },
+          {
+            name product_id,
+            in path,
+            required true,
+            schema {
+              type string,
+              format uuid,
+              title Product Id
+            }
+          }
+        ],
+        requestBody {
+          required true,
+          content {
+            applicationjson {
+              schema {
+                $ref #componentsschemasProductUpdate
+              }
+            }
+          }
+        },
+        responses {
+          200 {
+            description Successful Response,
+            content {
+              applicationjson {
+                schema {
+                  $ref #componentsschemasProduct
+                }
+              }
+            }
+          },
+          422 {
+            description Validation Error,
+            content {
+              applicationjson {
+                schema {
+                  $ref #componentsschemasHTTPValidationError
+                }
+              }
+            }
+          }
+        }
+      },
+      delete {
+        tags [
+          services
+        ],
+        summary Delete Product,
+        description Delete product.,
+        operationId delete_product_api_services__service_id__products__product_id__delete,
+        security [
+          {
+            HTTPBearer []
+          }
+        ],
+        parameters [
+          {
+            name service_id,
+            in path,
+            required true,
+            schema {
+              type string,
+              format uuid,
+              title Service Id
+            }
+          },
+          {
+            name product_id,
+            in path,
+            required true,
+            schema {
+              type string,
+              format uuid,
+              title Product Id
+            }
+          }
+        ],
+        responses {
+          204 {
+            description Successful Response
+          },
+          422 {
+            description Validation Error,
+            content {
+              applicationjson {
+                schema {
+                  $ref #componentsschemasHTTPValidationError
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    apiproducts {
+      post {
+        tags [
+          products
+        ],
+        summary Create Product,
+        description Create a new product. This will also create an associated incomplete billing record.nOnly Admin can create products.,
+        operationId create_product_api_products_post,
+        security [
+          {
+            HTTPBearer []
+          }
+        ],
+        requestBody {
+          required true,
+          content {
+            applicationjson {
+              schema {
+                $ref #componentsschemasProductCreateWithUrl
+              }
+            }
+          }
+        },
+        responses {
+          201 {
+            description Successful Response,
+            content {
+              applicationjson {
+                schema {
+                  $ref #componentsschemasProduct
+                }
+              }
+            }
+          },
+          422 {
+            description Validation Error,
+            content {
+              applicationjson {
+                schema {
+                  $ref #componentsschemasHTTPValidationError
+                }
+              }
+            }
+          }
+        }
+      },
+      get {
+        tags [
+          products
+        ],
+        summary Get Products,
+        description Get all products that the current user has access to.nOptionally filter by serviceId.nIncludes product status and latest payment information.nSupports pagination.,
+        operationId get_products_api_products_get,
+        security [
+          {
+            HTTPBearer []
+          }
+        ],
+        parameters [
+          {
+            name serviceId,
+            in query,
+            required false,
+            schema {
+              anyOf [
+                {
+                  type string,
+                  format uuid
+                },
+                {
+                  type null
+                }
+              ],
+              title Serviceid
+            }
+          },
+          {
+            name page,
+            in query,
+            required false,
+            schema {
+              type integer,
+              minimum 1,
+              default 1,
+              title Page
+            }
+          },
+          {
+            name limit,
+            in query,
+            required false,
+            schema {
+              type integer,
+              maximum 100,
+              minimum 1,
+              default 20,
+              title Limit
+            }
+          }
+        ],
+        responses {
+          200 {
+            description Successful Response,
+            content {
+              applicationjson {
+                schema {
+                  type object,
+                  title Response Get Products Api Products Get
+                }
+              }
+            }
+          },
+          422 {
+            description Validation Error,
+            content {
+              applicationjson {
+                schema {
+                  $ref #componentsschemasHTTPValidationError
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    apiproducts{product_id} {
+      put {
+        tags [
+          products
+        ],
+        summary Update Product,
+        description Update a product. Only Admin can update products.,
+        operationId update_product_api_products__product_id__put,
+        security [
+          {
+            HTTPBearer []
+          }
+        ],
+        parameters [
+          {
+            name product_id,
+            in path,
+            required true,
+            schema {
+              type string,
+              format uuid,
+              title Product Id
+            }
+          }
+        ],
+        requestBody {
+          required true,
+          content {
+            applicationjson {
+              schema {
+                $ref #componentsschemasProductCreateWithUrl
+              }
+            }
+          }
+        },
+        responses {
+          200 {
+            description Successful Response,
+            content {
+              applicationjson {
+                schema {
+                  $ref #componentsschemasProduct
+                }
+              }
+            }
+          },
+          422 {
+            description Validation Error,
+            content {
+              applicationjson {
+                schema {
+                  $ref #componentsschemasHTTPValidationError
+                }
+              }
+            }
+          }
+        }
+      },
+      delete {
+        tags [
+          products
+        ],
+        summary Delete Product,
+        description Delete a product safelyn- Only Admin can delete productsn- Only products with Inactive status can be deletedn- Payment records are preserved with product_id set to NULL and status set to 'error'n- Permission assignments and department assignments are CASCADE deleted,
+        operationId delete_product_api_products__product_id__delete,
+        security [
+          {
+            HTTPBearer []
+          }
+        ],
+        parameters [
+          {
+            name product_id,
+            in path,
+            required true,
+            schema {
+              type string,
+              format uuid,
+              title Product Id
+            }
+          }
+        ],
+        responses {
+          204 {
+            description Successful Response
+          },
+          422 {
+            description Validation Error,
+            content {
+              applicationjson {
+                schema {
+                  $ref #componentsschemasHTTPValidationError
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    apipayment-register {
+      get {
+        tags [
+          payment-register
+        ],
+        summary Read Payment Register,
+        description Retrieve all products with their payment info for the payment register.,
+        operationId read_payment_register_api_payment_register_get,
+        responses {
+          200 {
+            description Successful Response,
+            content {
+              applicationjson {
+                schema {
+                  items {
+                    $ref #componentsschemasPaymentRegisterItem
+                  },
+                  type array,
+                  title Response Read Payment Register Api Payment Register Get
+                }
+              }
+            }
+          }
+        },
+        security [
+          {
+            HTTPBearer []
+          }
+        ]
+      }
+    },
+    apipayment-registersummary {
+      get {
+        tags [
+          payment-register
+        ],
+        summary Read Payment Register Summary,
+        description Get summary of incomplete payment info for navigation badge.,
+        operationId read_payment_register_summary_api_payment_register_summary_get,
+        responses {
+          200 {
+            description Successful Response,
+            content {
+              applicationjson {
+                schema {
+                  $ref #componentsschemasPaymentRegisterSummary
+                }
+              }
+            }
+          }
+        },
+        security [
+          {
+            HTTPBearer []
+          }
+        ]
+      }
+    },
+    apipayment-register{product_id} {
+      put {
+        tags [
+          payment-register
+        ],
+        summary Update Payment Info,
+        description Update payment information for a product with file upload support.nCreates a new payment record or updates the latest one.,
+        operationId update_payment_info_api_payment_register__product_id__put,
+        security [
+          {
+            HTTPBearer []
+          }
+        ],
+        parameters [
+          {
+            name product_id,
+            in path,
+            required true,
+            schema {
+              type string,
+              format uuid,
+              title Product Id
+            }
+          }
+        ],
+        requestBody {
+          content {
+            multipartform-data {
+              schema {
+                allOf [
+                  {
+                    $ref #componentsschemasBody_update_payment_info_api_payment_register__product_id__put
+                  }
+                ],
+                title Body
+              }
+            }
+          }
+        },
+        responses {
+          204 {
+            description Successful Response
+          },
+          422 {
+            description Validation Error,
+            content {
+              applicationjson {
+                schema {
+                  $ref #componentsschemasHTTPValidationError
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    apiwebhookshronboarding {
+      post {
+        tags [
+          webhooks
+        ],
+        summary Hr Onboarding Webhook,
+        description Secure webhook for HR system to trigger onboarding workflow.nAccepts name, email, department, position, hireDatenCreates ONLY a task with employee metadata. No user record is created until admin completes the task.,
+        operationId hr_onboarding_webhook_api_webhooks_hr_onboarding_post,
+        parameters [
+          {
+            name x-api-key,
+            in header,
+            required false,
+            schema {
+              anyOf [
+                {
+                  type string
+                },
+                {
+                  type null
+                }
+              ],
+              title X-Api-Key
+            }
+          }
+        ],
+        requestBody {
+          required true,
+          content {
+            applicationjson {
+              schema {
+                $ref #componentsschemasOnboardingWebhookRequest
+              }
+            }
+          }
+        },
+        responses {
+          202 {
+            description Successful Response,
+            content {
+              applicationjson {
+                schema {
+
+                }
+              }
+            }
+          },
+          422 {
+            description Validation Error,
+            content {
+              applicationjson {
+                schema {
+                  $ref #componentsschemasHTTPValidationError
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    apiwebhookshroffboarding {
+      post {
+        tags [
+          webhooks
+        ],
+        summary Hr Offboarding Webhook,
+        description Secure webhook for HR system to trigger offboarding workflow.nAccepts name, email, resignationDatenCreates a task but does NOT delete the user. User is only deleted when admin completes the task.,
+        operationId hr_offboarding_webhook_api_webhooks_hr_offboarding_post,
+        parameters [
+          {
+            name x-api-key,
+            in header,
+            required false,
+            schema {
+              anyOf [
+                {
+                  type string
+                },
+                {
+                  type null
+                }
+              ],
+              title X-Api-Key
+            }
+          }
+        ],
+        requestBody {
+          required true,
+          content {
+            applicationjson {
+              schema {
+                $ref #componentsschemasOnboardingWebhookRequest
+              }
+            }
+          }
+        },
+        responses {
+          202 {
+            description Successful Response,
+            content {
+              applicationjson {
+                schema {
+
+                }
+              }
+            }
+          },
+          422 {
+            description Validation Error,
+            content {
+              applicationjson {
+                schema {
+                  $ref #componentsschemasHTTPValidationError
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    apiinboxtasks {
+      get {
+        tags [
+          inbox
+        ],
+        summary Read User Tasks,
+        description Get paginated list of workflow tasks. Returns pending tasks first.,
+        operationId read_user_tasks_api_inbox_tasks_get,
+        security [
+          {
+            HTTPBearer []
+          }
+        ],
+        parameters [
+          {
+            name status,
+            in query,
+            required false,
+            schema {
+              anyOf [
+                {
+                  type string
+                },
+                {
+                  type null
+                }
+              ],
+              title Status
+            }
+          },
+          {
+            name page,
+            in query,
+            required false,
+            schema {
+              type integer,
+              minimum 1,
+              default 1,
+              title Page
+            }
+          },
+          {
+            name limit,
+            in query,
+            required false,
+            schema {
+              type integer,
+              maximum 100,
+              minimum 1,
+              default 20,
+              title Limit
+            }
+          }
+        ],
+        responses {
+          200 {
+            description Successful Response,
+            content {
+              applicationjson {
+                schema {
+
+                }
+              }
+            }
+          },
+          422 {
+            description Validation Error,
+            content {
+              applicationjson {
+                schema {
+                  $ref #componentsschemasHTTPValidationError
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    apiinboxtasks{task_id} {
+      put {
+        tags [
+          inbox
+        ],
+        summary Update Task,
+        description Update task status and add comments.nAny admin can update any task.,
+        operationId update_task_api_inbox_tasks__task_id__put,
+        security [
+          {
+            HTTPBearer []
+          }
+        ],
+        parameters [
+          {
+            name task_id,
+            in path,
+            required true,
+            schema {
+              type string,
+              format uuid,
+              title Task Id
+            }
+          }
+        ],
+        requestBody {
+          required true,
+          content {
+            applicationjson {
+              schema {
+                $ref #componentsschemasWorkflowTaskUpdate
+              }
+            }
+          }
+        },
+        responses {
+          204 {
+            description Successful Response
+          },
+          422 {
+            description Validation Error,
+            content {
+              applicationjson {
+                schema {
+                  $ref #componentsschemasHTTPValidationError
+                }
+              }
+            }
+          }
+        }
+      },
+      get {
+        tags [
+          inbox
+        ],
+        summary Read Task,
+        description Get specific task details with product assignments and service admin information.nFor onboarding Returns department's default product assignments.nFor offboarding Returns user's current product assignments.,
+        operationId read_task_api_inbox_tasks__task_id__get,
+        security [
+          {
+            HTTPBearer []
+          }
+        ],
+        parameters [
+          {
+            name task_id,
+            in path,
+            required true,
+            schema {
+              type string,
+              format uuid,
+              title Task Id
+            }
+          }
+        ],
+        responses {
+          200 {
+            description Successful Response,
+            content {
+              applicationjson {
+                schema {
+                  $ref #componentsschemasWorkflowTask
+                }
+              }
+            }
+          },
+          422 {
+            description Validation Error,
+            content {
+              applicationjson {
+                schema {
+                  $ref #componentsschemasHTTPValidationError
+                }
+              }
+            }
+          }
+        }
+      },
+      delete {
+        tags [
+          inbox
+        ],
+        summary Delete Task,
+        description Delete a completed workflow task and its attachment.,
+        operationId delete_task_api_inbox_tasks__task_id__delete,
+        security [
+          {
+            HTTPBearer []
+          }
+        ],
+        parameters [
+          {
+            name task_id,
+            in path,
+            required true,
+            schema {
+              type string,
+              format uuid,
+              title Task Id
+            }
+          }
+        ],
+        responses {
+          204 {
+            description Successful Response
+          },
+          422 {
+            description Validation Error,
+            content {
+              applicationjson {
+                schema {
+                  $ref #componentsschemasHTTPValidationError
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    apiinboxtasks{task_id}attachment {
+      post {
+        tags [
+          inbox
+        ],
+        summary Upload Task Attachment,
+        description Upload checklist attachment for a workflow task.nOnly one file per task - replaces existing if present.nSupports PDF, DOCX, XLSX, XLS, PPTX, TXT, CSV, JPG, JPEG, PNG formats.,
+        operationId upload_task_attachment_api_inbox_tasks__task_id__attachment_post,
+        security [
+          {
+            HTTPBearer []
+          }
+        ],
+        parameters [
+          {
+            name task_id,
+            in path,
+            required true,
+            schema {
+              type string,
+              format uuid,
+              title Task Id
+            }
+          }
+        ],
+        requestBody {
+          required true,
+          content {
+            multipartform-data {
+              schema {
+                $ref #componentsschemasBody_upload_task_attachment_api_inbox_tasks__task_id__attachment_post
+              }
+            }
+          }
+        },
+        responses {
+          200 {
+            description Successful Response,
+            content {
+              applicationjson {
+                schema {
+
+                }
+              }
+            }
+          },
+          422 {
+            description Validation Error,
+            content {
+              applicationjson {
+                schema {
+                  $ref #componentsschemasHTTPValidationError
+                }
+              }
+            }
+          }
+        }
+      },
+      get {
+        tags [
+          inbox
+        ],
+        summary Download Task Attachment,
+        description Download the attachment file for a workflow task.,
+        operationId download_task_attachment_api_inbox_tasks__task_id__attachment_get,
+        security [
+          {
+            HTTPBearer []
+          }
+        ],
+        parameters [
+          {
+            name task_id,
+            in path,
+            required true,
+            schema {
+              type string,
+              format uuid,
+              title Task Id
+            }
+          }
+        ],
+        responses {
+          200 {
+            description Successful Response,
+            content {
+              applicationjson {
+                schema {
+
+                }
+              }
+            }
+          },
+          422 {
+            description Validation Error,
+            content {
+              applicationjson {
+                schema {
+                  $ref #componentsschemasHTTPValidationError
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    apiinboxtasks{task_id}complete {
+      post {
+        tags [
+          inbox
+        ],
+        summary Complete Task,
+        description Complete a workflow task and trigger associated backend logic.nRequires attachment to be uploaded before completion.nnFor ONBOARDING Expects user to be created first via Employee Directory, then marks task complete.nFor OFFBOARDING Deletes the user and marks task as complete.,
+        operationId complete_task_api_inbox_tasks__task_id__complete_post,
+        security [
+          {
+            HTTPBearer []
+          }
+        ],
+        parameters [
+          {
+            name task_id,
+            in path,
+            required true,
+            schema {
+              type string,
+              format uuid,
+              title Task Id
+            }
+          }
+        ],
+        responses {
+          204 {
+            description Successful Response
+          },
+          422 {
+            description Validation Error,
+            content {
+              applicationjson {
+                schema {
+                  $ref #componentsschemasHTTPValidationError
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    apiaudit-logs {
+      get {
+        tags [
+          audit-logs
+        ],
+        summary Read Audit Logs,
+        description Retrieve audit logs with pagination and filtering.,
+        operationId read_audit_logs_api_audit_logs_get,
+        security [
+          {
+            HTTPBearer []
+          }
+        ],
+        parameters [
+          {
+            name actor_user_id,
+            in query,
+            required false,
+            schema {
+              anyOf [
+                {
+                  type string
+                },
+                {
+                  type null
+                }
+              ],
+              title Actor User Id
+            }
+          },
+          {
+            name action,
+            in query,
+            required false,
+            schema {
+              anyOf [
+                {
+                  type string
+                },
+                {
+                  type null
+                }
+              ],
+              title Action
+            }
+          },
+          {
+            name page,
+            in query,
+            required false,
+            schema {
+              type integer,
+              minimum 1,
+              default 1,
+              title Page
+            }
+          },
+          {
+            name limit,
+            in query,
+            required false,
+            schema {
+              type integer,
+              maximum 100,
+              minimum 1,
+              default 20,
+              title Limit
+            }
+          }
+        ],
+        responses {
+          200 {
+            description Successful Response,
+            content {
+              applicationjson {
+                schema {
+                  type object,
+                  title Response Read Audit Logs Api Audit Logs Get
+                }
+              }
+            }
+          },
+          422 {
+            description Validation Error,
+            content {
+              applicationjson {
+                schema {
+                  $ref #componentsschemasHTTPValidationError
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    apimaster-filesattachments {
+      get {
+        tags [
+          master-files
+        ],
+        summary List Attachments,
+        description List all bill attachments.nReturns list of files with metadata.,
+        operationId list_attachments_api_master_files_attachments_get,
+        responses {
+          200 {
+            description Successful Response,
+            content {
+              applicationjson {
+                schema {
+                  items {
+                    type object
+                  },
+                  type array,
+                  title Response List Attachments Api Master Files Attachments Get
+                }
+              }
+            }
+          }
+        },
+        security [
+          {
+            HTTPBearer []
+          }
+        ]
+      }
+    },
+    apimaster-filesattachments{file_id} {
+      get {
+        tags [
+          master-files
+        ],
+        summary Download Attachment,
+        description Download a specific bill attachment file.,
+        operationId download_attachment_api_master_files_attachments__file_id__get,
+        security [
+          {
+            HTTPBearer []
+          }
+        ],
+        parameters [
+          {
+            name file_id,
+            in path,
+            required true,
+            schema {
+              type string,
+              title File Id
+            }
+          }
+        ],
+        responses {
+          200 {
+            description Successful Response,
+            content {
+              applicationjson {
+                schema {
+
+                }
+              }
+            }
+          },
+          422 {
+            description Validation Error,
+            content {
+              applicationjson {
+                schema {
+                  $ref #componentsschemasHTTPValidationError
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    apidepartments {
+      get {
+        tags [
+          departments
+        ],
+        summary List Departments,
+        description List all departments.nAdmin only.,
+        operationId list_departments_api_departments_get,
+        responses {
+          200 {
+            description Successful Response,
+            content {
+              applicationjson {
+                schema {
+                  items {
+                    $ref #componentsschemasDepartment
+                  },
+                  type array,
+                  title Response List Departments Api Departments Get
+                }
+              }
+            }
+          }
+        },
+        security [
+          {
+            HTTPBearer []
+          }
+        ]
+      },
+      post {
+        tags [
+          departments
+        ],
+        summary Create Department,
+        description Create a new department.nAdmin only.,
+        operationId create_department_api_departments_post,
+        requestBody {
+          content {
+            applicationjson {
+              schema {
+                $ref #componentsschemasDepartmentCreate
+              }
+            }
+          },
+          required true
+        },
+        responses {
+          201 {
+            description Successful Response,
+            content {
+              applicationjson {
+                schema {
+                  $ref #componentsschemasDepartment
+                }
+              }
+            }
+          },
+          422 {
+            description Validation Error,
+            content {
+              applicationjson {
+                schema {
+                  $ref #componentsschemasHTTPValidationError
+                }
+              }
+            }
+          }
+        },
+        security [
+          {
+            HTTPBearer []
+          }
+        ]
+      }
+    },
+    apidepartments{department_id} {
+      put {
+        tags [
+          departments
+        ],
+        summary Update Department,
+        description Update a department's name.nAdmin only.,
+        operationId update_department_api_departments__department_id__put,
+        security [
+          {
+            HTTPBearer []
+          }
+        ],
+        parameters [
+          {
+            name department_id,
+            in path,
+            required true,
+            schema {
+              type string,
+              format uuid,
+              title Department Id
+            }
+          }
+        ],
+        requestBody {
+          required true,
+          content {
+            applicationjson {
+              schema {
+                $ref #componentsschemasDepartmentUpdate
+              }
+            }
+          }
+        },
+        responses {
+          200 {
+            description Successful Response,
+            content {
+              applicationjson {
+                schema {
+                  $ref #componentsschemasDepartment
+                }
+              }
+            }
+          },
+          422 {
+            description Validation Error,
+            content {
+              applicationjson {
+                schema {
+                  $ref #componentsschemasHTTPValidationError
+                }
+              }
+            }
+          }
+        }
+      },
+      delete {
+        tags [
+          departments
+        ],
+        summary Delete Department,
+        description Delete a department and its product assignments.nAdmin only.,
+        operationId delete_department_api_departments__department_id__delete,
+        security [
+          {
+            HTTPBearer []
+          }
+        ],
+        parameters [
+          {
+            name department_id,
+            in path,
+            required true,
+            schema {
+              type string,
+              format uuid,
+              title Department Id
+            }
+          }
+        ],
+        responses {
+          204 {
+            description Successful Response
+          },
+          422 {
+            description Validation Error,
+            content {
+              applicationjson {
+                schema {
+                  $ref #componentsschemasHTTPValidationError
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    apidepartments{department_id}products {
+      get {
+        tags [
+          departments
+        ],
+        summary Get Department Products,
+        description Get all products assigned to a department.nAdmin only.,
+        operationId get_department_products_api_departments__department_id__products_get,
+        security [
+          {
+            HTTPBearer []
+          }
+        ],
+        parameters [
+          {
+            name department_id,
+            in path,
+            required true,
+            schema {
+              type string,
+              format uuid,
+              title Department Id
+            }
+          }
+        ],
+        responses {
+          200 {
+            description Successful Response,
+            content {
+              applicationjson {
+                schema {
+                  type array,
+                  items {
+                    $ref #componentsschemasProduct
+                  },
+                  title Response Get Department Products Api Departments  Department Id  Products Get
+                }
+              }
+            }
+          },
+          422 {
+            description Validation Error,
+            content {
+              applicationjson {
+                schema {
+                  $ref #componentsschemasHTTPValidationError
+                }
+              }
+            }
+          }
+        }
+      },
+      put {
+        tags [
+          departments
+        ],
+        summary Set Department Products,
+        description Set (replace) all product assignments for a department.nAdmin only.,
+        operationId set_department_products_api_departments__department_id__products_put,
+        security [
+          {
+            HTTPBearer []
+          }
+        ],
+        parameters [
+          {
+            name department_id,
+            in path,
+            required true,
+            schema {
+              type string,
+              format uuid,
+              title Department Id
+            }
+          }
+        ],
+        requestBody {
+          required true,
+          content {
+            applicationjson {
+              schema {
+                $ref #componentsschemasDepartmentProductAssignment
+              }
+            }
+          }
+        },
+        responses {
+          200 {
+            description Successful Response,
+            content {
+              applicationjson {
+                schema {
+                  $ref #componentsschemasDepartmentProductAssignmentResponse
+                }
+              }
+            }
+          },
+          422 {
+            description Validation Error,
+            content {
+              applicationjson {
+                schema {
+                  $ref #componentsschemasHTTPValidationError
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    apiadminproduct-statuses {
+      get {
+        tags [
+          admin-master-data
+        ],
+        summary Get All Product Statuses,
+        description Retrieve all product statuses.nAvailable to all authenticated users for viewing.,
+        operationId get_all_product_statuses_api_admin_product_statuses_get,
+        responses {
+          200 {
+            description Successful Response,
+            content {
+              applicationjson {
+                schema {
+                  items {
+                    $ref #componentsschemasProductStatus
+                  },
+                  type array,
+                  title Response Get All Product Statuses Api Admin Product Statuses Get
+                }
+              }
+            }
+          }
+        },
+        security [
+          {
+            HTTPBearer []
+          }
+        ]
+      },
+      post {
+        tags [
+          admin-master-data
+        ],
+        summary Create Product Status,
+        description Create a new product status.nRequires Admin role.,
+        operationId create_product_status_api_admin_product_statuses_post,
+        requestBody {
+          content {
+            applicationjson {
+              schema {
+                $ref #componentsschemasProductStatusCreate
+              }
+            }
+          },
+          required true
+        },
+        responses {
+          201 {
+            description Successful Response,
+            content {
+              applicationjson {
+                schema {
+                  $ref #componentsschemasProductStatus
+                }
+              }
+            }
+          },
+          422 {
+            description Validation Error,
+            content {
+              applicationjson {
+                schema {
+                  $ref #componentsschemasHTTPValidationError
+                }
+              }
+            }
+          }
+        },
+        security [
+          {
+            HTTPBearer []
+          }
+        ]
+      }
+    },
+    apiadminproduct-statuses{status_id} {
+      put {
+        tags [
+          admin-master-data
+        ],
+        summary Update Product Status,
+        description Update an existing product status.nRequires Admin role.,
+        operationId update_product_status_api_admin_product_statuses__status_id__put,
+        security [
+          {
+            HTTPBearer []
+          }
+        ],
+        parameters [
+          {
+            name status_id,
+            in path,
+            required true,
+            schema {
+              type integer,
+              title Status Id
+            }
+          }
+        ],
+        requestBody {
+          required true,
+          content {
+            applicationjson {
+              schema {
+                $ref #componentsschemasProductStatusUpdate
+              }
+            }
+          }
+        },
+        responses {
+          200 {
+            description Successful Response,
+            content {
+              applicationjson {
+                schema {
+                  $ref #componentsschemasProductStatus
+                }
+              }
+            }
+          },
+          422 {
+            description Validation Error,
+            content {
+              applicationjson {
+                schema {
+                  $ref #componentsschemasHTTPValidationError
+                }
+              }
+            }
+          }
+        }
+      },
+      delete {
+        tags [
+          admin-master-data
+        ],
+        summary Delete Product Status,
+        description Delete a product status.nDeletion is restricted if the status is currently assigned to any product.nRequires Admin role.,
+        operationId delete_product_status_api_admin_product_statuses__status_id__delete,
+        security [
+          {
+            HTTPBearer []
+          }
+        ],
+        parameters [
+          {
+            name status_id,
+            in path,
+            required true,
+            schema {
+              type integer,
+              title Status Id
+            }
+          }
+        ],
+        responses {
+          204 {
+            description Successful Response
+          },
+          422 {
+            description Validation Error,
+            content {
+              applicationjson {
+                schema {
+                  $ref #componentsschemasHTTPValidationError
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    apiadminpayment-methods {
+      get {
+        tags [
+          admin-master-data
+        ],
+        summary Get All Payment Methods,
+        description Retrieve all payment methods.nAvailable to all authenticated users for viewing.,
+        operationId get_all_payment_methods_api_admin_payment_methods_get,
+        responses {
+          200 {
+            description Successful Response,
+            content {
+              applicationjson {
+                schema {
+                  items {
+                    $ref #componentsschemasPaymentMethod
+                  },
+                  type array,
+                  title Response Get All Payment Methods Api Admin Payment Methods Get
+                }
+              }
+            }
+          }
+        },
+        security [
+          {
+            HTTPBearer []
+          }
+        ]
+      },
+      post {
+        tags [
+          admin-master-data
+        ],
+        summary Create Payment Method,
+        description Create a new payment method.nRequires Admin role.,
+        operationId create_payment_method_api_admin_payment_methods_post,
+        requestBody {
+          content {
+            applicationjson {
+              schema {
+                $ref #componentsschemasPaymentMethodCreate
+              }
+            }
+          },
+          required true
+        },
+        responses {
+          201 {
+            description Successful Response,
+            content {
+              applicationjson {
+                schema {
+                  $ref #componentsschemasPaymentMethod
+                }
+              }
+            }
+          },
+          422 {
+            description Validation Error,
+            content {
+              applicationjson {
+                schema {
+                  $ref #componentsschemasHTTPValidationError
+                }
+              }
+            }
+          }
+        },
+        security [
+          {
+            HTTPBearer []
+          }
+        ]
+      }
+    },
+    apiadminpayment-methods{method_id} {
+      put {
+        tags [
+          admin-master-data
+        ],
+        summary Update Payment Method,
+        description Update an existing payment method.nRequires Admin role.,
+        operationId update_payment_method_api_admin_payment_methods__method_id__put,
+        security [
+          {
+            HTTPBearer []
+          }
+        ],
+        parameters [
+          {
+            name method_id,
+            in path,
+            required true,
+            schema {
+              type integer,
+              title Method Id
+            }
+          }
+        ],
+        requestBody {
+          required true,
+          content {
+            applicationjson {
+              schema {
+                $ref #componentsschemasPaymentMethodUpdate
+              }
+            }
+          }
+        },
+        responses {
+          200 {
+            description Successful Response,
+            content {
+              applicationjson {
+                schema {
+                  $ref #componentsschemasPaymentMethod
+                }
+              }
+            }
+          },
+          422 {
+            description Validation Error,
+            content {
+              applicationjson {
+                schema {
+                  $ref #componentsschemasHTTPValidationError
+                }
+              }
+            }
+          }
+        }
+      },
+      delete {
+        tags [
+          admin-master-data
+        ],
+        summary Delete Payment Method,
+        description Delete a payment method.nDeletion is restricted if the method is currently assigned to any payment record.nRequires Admin role.,
+        operationId delete_payment_method_api_admin_payment_methods__method_id__delete,
+        security [
+          {
+            HTTPBearer []
+          }
+        ],
+        parameters [
+          {
+            name method_id,
+            in path,
+            required true,
+            schema {
+              type integer,
+              title Method Id
+            }
+          }
+        ],
+        responses {
+          204 {
+            description Successful Response
+          },
+          422 {
+            description Validation Error,
+            content {
+              applicationjson {
+                schema {
+                  $ref #componentsschemasHTTPValidationError
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    apidebugschedulerstatus {
+      get {
+        tags [
+          debug
+        ],
+        summary Get Scheduler Status,
+        description Get scheduler status and configuration.,
+        operationId get_scheduler_status_api_debug_scheduler_status_get,
+        responses {
+          200 {
+            description Successful Response,
+            content {
+              applicationjson {
+                schema {
+                  type object,
+                  title Response Get Scheduler Status Api Debug Scheduler Status Get
+                }
+              }
+            }
+          }
+        },
+        security [
+          {
+            HTTPBearer []
+          }
+        ]
+      }
+    },
+    apidebugschedulertrigger-payment-check {
+      post {
+        tags [
+          debug
+        ],
+        summary Trigger Payment Check,
+        description Manually trigger payment expiration check.,
+        operationId trigger_payment_check_api_debug_scheduler_trigger_payment_check_post,
+        responses {
+          200 {
+            description Successful Response,
+            content {
+              applicationjson {
+                schema {
+                  additionalProperties {
+                    type string
+                  },
+                  type object,
+                  title Response Trigger Payment Check Api Debug Scheduler Trigger Payment Check Post
+                }
+              }
+            }
+          }
+        },
+        security [
+          {
+            HTTPBearer []
+          }
+        ]
+      }
+    },
+    apiv2payment-register {
+      get {
+        tags [
+          payment-register-v2
+        ],
+        summary Read Payment Register V2,
+        description Retrieve all payment records for all products for the payment register v2.nReturns a flat list where each payment record is a separate item.nMultiple payments for the same product will appear as multiple items.nSupports pagination.,
+        operationId read_payment_register_v2_api_v2_payment_register_get,
+        security [
+          {
+            HTTPBearer []
+          }
+        ],
+        parameters [
+          {
+            name page,
+            in query,
+            required false,
+            schema {
+              type integer,
+              minimum 1,
+              default 1,
+              title Page
+            }
+          },
+          {
+            name limit,
+            in query,
+            required false,
+            schema {
+              type integer,
+              maximum 10000,
+              minimum 1,
+              default 20,
+              title Limit
+            }
+          }
+        ],
+        responses {
+          200 {
+            description Successful Response,
+            content {
+              applicationjson {
+                schema {
+
+                }
+              }
+            }
+          },
+          422 {
+            description Validation Error,
+            content {
+              applicationjson {
+                schema {
+                  $ref #componentsschemasHTTPValidationError
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    apiv2payment-registerpayments{payment_id} {
+      put {
+        tags [
+          payment-register-v2
+        ],
+        summary Update Payment By Id V2,
+        description Update a specific payment record by payment ID.nSupports one-to-many relationship where multiple payments can exist per product.,
+        operationId update_payment_by_id_v2_api_v2_payment_register_payments__payment_id__put,
+        security [
+          {
+            HTTPBearer []
+          }
+        ],
+        parameters [
+          {
+            name payment_id,
+            in path,
+            required true,
+            schema {
+              type string,
+              format uuid,
+              title Payment Id
+            }
+          }
+        ],
+        requestBody {
+          content {
+            applicationx-www-form-urlencoded {
+              schema {
+                allOf [
+                  {
+                    $ref #componentsschemasBody_update_payment_by_id_v2_api_v2_payment_register_payments__payment_id__put
+                  }
+                ],
+                title Body
+              }
+            }
+          }
+        },
+        responses {
+          204 {
+            description Successful Response
+          },
+          422 {
+            description Validation Error,
+            content {
+              applicationjson {
+                schema {
+                  $ref #componentsschemasHTTPValidationError
+                }
+              }
+            }
+          }
+        }
+      },
+      delete {
+        tags [
+          payment-register-v2
+        ],
+        summary Delete Payment By Id,
+        description Delete a payment record by payment ID.nAlso deletes all associated invoice files and records.,
+        operationId delete_payment_by_id_api_v2_payment_register_payments__payment_id__delete,
+        security [
+          {
+            HTTPBearer []
+          }
+        ],
+        parameters [
+          {
+            name payment_id,
+            in path,
+            required true,
+            schema {
+              type string,
+              format uuid,
+              title Payment Id
+            }
+          }
+        ],
+        responses {
+          204 {
+            description Successful Response
+          },
+          422 {
+            description Validation Error,
+            content {
+              applicationjson {
+                schema {
+                  $ref #componentsschemasHTTPValidationError
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    apiv2payment-register{product_id} {
+      put {
+        tags [
+          payment-register-v2
+        ],
+        summary Update Payment Info V2,
+        description Update payment information for a product (updates the latest payment or creates new one).nFor backward compatibility. Use payments{payment_id} endpoint for specific payment updates.,
+        operationId update_payment_info_v2_api_v2_payment_register__product_id__put,
+        security [
+          {
+            HTTPBearer []
+          }
+        ],
+        parameters [
+          {
+            name product_id,
+            in path,
+            required true,
+            schema {
+              type string,
+              format uuid,
+              title Product Id
+            }
+          }
+        ],
+        requestBody {
+          content {
+            applicationx-www-form-urlencoded {
+              schema {
+                allOf [
+                  {
+                    $ref #componentsschemasBody_update_payment_info_v2_api_v2_payment_register__product_id__put
+                  }
+                ],
+                title Body
+              }
+            }
+          }
+        },
+        responses {
+          204 {
+            description Successful Response
+          },
+          422 {
+            description Validation Error,
+            content {
+              applicationjson {
+                schema {
+                  $ref #componentsschemasHTTPValidationError
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    apiv2payment-registerproducts{product_id}payments {
+      get {
+        tags [
+          payment-register-v2
+        ],
+        summary Get Product Payments,
+        description Get all payment records for a specific product.nReturns multiple payments for one-to-many relationship.,
+        operationId get_product_payments_api_v2_payment_register_products__product_id__payments_get,
+        security [
+          {
+            HTTPBearer []
+          }
+        ],
+        parameters [
+          {
+            name product_id,
+            in path,
+            required true,
+            schema {
+              type string,
+              format uuid,
+              title Product Id
+            }
+          }
+        ],
+        responses {
+          200 {
+            description Successful Response,
+            content {
+              applicationjson {
+                schema {
+
+                }
+              }
+            }
+          },
+          422 {
+            description Validation Error,
+            content {
+              applicationjson {
+                schema {
+                  $ref #componentsschemasHTTPValidationError
+                }
+              }
+            }
+          }
+        }
+      },
+      post {
+        tags [
+          payment-register-v2
+        ],
+        summary Create Payment For Product,
+        description Create a new payment record for an existing product.nSupports one-to-many relationship where multiple payments can exist per product.,
+        operationId create_payment_for_product_api_v2_payment_register_products__product_id__payments_post,
+        security [
+          {
+            HTTPBearer []
+          }
+        ],
+        parameters [
+          {
+            name product_id,
+            in path,
+            required true,
+            schema {
+              type string,
+              format uuid,
+              title Product Id
+            }
+          }
+        ],
+        requestBody {
+          required true,
+          content {
+            applicationx-www-form-urlencoded {
+              schema {
+                $ref #componentsschemasBody_create_payment_for_product_api_v2_payment_register_products__product_id__payments_post
+              }
+            }
+          }
+        },
+        responses {
+          201 {
+            description Successful Response,
+            content {
+              applicationjson {
+                schema {
+
+                }
+              }
+            }
+          },
+          422 {
+            description Validation Error,
+            content {
+              applicationjson {
+                schema {
+                  $ref #componentsschemasHTTPValidationError
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    apiv2payment-register{product_id}invoices {
+      post {
+        tags [
+          payment-register-v2
+        ],
+        summary Upload Invoices,
+        description Upload one or more invoice files for a specific product's payment record.nSupports PDF, DOCX, XLSX, XLS, PPTX, TXT, CSV, JPG, JPEG, PNG formats.,
+        operationId upload_invoices_api_v2_payment_register__product_id__invoices_post,
+        security [
+          {
+            HTTPBearer []
+          }
+        ],
+        parameters [
+          {
+            name product_id,
+            in path,
+            required true,
+            schema {
+              type string,
+              format uuid,
+              title Product Id
+            }
+          }
+        ],
+        requestBody {
+          required true,
+          content {
+            multipartform-data {
+              schema {
+                $ref #componentsschemasBody_upload_invoices_api_v2_payment_register__product_id__invoices_post
+              }
+            }
+          }
+        },
+        responses {
+          200 {
+            description Successful Response,
+            content {
+              applicationjson {
+                schema {
+                  type array,
+                  items {
+                    $ref #componentsschemasPaymentInvoiceResponse
+                  },
+                  title Response Upload Invoices Api V2 Payment Register  Product Id  Invoices Post
+                }
+              }
+            }
+          },
+          422 {
+            description Validation Error,
+            content {
+              applicationjson {
+                schema {
+                  $ref #componentsschemasHTTPValidationError
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    apiv2invoicespayments{payment_info_id}invoices {
+      post {
+        tags [
+          invoices
+        ],
+        summary Upload Invoices,
+        description Upload one or more invoice files for a specific payment record.nSupports PDF, DOCX, XLSX, XLS, PPTX, TXT, CSV, JPG, JPEG, PNG formats.,
+        operationId upload_invoices_api_v2_invoices_payments__payment_info_id__invoices_post,
+        security [
+          {
+            HTTPBearer []
+          }
+        ],
+        parameters [
+          {
+            name payment_info_id,
+            in path,
+            required true,
+            schema {
+              type string,
+              format uuid,
+              title Payment Info Id
+            }
+          }
+        ],
+        requestBody {
+          required true,
+          content {
+            multipartform-data {
+              schema {
+                $ref #componentsschemasBody_upload_invoices_api_v2_invoices_payments__payment_info_id__invoices_post
+              }
+            }
+          }
+        },
+        responses {
+          200 {
+            description Successful Response,
+            content {
+              applicationjson {
+                schema {
+                  type array,
+                  items {
+                    $ref #componentsschemasPaymentInvoiceResponse
+                  },
+                  title Response Upload Invoices Api V2 Invoices Payments  Payment Info Id  Invoices Post
+                }
+              }
+            }
+          },
+          422 {
+            description Validation Error,
+            content {
+              applicationjson {
+                schema {
+                  $ref #componentsschemasHTTPValidationError
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    apiv2invoices{invoice_id} {
+      get {
+        tags [
+          invoices
+        ],
+        summary Get Invoice,
+        description Retrieve a specific invoice file for preview or download.,
+        operationId get_invoice_api_v2_invoices__invoice_id__get,
+        security [
+          {
+            HTTPBearer []
+          }
+        ],
+        parameters [
+          {
+            name invoice_id,
+            in path,
+            required true,
+            schema {
+              type string,
+              format uuid,
+              title Invoice Id
+            }
+          }
+        ],
+        responses {
+          200 {
+            description Successful Response,
+            content {
+              applicationjson {
+                schema {
+
+                }
+              }
+            }
+          },
+          422 {
+            description Validation Error,
+            content {
+              applicationjson {
+                schema {
+                  $ref #componentsschemasHTTPValidationError
+                }
+              }
+            }
+          }
+        }
+      },
+      delete {
+        tags [
+          invoices
+        ],
+        summary Delete Invoice,
+        description Delete a specific invoice file.,
+        operationId delete_invoice_api_v2_invoices__invoice_id__delete,
+        security [
+          {
+            HTTPBearer []
+          }
+        ],
+        parameters [
+          {
+            name invoice_id,
+            in path,
+            required true,
+            schema {
+              type string,
+              format uuid,
+              title Invoice Id
+            }
+          }
+        ],
+        responses {
+          204 {
+            description Successful Response
+          },
+          422 {
+            description Validation Error,
+            content {
+              applicationjson {
+                schema {
+                  $ref #componentsschemasHTTPValidationError
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    apiv2master-filesinvoices {
+      get {
+        tags [
+          master-files-v2
+        ],
+        summary Get Master Files Invoices,
+        description Retrieve a list of all invoice records for the Master Files view.,
+        operationId get_master_files_invoices_api_v2_master_files_invoices_get,
+        security [
+          {
+            HTTPBearer []
+          }
+        ],
+        parameters [
+          {
+            name product_id,
+            in query,
+            required false,
+            schema {
+              anyOf [
+                {
+                  type string,
+                  format uuid
+                },
+                {
+                  type null
+                }
+              ],
+              description Filter by product ID,
+              title Product Id
+            },
+            description Filter by product ID
+          }
+        ],
+        responses {
+          200 {
+            description Successful Response,
+            content {
+              applicationjson {
+                schema {
+                  type array,
+                  items {
+                    $ref #componentsschemasMasterFileInvoice
+                  },
+                  title Response Get Master Files Invoices Api V2 Master Files Invoices Get
+                }
+              }
+            }
+          },
+          422 {
+            description Validation Error,
+            content {
+              applicationjson {
+                schema {
+                  $ref #componentsschemasHTTPValidationError
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+     {
+      get {
+        summary Root,
+        description Root endpoint with basic information.,
+        operationId root__get,
+        responses {
+          200 {
+            description Successful Response,
+            content {
+              applicationjson {
+                schema {
+
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  components {
+    schemas {
+      AdminSimple {
+        properties {
+          id {
+            type string,
+            format uuid,
+            title Id
+          },
+          name {
+            type string,
+            title Name
+          },
+          email {
+            type string,
+            title Email
+          }
+        },
+        type object,
+        required [
+          id,
+          name,
+          email
+        ],
+        title AdminSimple,
+        description Simplified admin info for service listings
+      },
+      Body_create_payment_for_product_api_v2_payment_register_products__product_id__payments_post {
+        properties {
+          amount {
+            type string,
+            title Amount
+          },
+          cardholder_name {
+            type string,
+            title Cardholder Name
+          },
+          expiry_date {
+            type string,
+            title Expiry Date
+          },
+          payment_method_id {
+            type integer,
+            title Payment Method Id
+          },
+          payment_date {
+            type string,
+            title Payment Date
+          },
+          usage_start_date {
+            type string,
+            title Usage Start Date
+          },
+          usage_end_date {
+            type string,
+            title Usage End Date
+          },
+          reporter {
+            type string,
+            title Reporter
+          }
+        },
+        type object,
+        required [
+          payment_date,
+          usage_start_date,
+          usage_end_date
+        ],
+        title Body_create_payment_for_product_api_v2_payment_register_products__product_id__payments_post
+      },
+      Body_update_payment_by_id_v2_api_v2_payment_register_payments__payment_id__put {
+        properties {
+          amount {
+            type string,
+            title Amount
+          },
+          cardholder_name {
+            type string,
+            title Cardholder Name
+          },
+          expiry_date {
+            type string,
+            title Expiry Date
+          },
+          payment_method_id {
+            type integer,
+            title Payment Method Id
+          },
+          payment_date {
+            type string,
+            title Payment Date
+          },
+          usage_start_date {
+            type string,
+            title Usage Start Date
+          },
+          usage_end_date {
+            type string,
+            title Usage End Date
+          },
+          reporter {
+            type string,
+            title Reporter
+          }
+        },
+        type object,
+        title Body_update_payment_by_id_v2_api_v2_payment_register_payments__payment_id__put
+      },
+      Body_update_payment_info_api_payment_register__product_id__put {
+        properties {
+          amount {
+            anyOf [
+              {
+                type string
+              },
+              {
+                type null
+              }
+            ],
+            title Amount
+          },
+          cardholder_name {
+            anyOf [
+              {
+                type string
+              },
+              {
+                type null
+              }
+            ],
+            title Cardholder Name
+          },
+          expiry_date {
+            anyOf [
+              {
+                type string
+              },
+              {
+                type null
+              }
+            ],
+            title Expiry Date
+          },
+          payment_method_id {
+            anyOf [
+              {
+                type integer
+              },
+              {
+                type null
+              }
+            ],
+            title Payment Method Id
+          },
+          payment_date {
+            anyOf [
+              {
+                type string
+              },
+              {
+                type null
+              }
+            ],
+            title Payment Date
+          },
+          usage_start_date {
+            anyOf [
+              {
+                type string
+              },
+              {
+                type null
+              }
+            ],
+            title Usage Start Date
+          },
+          usage_end_date {
+            anyOf [
+              {
+                type string
+              },
+              {
+                type null
+              }
+            ],
+            title Usage End Date
+          },
+          reporter {
+            anyOf [
+              {
+                type string
+              },
+              {
+                type null
+              }
+            ],
+            title Reporter
+          },
+          bill_attachment {
+            anyOf [
+              {
+                type string,
+                format binary
+              },
+              {
+                type null
+              }
+            ],
+            title Bill Attachment
+          }
+        },
+        type object,
+        title Body_update_payment_info_api_payment_register__product_id__put
+      },
+      Body_update_payment_info_v2_api_v2_payment_register__product_id__put {
+        properties {
+          amount {
+            type string,
+            title Amount
+          },
+          cardholder_name {
+            type string,
+            title Cardholder Name
+          },
+          expiry_date {
+            type string,
+            title Expiry Date
+          },
+          payment_method_id {
+            type integer,
+            title Payment Method Id
+          },
+          payment_date {
+            type string,
+            title Payment Date
+          },
+          usage_start_date {
+            type string,
+            title Usage Start Date
+          },
+          usage_end_date {
+            type string,
+            title Usage End Date
+          },
+          reporter {
+            type string,
+            title Reporter
+          }
+        },
+        type object,
+        title Body_update_payment_info_v2_api_v2_payment_register__product_id__put
+      },
+      Body_upload_invoices_api_v2_invoices_payments__payment_info_id__invoices_post {
+        properties {
+          files {
+            items {
+              type string,
+              format binary
+            },
+            type array,
+            title Files
+          }
+        },
+        type object,
+        required [
+          files
+        ],
+        title Body_upload_invoices_api_v2_invoices_payments__payment_info_id__invoices_post
+      },
+      Body_upload_invoices_api_v2_payment_register__product_id__invoices_post {
+        properties {
+          files {
+            items {
+              type string,
+              format binary
+            },
+            type array,
+            title Files
+          }
+        },
+        type object,
+        required [
+          files
+        ],
+        title Body_upload_invoices_api_v2_payment_register__product_id__invoices_post
+      },
+      Body_upload_task_attachment_api_inbox_tasks__task_id__attachment_post {
+        properties {
+          file {
+            type string,
+            format binary,
+            title File
+          }
+        },
+        type object,
+        required [
+          file
+        ],
+        title Body_upload_task_attachment_api_inbox_tasks__task_id__attachment_post
+      },
+      Department {
+        properties {
+          name {
+            type string,
+            title Name
+          },
+          id {
+            type string,
+            format uuid,
+            title Id
+          },
+          created_at {
+            type string,
+            format date-time,
+            title Created At
+          },
+          updated_at {
+            type string,
+            format date-time,
+            title Updated At
+          }
+        },
+        type object,
+        required [
+          name,
+          id,
+          created_at,
+          updated_at
+        ],
+        title Department
+      },
+      DepartmentCreate {
+        properties {
+          name {
+            type string,
+            title Name
+          }
+        },
+        type object,
+        required [
+          name
+        ],
+        title DepartmentCreate
+      },
+      DepartmentProductAssignment {
+        properties {
+          product_ids {
+            items {
+              type string,
+              format uuid
+            },
+            type array,
+            title Product Ids
+          }
+        },
+        type object,
+        required [
+          product_ids
+        ],
+        title DepartmentProductAssignment,
+        description Request model for setting department product assignments.
+      },
+      DepartmentProductAssignmentResponse {
+        properties {
+          assigned_product_ids {
+            items {
+              type string
+            },
+            type array,
+            title Assigned Product Ids
+          }
+        },
+        type object,
+        required [
+          assigned_product_ids
+        ],
+        title DepartmentProductAssignmentResponse,
+        description Response model after setting department product assignments.
+      },
+      DepartmentUpdate {
+        properties {
+          name {
+            type string,
+            title Name
+          }
+        },
+        type object,
+        required [
+          name
+        ],
+        title DepartmentUpdate
+      },
+      HTTPValidationError {
+        properties {
+          detail {
+            items {
+              $ref #componentsschemasValidationError
+            },
+            type array,
+            title Detail
+          }
+        },
+        type object,
+        title HTTPValidationError
+      },
+      LoginRequest {
+        properties {
+          email {
+            type string,
+            format email,
+            title Email
+          },
+          password {
+            type string,
+            title Password
+          }
+        },
+        type object,
+        required [
+          email,
+          password
+        ],
+        title LoginRequest
+      },
+      MasterFileInvoice {
+        properties {
+          id {
+            type string,
+            format uuid,
+            title Id
+          },
+          file_name {
+            type string,
+            title File Name
+          },
+          original_file_name {
+            type string,
+            title Original File Name
+          },
+          payment_info_id {
+            type string,
+            format uuid,
+            title Payment Info Id
+          },
+          product_name {
+            type string,
+            title Product Name
+          },
+          service_name {
+            type string,
+            title Service Name
+          },
+          created_at {
+            type string,
+            format date-time,
+            title Created At
+          }
+        },
+        type object,
+        required [
+          id,
+          file_name,
+          original_file_name,
+          payment_info_id,
+          product_name,
+          service_name,
+          created_at
+        ],
+        title MasterFileInvoice
+      },
+      OnboardingWebhookRequest {
+        properties {
+          employee {
+            type object,
+            title Employee
+          }
+        },
+        type object,
+        required [
+          employee
+        ],
+        title OnboardingWebhookRequest
+      },
+      PaymentInfoBase {
+        properties {
+          status {
+            type string,
+            title Status,
+            default incomplete
+          },
+          amount {
+            anyOf [
+              {
+                type string
+              },
+              {
+                type null
+              }
+            ],
+            title Amount
+          },
+          cardholderName {
+            anyOf [
+              {
+                type string
+              },
+              {
+                type null
+              }
+            ],
+            title Cardholdername
+          },
+          expiryDate {
+            anyOf [
+              {
+                type string
+              },
+              {
+                type null
+              }
+            ],
+            title Expirydate
+          },
+          paymentMethod {
+            anyOf [
+              {
+                type string
+              },
+              {
+                type null
+              }
+            ],
+            title Paymentmethod
+          },
+          paymentMethodId {
+            anyOf [
+              {
+                type integer
+              },
+              {
+                type null
+              }
+            ],
+            title Paymentmethodid
+          },
+          paymentDate {
+            anyOf [
+              {
+                type string
+              },
+              {
+                type null
+              }
+            ],
+            title Paymentdate
+          },
+          usageStartDate {
+            anyOf [
+              {
+                type string
+              },
+              {
+                type null
+              }
+            ],
+            title Usagestartdate
+          },
+          usageEndDate {
+            anyOf [
+              {
+                type string
+              },
+              {
+                type null
+              }
+            ],
+            title Usageenddate
+          },
+          reporter {
+            anyOf [
+              {
+                type string
+              },
+              {
+                type null
+              }
+            ],
+            title Reporter
+          },
+          billAttachmentPath {
+            anyOf [
+              {
+                type string
+              },
+              {
+                type null
+              }
+            ],
+            title Billattachmentpath
+          },
+          invoices {
+            anyOf [
+              {
+                items {
+                  type object
+                },
+                type array
+              },
+              {
+                type null
+              }
+            ],
+            title Invoices
+          }
+        },
+        type object,
+        title PaymentInfoBase
+      },
+      PaymentInvoiceResponse {
+        properties {
+          id {
+            type string,
+            format uuid,
+            title Id
+          },
+          original_file_name {
+            type string,
+            title Original File Name
+          },
+          url {
+            type string,
+            title Url
+          }
+        },
+        type object,
+        required [
+          id,
+          original_file_name,
+          url
+        ],
+        title PaymentInvoiceResponse
+      },
+      PaymentMethod {
+        properties {
+          name {
+            type string,
+            title Name
+          },
+          description {
+            anyOf [
+              {
+                type string
+              },
+              {
+                type null
+              }
+            ],
+            title Description
+          },
+          id {
+            type integer,
+            title Id
+          },
+          created_at {
+            type string,
+            format date-time,
+            title Created At
+          },
+          updated_at {
+            type string,
+            format date-time,
+            title Updated At
+          }
+        },
+        type object,
+        required [
+          name,
+          id,
+          created_at,
+          updated_at
+        ],
+        title PaymentMethod
+      },
+      PaymentMethodCreate {
+        properties {
+          name {
+            type string,
+            title Name
+          },
+          description {
+            anyOf [
+              {
+                type string
+              },
+              {
+                type null
+              }
+            ],
+            title Description
+          }
+        },
+        type object,
+        required [
+          name
+        ],
+        title PaymentMethodCreate
+      },
+      PaymentMethodUpdate {
+        properties {
+          name {
+            anyOf [
+              {
+                type string
+              },
+              {
+                type null
+              }
+            ],
+            title Name
+          },
+          description {
+            anyOf [
+              {
+                type string
+              },
+              {
+                type null
+              }
+            ],
+            title Description
+          }
+        },
+        type object,
+        title PaymentMethodUpdate
+      },
+      PaymentRegisterItem {
+        properties {
+          productId {
+            type string,
+            format uuid,
+            title Productid
+          },
+          productName {
+            type string,
+            title Productname
+          },
+          serviceName {
+            type string,
+            title Servicename
+          },
+          paymentInfo {
+            $ref #componentsschemasPaymentInfoBase
+          }
+        },
+        type object,
+        required [
+          productId,
+          productName,
+          serviceName,
+          paymentInfo
+        ],
+        title PaymentRegisterItem
+      },
+      PaymentRegisterSummary {
+        properties {
+          incompleteCount {
+            type integer,
+            title Incompletecount
+          }
+        },
+        type object,
+        required [
+          incompleteCount
+        ],
+        title PaymentRegisterSummary
+      },
+      Product {
+        properties {
+          name {
+            type string,
+            title Name
+          },
+          url {
+            anyOf [
+              {
+                type string
+              },
+              {
+                type null
+              }
+            ],
+            title Url
+          },
+          description {
+            anyOf [
+              {
+                type string
+              },
+              {
+                type null
+              }
+            ],
+            title Description
+          },
+          id {
+            type string,
+            format uuid,
+            title Id
+          },
+          service_id {
+            type string,
+            format uuid,
+            title Service Id
+          },
+          service_name {
+            anyOf [
+              {
+                type string
+              },
+              {
+                type null
+              }
+            ],
+            title Service Name
+          },
+          status_id {
+            type integer,
+            title Status Id
+          },
+          status {
+            anyOf [
+              {
+                type string
+              },
+              {
+                type null
+              }
+            ],
+            title Status
+          },
+          latest_payment_date {
+            anyOf [
+              {
+                type string
+              },
+              {
+                type null
+              }
+            ],
+            title Latest Payment Date
+          },
+          latest_usage_start_date {
+            anyOf [
+              {
+                type string
+              },
+              {
+                type null
+              }
+            ],
+            title Latest Usage Start Date
+          },
+          latest_usage_end_date {
+            anyOf [
+              {
+                type string
+              },
+              {
+                type null
+              }
+            ],
+            title Latest Usage End Date
+          },
+          created_at {
+            type string,
+            format date-time,
+            title Created At
+          },
+          updated_at {
+            type string,
+            format date-time,
+            title Updated At
+          }
+        },
+        type object,
+        required [
+          name,
+          id,
+          service_id,
+          status_id,
+          created_at,
+          updated_at
+        ],
+        title Product
+      },
+      ProductCreate {
+        properties {
+          name {
+            type string,
+            title Name
+          },
+          url {
+            anyOf [
+              {
+                type string
+              },
+              {
+                type null
+              }
+            ],
+            title Url
+          },
+          description {
+            anyOf [
+              {
+                type string
+              },
+              {
+                type null
+              }
+            ],
+            title Description
+          },
+          service_id {
+            anyOf [
+              {
+                type string,
+                format uuid
+              },
+              {
+                type null
+              }
+            ],
+            title Service Id
+          },
+          status_id {
+            type integer,
+            title Status Id,
+            default 1
+          }
+        },
+        type object,
+        required [
+          name
+        ],
+        title ProductCreate
+      },
+      ProductCreateWithUrl {
+        properties {
+          name {
+            type string,
+            title Name
+          },
+          url {
+            anyOf [
+              {
+                type string
+              },
+              {
+                type null
+              }
+            ],
+            title Url
+          },
+          description {
+            anyOf [
+              {
+                type string
+              },
+              {
+                type null
+              }
+            ],
+            title Description
+          },
+          serviceId {
+            type string,
+            format uuid,
+            title Serviceid
+          },
+          statusId {
+            anyOf [
+              {
+                type integer
+              },
+              {
+                type null
+              }
+            ],
+            title Statusid,
+            default 1
+          }
+        },
+        type object,
+        required [
+          name,
+          serviceId
+        ],
+        title ProductCreateWithUrl
+      },
+      ProductSimple {
+        properties {
+          id {
+            type string,
+            format uuid,
+            title Id
+          },
+          name {
+            type string,
+            title Name
+          }
+        },
+        type object,
+        required [
+          id,
+          name
+        ],
+        title ProductSimple,
+        description Simplified product info for service listings
+      },
+      ProductStatus {
+        properties {
+          name {
+            type string,
+            title Name
+          },
+          description {
+            anyOf [
+              {
+                type string
+              },
+              {
+                type null
+              }
+            ],
+            title Description
+          },
+          id {
+            type integer,
+            title Id
+          },
+          created_at {
+            type string,
+            format date-time,
+            title Created At
+          },
+          updated_at {
+            type string,
+            format date-time,
+            title Updated At
+          }
+        },
+        type object,
+        required [
+          name,
+          id,
+          created_at,
+          updated_at
+        ],
+        title ProductStatus
+      },
+      ProductStatusCreate {
+        properties {
+          name {
+            type string,
+            title Name
+          },
+          description {
+            anyOf [
+              {
+                type string
+              },
+              {
+                type null
+              }
+            ],
+            title Description
+          }
+        },
+        type object,
+        required [
+          name
+        ],
+        title ProductStatusCreate
+      },
+      ProductStatusUpdate {
+        properties {
+          name {
+            anyOf [
+              {
+                type string
+              },
+              {
+                type null
+              }
+            ],
+            title Name
+          },
+          description {
+            anyOf [
+              {
+                type string
+              },
+              {
+                type null
+              }
+            ],
+            title Description
+          }
+        },
+        type object,
+        title ProductStatusUpdate
+      },
+      ProductUpdate {
+        properties {
+          name {
+            anyOf [
+              {
+                type string
+              },
+              {
+                type null
+              }
+            ],
+            title Name
+          },
+          url {
+            anyOf [
+              {
+                type string
+              },
+              {
+                type null
+              }
+            ],
+            title Url
+          },
+          description {
+            anyOf [
+              {
+                type string
+              },
+              {
+                type null
+              }
+            ],
+            title Description
+          },
+          status_id {
+            anyOf [
+              {
+                type integer
+              },
+              {
+                type null
+              }
+            ],
+            title Status Id
+          }
+        },
+        type object,
+        title ProductUpdate
+      },
+      ProductWithServiceAdmin {
+        properties {
+          product_id {
+            type string,
+            title Product Id
+          },
+          product_name {
+            type string,
+            title Product Name
+          },
+          service_name {
+            type string,
+            title Service Name
+          },
+          service_admins {
+            items {
+              additionalProperties {
+                type string
+              },
+              type object
+            },
+            type array,
+            title Service Admins
+          }
+        },
+        type object,
+        required [
+          product_id,
+          product_name,
+          service_name,
+          service_admins
+        ],
+        title ProductWithServiceAdmin
+      },
+      Service {
+        properties {
+          name {
+            type string,
+            title Name
+          },
+          vendor {
+            anyOf [
+              {
+                type string
+              },
+              {
+                type null
+              }
+            ],
+            title Vendor
+          },
+          url {
+            anyOf [
+              {
+                type string
+              },
+              {
+                type null
+              }
+            ],
+            title Url
+          },
+          id {
+            type string,
+            format uuid,
+            title Id
+          },
+          created_at {
+            type string,
+            format date-time,
+            title Created At
+          },
+          updated_at {
+            type string,
+            format date-time,
+            title Updated At
+          },
+          productCount {
+            anyOf [
+              {
+                type integer
+              },
+              {
+                type null
+              }
+            ],
+            title Productcount,
+            default 0
+          }
+        },
+        type object,
+        required [
+          name,
+          id,
+          created_at,
+          updated_at
+        ],
+        title Service
+      },
+      ServiceCreate {
+        properties {
+          name {
+            type string,
+            title Name
+          },
+          vendor {
+            anyOf [
+              {
+                type string
+              },
+              {
+                type null
+              }
+            ],
+            title Vendor
+          },
+          url {
+            anyOf [
+              {
+                type string
+              },
+              {
+                type null
+              }
+            ],
+            title Url
+          },
+          productIds {
+            anyOf [
+              {
+                items {
+                  type string,
+                  format uuid
+                },
+                type array
+              },
+              {
+                type null
+              }
+            ],
+            title Productids,
+            default []
+          },
+          adminUserIds {
+            anyOf [
+              {
+                items {
+                  type string,
+                  format uuid
+                },
+                type array
+              },
+              {
+                type null
+              }
+            ],
+            title Adminuserids,
+            default []
+          }
+        },
+        type object,
+        required [
+          name
+        ],
+        title ServiceCreate
+      },
+      ServiceUpdate {
+        properties {
+          name {
+            anyOf [
+              {
+                type string
+              },
+              {
+                type null
+              }
+            ],
+            title Name
+          },
+          vendor {
+            anyOf [
+              {
+                type string
+              },
+              {
+                type null
+              }
+            ],
+            title Vendor
+          },
+          url {
+            anyOf [
+              {
+                type string
+              },
+              {
+                type null
+              }
+            ],
+            title Url
+          },
+          associateProductIds {
+            anyOf [
+              {
+                items {
+                  type string,
+                  format uuid
+                },
+                type array
+              },
+              {
+                type null
+              }
+            ],
+            title Associateproductids,
+            default []
+          },
+          disassociateProductIds {
+            anyOf [
+              {
+                items {
+                  type string,
+                  format uuid
+                },
+                type array
+              },
+              {
+                type null
+              }
+            ],
+            title Disassociateproductids,
+            default []
+          },
+          adminUserIds {
+            anyOf [
+              {
+                items {
+                  type string,
+                  format uuid
+                },
+                type array
+              },
+              {
+                type null
+              }
+            ],
+            title Adminuserids
+          }
+        },
+        type object,
+        title ServiceUpdate
+      },
+      ServiceWithProducts {
+        properties {
+          name {
+            type string,
+            title Name
+          },
+          vendor {
+            anyOf [
+              {
+                type string
+              },
+              {
+                type null
+              }
+            ],
+            title Vendor
+          },
+          url {
+            anyOf [
+              {
+                type string
+              },
+              {
+                type null
+              }
+            ],
+            title Url
+          },
+          id {
+            type string,
+            format uuid,
+            title Id
+          },
+          created_at {
+            type string,
+            format date-time,
+            title Created At
+          },
+          updated_at {
+            type string,
+            format date-time,
+            title Updated At
+          },
+          productCount {
+            anyOf [
+              {
+                type integer
+              },
+              {
+                type null
+              }
+            ],
+            title Productcount,
+            default 0
+          },
+          products {
+            items {
+              $ref #componentsschemasProductSimple
+            },
+            type array,
+            title Products,
+            default []
+          },
+          admins {
+            items {
+              $ref #componentsschemasAdminSimple
+            },
+            type array,
+            title Admins,
+            default []
+          }
+        },
+        type object,
+        required [
+          name,
+          id,
+          created_at,
+          updated_at
+        ],
+        title ServiceWithProducts
+      },
+      Token {
+        properties {
+          accessToken {
+            type string,
+            title Accesstoken
+          },
+          user {
+            type object,
+            title User
+          }
+        },
+        type object,
+        required [
+          accessToken,
+          user
+        ],
+        title Token
+      },
+      User {
+        properties {
+          name {
+            type string,
+            title Name
+          },
+          email {
+            type string,
+            format email,
+            title Email
+          },
+          department {
+            anyOf [
+              {
+                type string
+              },
+              {
+                type null
+              }
+            ],
+            title Department
+          },
+          department_id {
+            anyOf [
+              {
+                type string,
+                format uuid
+              },
+              {
+                type null
+              }
+            ],
+            title Department Id
+          },
+          position {
+            anyOf [
+              {
+                type string
+              },
+              {
+                type null
+              }
+            ],
+            title Position
+          },
+          hire_date {
+            anyOf [
+              {
+                type string,
+                format date
+              },
+              {
+                type null
+              }
+            ],
+            title Hire Date
+          },
+          resignation_date {
+            anyOf [
+              {
+                type string,
+                format date
+              },
+              {
+                type null
+              }
+            ],
+            title Resignation Date
+          },
+          id {
+            type string,
+            format uuid,
+            title Id
+          },
+          created_at {
+            type string,
+            format date-time,
+            title Created At
+          },
+          updated_at {
+            type string,
+            format date-time,
+            title Updated At
+          }
+        },
+        type object,
+        required [
+          name,
+          email,
+          id,
+          created_at,
+          updated_at
+        ],
+        title User
+      },
+      UserCreate {
+        properties {
+          name {
+            type string,
+            title Name
+          },
+          email {
+            type string,
+            format email,
+            title Email
+          },
+          department {
+            anyOf [
+              {
+                type string
+              },
+              {
+                type null
+              }
+            ],
+            title Department
+          },
+          department_id {
+            anyOf [
+              {
+                type string,
+                format uuid
+              },
+              {
+                type null
+              }
+            ],
+            title Department Id
+          },
+          position {
+            anyOf [
+              {
+                type string
+              },
+              {
+                type null
+              }
+            ],
+            title Position
+          },
+          hire_date {
+            anyOf [
+              {
+                type string,
+                format date
+              },
+              {
+                type null
+              }
+            ],
+            title Hire Date
+          },
+          resignation_date {
+            anyOf [
+              {
+                type string,
+                format date
+              },
+              {
+                type null
+              }
+            ],
+            title Resignation Date
+          },
+          password {
+            anyOf [
+              {
+                type string
+              },
+              {
+                type null
+              }
+            ],
+            title Password
+          },
+          role {
+            anyOf [
+              {
+                type string
+              },
+              {
+                type null
+              }
+            ],
+            title Role
+          },
+          assignedProductIds {
+            anyOf [
+              {
+                items {
+                  type string,
+                  format uuid
+                },
+                type array
+              },
+              {
+                type null
+              }
+            ],
+            title Assignedproductids,
+            default []
+          }
+        },
+        type object,
+        required [
+          name,
+          email
+        ],
+        title UserCreate
+      },
+      UserPermissionUpdate {
+        properties {
+          roles {
+            items {
+              type string
+            },
+            type array,
+            title Roles
+          },
+          assignments {
+            additionalProperties {
+              additionalProperties {
+                items {
+                  type string
+                },
+                type array
+              },
+              type object
+            },
+            type object,
+            title Assignments
+          }
+        },
+        type object,
+        required [
+          roles,
+          assignments
+        ],
+        title UserPermissionUpdate
+      },
+      UserUpdateV2 {
+        properties {
+          name {
+            anyOf [
+              {
+                type string
+              },
+              {
+                type null
+              }
+            ],
+            title Name
+          },
+          email {
+            anyOf [
+              {
+                type string,
+                format email
+              },
+              {
+                type null
+              }
+            ],
+            title Email
+          },
+          department {
+            anyOf [
+              {
+                type string
+              },
+              {
+                type null
+              }
+            ],
+            title Department
+          },
+          department_id {
+            anyOf [
+              {
+                type string,
+                format uuid
+              },
+              {
+                type null
+              }
+            ],
+            title Department Id
+          },
+          position {
+            anyOf [
+              {
+                type string
+              },
+              {
+                type null
+              }
+            ],
+            title Position
+          },
+          hire_date {
+            anyOf [
+              {
+                type string,
+                format date
+              },
+              {
+                type null
+              }
+            ],
+            title Hire Date
+          },
+          resignation_date {
+            anyOf [
+              {
+                type string,
+                format date
+              },
+              {
+                type null
+              }
+            ],
+            title Resignation Date
+          },
+          role {
+            anyOf [
+              {
+                type string
+              },
+              {
+                type null
+              }
+            ],
+            title Role
+          },
+          assignedProductIds {
+            anyOf [
+              {
+                items {
+                  type string,
+                  format uuid
+                },
+                type array
+              },
+              {
+                type null
+              }
+            ],
+            title Assignedproductids,
+            default []
+          }
+        },
+        type object,
+        title UserUpdateV2,
+        description Unified update schema for v2 - combines basic info and permissions.
+      },
+      ValidationError {
+        properties {
+          loc {
+            items {
+              anyOf [
+                {
+                  type string
+                },
+                {
+                  type integer
+                }
+              ]
+            },
+            type array,
+            title Location
+          },
+          msg {
+            type string,
+            title Message
+          },
+          type {
+            type string,
+            title Error Type
+          }
+        },
+        type object,
+        required [
+          loc,
+          msg,
+          type
+        ],
+        title ValidationError
+      },
+      WorkflowTask {
+        properties {
+          type {
+            type string,
+            title Type
+          },
+          status {
+            type string,
+            title Status,
+            default pending
+          },
+          details {
+            anyOf [
+              {
+                type string
+              },
+              {
+                type null
+              }
+            ],
+            title Details
+          },
+          due_date {
+            anyOf [
+              {
+                type string,
+                format date-time
+              },
+              {
+                type null
+              }
+            ],
+            title Due Date
+          },
+          id {
+            type string,
+            format uuid,
+            title Id
+          },
+          assignee_user_id {
+            type string,
+            format uuid,
+            title Assignee User Id
+          },
+          target_user_id {
+            anyOf [
+              {
+                type string,
+                format uuid
+              },
+              {
+                type null
+              }
+            ],
+            title Target User Id
+          },
+          created_at {
+            type string,
+            format date-time,
+            title Created At
+          },
+          updated_at {
+            type string,
+            format date-time,
+            title Updated At
+          },
+          employee_name {
+            anyOf [
+              {
+                type string
+              },
+              {
+                type null
+              }
+            ],
+            title Employee Name
+          },
+          employee_email {
+            anyOf [
+              {
+                type string
+              },
+              {
+                type null
+              }
+            ],
+            title Employee Email
+          },
+          employee_department {
+            anyOf [
+              {
+                type string
+              },
+              {
+                type null
+              }
+            ],
+            title Employee Department
+          },
+          employee_position {
+            anyOf [
+              {
+                type string
+              },
+              {
+                type null
+              }
+            ],
+            title Employee Position
+          },
+          employee_hire_date {
+            anyOf [
+              {
+                type string,
+                format date
+              },
+              {
+                type null
+              }
+            ],
+            title Employee Hire Date
+          },
+          employee_resignation_date {
+            anyOf [
+              {
+                type string,
+                format date
+              },
+              {
+                type null
+              }
+            ],
+            title Employee Resignation Date
+          },
+          attachment_path {
+            anyOf [
+              {
+                type string
+              },
+              {
+                type null
+              }
+            ],
+            title Attachment Path
+          },
+          attachment_original_name {
+            anyOf [
+              {
+                type string
+              },
+              {
+                type null
+              }
+            ],
+            title Attachment Original Name
+          },
+          assigned_products {
+            anyOf [
+              {
+                items {
+                  $ref #componentsschemasProductWithServiceAdmin
+                },
+                type array
+              },
+              {
+                type null
+              }
+            ],
+            title Assigned Products
+          }
+        },
+        type object,
+        required [
+          type,
+          id,
+          assignee_user_id,
+          created_at,
+          updated_at
+        ],
+        title WorkflowTask
+      },
+      WorkflowTaskUpdate {
+        properties {
+          status {
+            anyOf [
+              {
+                type string
+              },
+              {
+                type null
+              }
+            ],
+            title Status
+          },
+          comment {
+            anyOf [
+              {
+                type string
+              },
+              {
+                type null
+              }
+            ],
+            title Comment
+          },
+          attachment_path {
+            anyOf [
+              {
+                type string
+              },
+              {
+                type null
+              }
+            ],
+            title Attachment Path
+          }
+        },
+        type object,
+        title WorkflowTaskUpdate
+      }
+    },
+    securitySchemes {
+      HTTPBearer {
+        type http,
+        scheme bearer
+      }
+    }
+  }
+}
