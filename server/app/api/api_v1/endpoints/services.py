@@ -157,7 +157,7 @@ def delete_service(
     db: Session = Depends(get_db)
 ):
     """
-    Delete service (non-destructive - products become unassociated).
+    Delete service - only allowed if no products are associated.
     """
     # Check if user is Admin (only Admin can delete services)
     user_roles = get_user_roles(current_user.id, db)
@@ -174,7 +174,18 @@ def delete_service(
             detail="Service not found"
         )
 
-    service.remove_non_destructive(db, id=service_id)
+    # Check if service has any products
+    from app.models.payment import Product
+    product_count = db.query(Product).filter(
+        Product.service_id == service_id).count()
+    if product_count > 0:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Unable to delete the service：There are still {product_count} products under this service. Please delete or transfer all products before deleting the service."
+        )
+
+    # Delete the service
+    service.remove(db, id=service_id)
 
     # Log the action
     audit_log.log_action(

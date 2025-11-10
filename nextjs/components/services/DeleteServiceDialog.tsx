@@ -13,7 +13,7 @@ import { Button } from '@/components/ui/button';
 import { fetchDeleteServiceAction } from '@/api/services/delete_service/action';
 import type { Service } from '@/types';
 import { toast } from 'sonner';
-import { AlertTriangle, Loader2, Info } from 'lucide-react';
+import { AlertTriangle, Loader2, Info, XCircle } from 'lucide-react';
 
 interface DeleteServiceDialogProps {
   open: boolean;
@@ -29,9 +29,11 @@ export function DeleteServiceDialog({
   onSuccess,
 }: DeleteServiceDialogProps) {
   const [deleting, setDeleting] = useState(false);
+  
+  const hasProducts = service && (service.product_count || 0) > 0;
 
   const handleDelete = async () => {
-    if (!service) return;
+    if (!service || hasProducts) return;
 
     try {
       setDeleting(true);
@@ -85,18 +87,31 @@ export function DeleteServiceDialog({
               </div>
             </div>
 
-            <div className="p-3.5 rounded-lg bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800">
-              <div className="flex gap-2.5">
-                <Info className="h-4 w-4 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
-                <div className="space-y-1">
-                  <p className="text-sm font-semibold text-blue-900 dark:text-blue-100">Non-destructive deletion</p>
-                  <p className="text-xs leading-relaxed text-blue-700 dark:text-blue-300">
-                    Deleting this service will only remove the service itself. Associated products will become 
-                    "unassociated" and remain in the system. They can be reassigned to other services later.
-                  </p>
+            {hasProducts ? (
+              <div className="p-3.5 rounded-lg bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800">
+                <div className="flex gap-2.5">
+                  <XCircle className="h-4 w-4 text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
+                  <div className="space-y-1">
+                    <p className="text-sm font-semibold text-red-900 dark:text-red-100">Unable to delete the service</p>
+                    <p className="text-xs leading-relaxed text-red-700 dark:text-red-300">
+                      There are still {service.product_count} products under this service. Please delete or transfer all products before deleting the service.
+                    </p>
+                  </div>
                 </div>
               </div>
-            </div>
+            ) : (
+              <div className="p-3.5 rounded-lg bg-green-50 dark:bg-green-950/40 border border-green-200 dark:border-green-800">
+                <div className="flex gap-2.5">
+                  <Info className="h-4 w-4 text-green-600 dark:text-green-400 shrink-0 mt-0.5" />
+                  <div className="space-y-1">
+                    <p className="text-sm font-semibold text-green-900 dark:text-green-100">Can be safely deleted</p>
+                    <p className="text-xs leading-relaxed text-green-700 dark:text-green-300">
+                      There are no products associated with this service; it can be safely deleted.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -114,7 +129,7 @@ export function DeleteServiceDialog({
             type="button"
             variant="destructive"
             onClick={handleDelete}
-            disabled={deleting}
+            disabled={deleting || hasProducts}
             className="min-w-[130px]"
           >
             {deleting ? (
