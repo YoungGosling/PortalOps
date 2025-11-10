@@ -190,11 +190,11 @@ export default function ServicesPage() {
                     >
                       {/* Service Name */}
                       <TableCell className="font-medium">
-                        <div className="flex items-center gap-2">
-                          <div className="p-2 rounded-lg bg-blue-50 dark:bg-blue-950 group-hover:bg-blue-100 dark:group-hover:bg-blue-900 transition-colors">
+                        <div className="flex items-center gap-2 max-w-[250px]">
+                          <div className="p-2 rounded-lg bg-blue-50 dark:bg-blue-950 group-hover:bg-blue-100 dark:group-hover:bg-blue-900 transition-colors flex-shrink-0">
                             <Building className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                           </div>
-                          <span className="font-semibold">{service.name}</span>
+                          <span className="font-semibold truncate" title={service.name}>{service.name}</span>
                         </div>
                       </TableCell>
 
@@ -232,12 +232,13 @@ export default function ServicesPage() {
                       {/* Associated Products */}
                       <TableCell>
                         {service.products && service.products.length > 0 ? (
-                          <div className="flex gap-1 overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent">
+                          <div className="flex gap-1 flex-wrap max-w-[350px]">
                             {service.products.map((product) => (
                               <Badge
                                 key={product.id}
                                 variant="outline"
-                                className="text-xs bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-400 border-green-200 whitespace-nowrap"
+                                className="text-xs bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-400 border-green-200 max-w-[200px] truncate"
+                                title={product.name}
                               >
                                 {product.name}
                               </Badge>

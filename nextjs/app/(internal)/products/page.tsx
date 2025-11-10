@@ -409,14 +409,14 @@ export default function ProductsPage() {
 
                           {/* Product Name */}
                           <TableCell className="font-medium">
-                            <div className="flex items-center gap-2">
-                              <div className="p-2 rounded-lg bg-green-50 dark:bg-green-950 group-hover:bg-green-100 dark:group-hover:bg-green-900 transition-colors">
+                            <div className="flex items-center gap-2 max-w-[250px]">
+                              <div className="p-2 rounded-lg bg-green-50 dark:bg-green-950 group-hover:bg-green-100 dark:group-hover:bg-green-900 transition-colors flex-shrink-0">
                                 <Package className="h-4 w-4 text-green-600 dark:text-green-400" />
                               </div>
-                              <div className="min-w-0">
-                                <span className="font-semibold block truncate">{product.name}</span>
+                              <div className="min-w-0 flex-1">
+                                <span className="font-semibold block truncate" title={product.name}>{product.name}</span>
                                 {product.description && (
-                                  <span className="text-xs text-muted-foreground block truncate">{product.description}</span>
+                                  <span className="text-xs text-muted-foreground block truncate" title={product.description}>{product.description}</span>
                                 )}
                               </div>
                             </div>
@@ -425,11 +425,12 @@ export default function ProductsPage() {
                           {/* Service */}
                           <TableCell>
                             {product.service_name ? (
-                              <div className="flex items-center gap-1.5">
+                              <div className="flex items-center gap-1.5 max-w-[200px]">
                                 <Building className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400 flex-shrink-0" />
                                 <Badge 
                                   variant="outline" 
-                                  className="text-xs bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-400"
+                                  className="text-xs bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-400 truncate max-w-[160px]"
+                                  title={product.service_name}
                                 >
                                   {product.service_name}
                                 </Badge>
@@ -449,10 +450,11 @@ export default function ProductsPage() {
                             {product.status ? (
                               <Badge 
                                 variant="outline" 
-                                className={`text-xs ${getStatusColorClasses(product.status)}`}
+                                className={`text-xs max-w-[140px] truncate ${getStatusColorClasses(product.status)}`}
+                                title={product.status}
                               >
-                                <Tag className="h-3 w-3 mr-1" />
-                                {product.status}
+                                <Tag className="h-3 w-3 mr-1 flex-shrink-0" />
+                                <span className="truncate">{product.status}</span>
                               </Badge>
                             ) : (
                               <span className="text-xs text-muted-foreground">-</span>
