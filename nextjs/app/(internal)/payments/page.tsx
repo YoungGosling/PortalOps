@@ -273,7 +273,7 @@ export default function PaymentsPage() {
                             <div className={`p-2 rounded-lg ${isError ? 'bg-red-50 dark:bg-red-950' : 'bg-blue-50 dark:bg-blue-950'} group-hover:bg-opacity-80 transition-colors flex-shrink-0`}>
                               <Package className={`h-4 w-4 ${isError ? 'text-red-600 dark:text-red-400' : 'text-blue-600 dark:text-blue-400'}`} />
                             </div>
-                            <span className={`font-semibold truncate ${isError ? 'text-muted-foreground line-through' : ''}`} title={payment.product_name}>
+                            <span className={`font-semibold truncate ${isError ? 'text-muted-foreground line-through' : ''}`} title={payment.product_name || undefined}>
                               {payment.product_name || <span className="italic text-red-600">Product Deleted</span>}
                             </span>
                           </div>
@@ -283,7 +283,7 @@ export default function PaymentsPage() {
                         <TableCell>
                           <div className="flex items-center gap-1.5 text-sm text-muted-foreground max-w-[150px]">
                             <Building2 className="h-3.5 w-3.5 flex-shrink-0" />
-                            <span className={`truncate ${isError ? 'line-through' : ''}`} title={payment.service_name}>
+                            <span className={`truncate ${isError ? 'line-through' : ''}`} title={payment.service_name || undefined}>
                               {payment.service_name || <span className="italic text-red-600">Service Deleted</span>}
                             </span>
                           </div>
@@ -301,12 +301,12 @@ export default function PaymentsPage() {
 
                         {/* Cardholder Name */}
                         <TableCell>
-                          <span className="text-sm truncate block max-w-[150px]" title={payment.cardholder_name}>{payment.cardholder_name || '-'}</span>
+                          <span className="text-sm truncate block max-w-[150px]" title={payment.cardholder_name || undefined}>{payment.cardholder_name || '-'}</span>
                         </TableCell>
 
                         {/* Payment Method */}
                         <TableCell>
-                          <span className="text-sm truncate block max-w-[140px]" title={payment.payment_method}>{payment.payment_method || '-'}</span>
+                          <span className="text-sm truncate block max-w-[140px]" title={payment.payment_method || undefined}>{payment.payment_method || '-'}</span>
                         </TableCell>
 
                         {/* Payment Date */}

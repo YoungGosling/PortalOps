@@ -64,11 +64,27 @@ export function DeletePaymentDialog({
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>Delete Payment Record</AlertDialogTitle>
-          <AlertDialogDescription>
-            Are you sure you want to delete this payment record for <strong>{payment?.product_name}</strong>?
-            <br />
-            <br />
-            This action cannot be undone. All associated invoice files will also be deleted.
+          <AlertDialogDescription asChild>
+            <div className="space-y-3">
+              <p>
+                Are you sure you want to delete this payment record?
+              </p>
+              
+              {payment && (
+                <div className="p-3 rounded-lg border bg-muted/30">
+                  <div className="space-y-1">
+                    <span className="text-xs font-medium text-muted-foreground block">Product Name:</span>
+                    <div className="text-sm font-semibold text-foreground break-words overflow-hidden" style={{ wordBreak: 'break-word', overflowWrap: 'anywhere' }}>
+                      {payment.product_name}
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              <p className="text-sm">
+                This action cannot be undone. All associated invoice files will also be deleted.
+              </p>
+            </div>
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>

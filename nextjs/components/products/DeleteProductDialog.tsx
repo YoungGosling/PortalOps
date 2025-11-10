@@ -71,14 +71,18 @@ export function DeleteProductDialog({
         {product && (
           <div className="space-y-3 py-4">
             <div className="p-4 rounded-lg border bg-muted/30">
-              <div className="space-y-2">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm font-medium text-muted-foreground">Product Name:</span>
-                  <span className="text-sm font-semibold">{product.name}</span>
+              <div className="space-y-3">
+                <div className="space-y-1">
+                  <span className="text-sm font-medium text-muted-foreground block">Product Name:</span>
+                  <div className="text-sm font-semibold break-words overflow-hidden" style={{ wordBreak: 'break-word', overflowWrap: 'anywhere' }}>
+                    {product.name}
+                  </div>
                 </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm font-medium text-muted-foreground">Service:</span>
-                  <span className="text-sm font-semibold">{product.service_name || 'No Service'}</span>
+                <div className="space-y-1">
+                  <span className="text-sm font-medium text-muted-foreground block">Service:</span>
+                  <div className="text-sm font-semibold break-words overflow-hidden" style={{ wordBreak: 'break-word', overflowWrap: 'anywhere' }}>
+                    {product.service_name || 'No Service'}
+                  </div>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-sm font-medium text-muted-foreground">Status:</span>

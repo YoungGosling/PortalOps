@@ -30,7 +30,7 @@ export function DeleteServiceDialog({
 }: DeleteServiceDialogProps) {
   const [deleting, setDeleting] = useState(false);
   
-  const hasProducts = service && (service.product_count || 0) > 0;
+  const hasProducts = Boolean(service && (service.product_count || 0) > 0);
 
   const handleDelete = async () => {
     if (!service || hasProducts) return;
@@ -73,10 +73,12 @@ export function DeleteServiceDialog({
         {service && (
           <div className="space-y-3.5 py-4">
             <div className="p-4 rounded-lg border border-border bg-background">
-              <div className="space-y-2.5">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm font-medium text-muted-foreground">Service Name:</span>
-                  <span className="text-sm font-semibold text-foreground">{service.name}</span>
+              <div className="space-y-3">
+                <div className="space-y-1">
+                  <span className="text-sm font-medium text-muted-foreground block">Service Name:</span>
+                  <div className="text-sm font-semibold text-foreground break-words overflow-hidden" style={{ wordBreak: 'break-word', overflowWrap: 'anywhere' }}>
+                    {service.name}
+                  </div>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-sm font-medium text-muted-foreground">Products:</span>
