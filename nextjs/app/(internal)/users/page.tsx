@@ -280,18 +280,21 @@ export default function UsersPage() {
                             <div className="p-2 rounded-lg bg-purple-50 dark:bg-purple-950 group-hover:bg-purple-100 dark:group-hover:bg-purple-900 transition-colors">
                               <UserCircle2 className="h-4 w-4 text-purple-600 dark:text-purple-400" />
                             </div>
-                            <div className="flex items-center gap-2">
-                              <span className="font-semibold">{user.name}</span>
-                              {hasAdminRole && (
-                                <Badge className="bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400 border-0 px-2 py-0.5 gap-1">
-                                  <Shield className="h-3 w-3" />
-                                  <span className="text-xs font-medium">Admin</span>
-                                </Badge>
-                              )}
+                            <div className="flex flex-col gap-1">
+                              <div className="flex items-center gap-2">
+                                <span className="font-semibold">{user.name}</span>
+                                {hasAdminRole && (
+                                  <Badge className="bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400 border-0 px-2 py-0.5 gap-1">
+                                    <Shield className="h-3 w-3" />
+                                    <span className="text-xs font-medium">Admin</span>
+                                  </Badge>
+                                )}
+                              </div>
                               {user.resignation_date && (
-                                <Badge variant="secondary" className="px-2 py-0.5">
-                                  <span className="text-xs font-medium">Resigned ({user.resignation_date})</span>
-                                </Badge>
+                                <div className="flex items-center gap-1.5 text-xs text-orange-600 dark:text-orange-400 font-medium">
+                                  <Calendar className="h-3 w-3" />
+                                  <span>Resigned: {user.resignation_date}</span>
+                                </div>
                               )}
                             </div>
                           </div>
