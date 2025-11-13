@@ -51,6 +51,7 @@ export default function UsersPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [totalUsers, setTotalUsers] = useState(0);
   const [pageSize] = useState(20); // Users per page
+  const [pageInput, setPageInput] = useState('');
 
   const fetchUsers = async (page: number = currentPage, search?: string) => {
     try {
@@ -134,7 +135,31 @@ export default function UsersPage() {
   const handlePageChange = (newPage: number) => {
     if (newPage >= 1 && newPage <= totalPages) {
       setCurrentPage(newPage);
+      setPageInput('');
       fetchUsers(newPage, searchQuery || undefined);
+    }
+  };
+
+  const handlePageInputChange = (value: string) => {
+    // Only allow numbers
+    if (value === '' || /^\d+$/.test(value)) {
+      setPageInput(value);
+    }
+  };
+
+  const handlePageJump = () => {
+    const page = parseInt(pageInput, 10);
+    if (page >= 1 && page <= totalPages) {
+      handlePageChange(page);
+    } else {
+      toast.error(`Please enter a page number between 1 and ${totalPages}`);
+      setPageInput('');
+    }
+  };
+
+  const handlePageInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      handlePageJump();
     }
   };
 
@@ -414,11 +439,14 @@ export default function UsersPage() {
 
       {/* Pagination Controls */}
       {!loading && users.length > 0 && totalPages > 1 && (
-        <div className="flex items-center justify-between px-2">
+        <div className="flex items-center justify-between">
           <div className="text-sm text-muted-foreground">
             Showing {((currentPage - 1) * pageSize) + 1} to {Math.min(currentPage * pageSize, totalUsers)} of {totalUsers} employees
           </div>
           <div className="flex items-center gap-2">
+            <span className="text-xs text-muted-foreground whitespace-nowrap mr-1">
+              totalPages: {totalPages}
+            </span>
             <Button
               variant="outline"
               size="sm"
@@ -427,7 +455,6 @@ export default function UsersPage() {
               className="gap-1"
             >
               <ChevronLeft className="h-4 w-4" />
-              Previous
             </Button>
             <div className="flex items-center gap-1">
               {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
@@ -462,9 +489,29 @@ export default function UsersPage() {
               disabled={currentPage === totalPages}
               className="gap-1"
             >
-              Next
               <ChevronRight className="h-4 w-4" />
             </Button>
+            <div className="flex items-center gap-2 ml-2 pl-2 border-l">
+              <span className="text-xs text-muted-foreground whitespace-nowrap">
+                Go to page
+              </span>
+              <Input
+                type="text"
+                value={pageInput}
+                onChange={(e) => handlePageInputChange(e.target.value)}
+                onKeyDown={handlePageInputKeyDown}
+                placeholder="Page"
+                className="w-16 h-8 text-center text-sm"
+              />
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handlePageJump}
+                className="h-8 px-3"
+              >
+                Go
+              </Button>
+            </div>
           </div>
         </div>
       )}

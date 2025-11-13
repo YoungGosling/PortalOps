@@ -54,6 +54,7 @@ export default function ProductsPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [totalProducts, setTotalProducts] = useState(0);
   const [pageSize] = useState(20);
+  const [pageInput, setPageInput] = useState('');
 
   const fetchProducts = async (serviceId?: string, page: number = currentPage, search?: string) => {
     try {
@@ -164,8 +165,32 @@ export default function ProductsPage() {
   const handlePageChange = (page: number) => {
     if (page < 1 || page > totalPages) return;
     setCurrentPage(page);
+    setPageInput('');
     const serviceId = selectedServiceFilter === 'all' ? undefined : selectedServiceFilter;
     fetchProducts(serviceId, page, searchQuery || undefined);
+  };
+
+  const handlePageInputChange = (value: string) => {
+    // Only allow numbers
+    if (value === '' || /^\d+$/.test(value)) {
+      setPageInput(value);
+    }
+  };
+
+  const handlePageJump = () => {
+    const page = parseInt(pageInput, 10);
+    if (page >= 1 && page <= totalPages) {
+      handlePageChange(page);
+    } else {
+      toast.error(`Please enter a page number between 1 and ${totalPages}`);
+      setPageInput('');
+    }
+  };
+
+  const handlePageInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      handlePageJump();
+    }
   };
 
   // Handle service filter change
@@ -665,11 +690,14 @@ export default function ProductsPage() {
 
       {/* Pagination Controls */}
       {!loading && products.length > 0 && totalPages > 1 && (
-        <div className="flex items-center justify-between px-2">
+        <div className="flex items-center justify-between">
           <div className="text-sm text-muted-foreground">
             Showing {((currentPage - 1) * pageSize) + 1} to {Math.min(currentPage * pageSize, totalProducts)} of {totalProducts} products
           </div>
           <div className="flex items-center gap-2">
+            <span className="text-xs text-muted-foreground whitespace-nowrap mr-1">
+              totalPages: {totalPages}
+            </span>
             <Button
               variant="outline"
               size="sm"
@@ -678,7 +706,6 @@ export default function ProductsPage() {
               className="gap-1"
             >
               <ChevronLeft className="h-4 w-4" />
-              Previous
             </Button>
             <div className="flex items-center gap-1">
               {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
@@ -713,9 +740,29 @@ export default function ProductsPage() {
               disabled={currentPage === totalPages}
               className="gap-1"
             >
-              Next
               <ChevronRight className="h-4 w-4" />
             </Button>
+            <div className="flex items-center gap-2 ml-2 pl-2 border-l">
+              <span className="text-xs text-muted-foreground whitespace-nowrap">
+                Go to page
+              </span>
+              <Input
+                type="text"
+                value={pageInput}
+                onChange={(e) => handlePageInputChange(e.target.value)}
+                onKeyDown={handlePageInputKeyDown}
+                placeholder="Page"
+                className="w-16 h-8 text-center text-sm"
+              />
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handlePageJump}
+                className="h-8 px-3"
+              >
+                Go
+              </Button>
+            </div>
           </div>
         </div>
       )}

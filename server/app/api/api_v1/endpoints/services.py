@@ -175,7 +175,7 @@ def delete_service(
         )
 
     # Check if service has any products
-    from app.models.payment import Product
+    from app.models.service import Product
     product_count = db.query(Product).filter(
         Product.service_id == service_id).count()
     if product_count > 0:
