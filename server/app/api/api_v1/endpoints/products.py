@@ -1,10 +1,12 @@
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from app.db.database import get_db
 from app.crud import product as crud_product, audit_log
 from app.core.deps import require_service_admin_or_higher, get_current_user
 from app.schemas.service import Product, ProductCreateWithUrl, ProductCreate
+from app.models.service import Product as ProductModel
 from app.models.user import User
 import uuid
 
@@ -28,6 +30,16 @@ def create_product(
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only Admin can create products"
+        )
+
+    # Check if product with the same name already exists (case-insensitive)
+    existing_product = db.query(ProductModel).filter(
+        func.lower(ProductModel.name) == func.lower(product_in.name.strip())
+    ).first()
+    if existing_product:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Product already exists"
         )
 
     product_create_schema = ProductCreate(
@@ -214,6 +226,20 @@ def update_product(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Product not found"
         )
+
+    # Check if product with the same name already exists (case-insensitive)
+    # Only check if the name has changed
+    if product.name.strip().lower() != product_in.name.strip().lower():
+        existing_product = db.query(ProductModel).filter(
+            func.lower(ProductModel.name) == func.lower(
+                product_in.name.strip()),
+            ProductModel.id != product_id
+        ).first()
+        if existing_product:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Product already exists"
+            )
 
     # Update product
     from app.schemas.service import ProductUpdate

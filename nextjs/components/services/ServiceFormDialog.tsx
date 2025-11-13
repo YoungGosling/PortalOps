@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -17,6 +17,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { fetchListUserAction } from '@/api/users/list_user/action';
 import { fetchCreateServiceAction } from '@/api/services/create_service/action';
 import { fetchUpdateServiceAction } from '@/api/services/update_service/action';
+import { fetchQueryServicesAction } from '@/api/services/query_services/action';
 import type { Service, User } from '@/types';
 import { toast } from 'sonner';
 import { Loader2, X, Users } from 'lucide-react';
@@ -40,6 +41,9 @@ export function ServiceFormDialog({
   const [allUsers, setAllUsers] = useState<User[]>([]);
   const [selectedAdminIds, setSelectedAdminIds] = useState<string[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
+  const [nameDuplicate, setNameDuplicate] = useState(false);
+  const [checkingDuplicate, setCheckingDuplicate] = useState(false);
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const isEditMode = !!service;
 
@@ -50,12 +54,75 @@ export function ServiceFormDialog({
       if (service) {
         setName(service.name);
         setSelectedAdminIds(service.admins?.map(admin => admin.id) || []);
+        setNameDuplicate(false); // Reset duplicate check when opening edit dialog
       } else {
         setName('');
         setSelectedAdminIds([]);
+        setNameDuplicate(false); // Reset duplicate check when opening add dialog
       }
     }
   }, [open, service]);
+
+  // Check for duplicate service name when name changes
+  const checkDuplicateName = useCallback(async (serviceName: string) => {
+    if (!serviceName.trim()) {
+      setNameDuplicate(false);
+      return;
+    }
+
+    // For edit mode, skip check if name hasn't changed
+    if (isEditMode && service && service.name === serviceName.trim()) {
+      setNameDuplicate(false);
+      return;
+    }
+
+    try {
+      setCheckingDuplicate(true);
+      const searchResult = await fetchQueryServicesAction(1, 100, serviceName.trim());
+      
+      // Check if any service has the exact same name (case-insensitive)
+      const duplicateService = searchResult.data.find(
+        (s) => s.name.toLowerCase() === serviceName.trim().toLowerCase()
+      );
+      
+      // For edit mode, exclude the current service from duplicate check
+      if (duplicateService && (!isEditMode || duplicateService.id !== service?.id)) {
+        setNameDuplicate(true);
+      } else {
+        setNameDuplicate(false);
+      }
+    } catch (error) {
+      console.error('Error checking duplicate service name:', error);
+      setNameDuplicate(false);
+    } finally {
+      setCheckingDuplicate(false);
+    }
+  }, [isEditMode, service]);
+
+  // Debounced effect to check for duplicate names
+  useEffect(() => {
+    // Clear previous timer
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+
+    // Only check if name is not empty
+    if (name.trim()) {
+      // Set a new timer
+      debounceTimerRef.current = setTimeout(() => {
+        checkDuplicateName(name);
+      }, 500); // Wait 500ms after user stops typing
+    } else {
+      setNameDuplicate(false);
+    }
+
+    // Cleanup function
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+    };
+  }, [name, checkDuplicateName]);
 
   const fetchUsers = async () => {
     try {
@@ -108,17 +175,40 @@ export function ServiceFormDialog({
     try {
       setLoading(true);
 
+      const trimmedName = name.trim();
+
+      // Check if service with the same name already exists
+      // For edit mode, only check if the name has changed
+      const shouldCheckDuplicate = !isEditMode || (service && service.name !== trimmedName);
+      
+      if (shouldCheckDuplicate) {
+        // Use search API to check for duplicate service names
+        const searchResult = await fetchQueryServicesAction(1, 100, trimmedName);
+        
+        // Check if any service has the exact same name (case-insensitive)
+        const duplicateService = searchResult.data.find(
+          (s) => s.name.toLowerCase() === trimmedName.toLowerCase()
+        );
+        
+        // For edit mode, exclude the current service from duplicate check
+        if (duplicateService && (!isEditMode || duplicateService.id !== service?.id)) {
+          toast.error('Service Provider already exists');
+          setLoading(false);
+          return;
+        }
+      }
+
       if (isEditMode && service) {
         // Update existing service
         await fetchUpdateServiceAction(service.id, {
-          name: name.trim(),
+          name: trimmedName,
           adminUserIds: selectedAdminIds,
         });
         toast.success('Service updated successfully');
       } else {
         // Create new service
         await fetchCreateServiceAction({
-          name: name.trim(),
+          name: trimmedName,
           adminUserIds: selectedAdminIds,
         });
         toast.success('Service created successfully');
@@ -169,11 +259,23 @@ export function ServiceFormDialog({
                 disabled={loading}
                 required
                 autoFocus
-                className="h-11 text-base bg-background"
+                className={`h-11 text-base bg-background ${nameDuplicate ? 'border-destructive' : ''}`}
               />
-              <p className="text-xs text-muted-foreground">
-                Enter a descriptive name for this service
-              </p>
+              {nameDuplicate && (
+                <p className="text-sm text-yellow-600 dark:text-yellow-500">
+                  Service Provider already exists
+                </p>
+              )}
+              {checkingDuplicate && !nameDuplicate && name.trim() && (
+                <p className="text-sm text-muted-foreground">
+                  Checking...
+                </p>
+              )}
+              {!nameDuplicate && !checkingDuplicate && (
+                <p className="text-xs text-muted-foreground">
+                  Enter a descriptive name for this service
+                </p>
+              )}
             </div>
 
             {/* Admin Selection */}
@@ -257,7 +359,7 @@ export function ServiceFormDialog({
             </Button>
             <Button
               type="submit"
-              disabled={loading || !name.trim()}
+              disabled={loading || !name.trim() || nameDuplicate}
               className="min-w-[140px]"
             >
               {loading ? (

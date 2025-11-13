@@ -1,10 +1,12 @@
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from app.db.database import get_db
 from app.crud import service, product, audit_log
 from app.core.deps import require_any_admin_role, require_service_admin_or_higher, get_user_roles
 from app.schemas.service import Service, ServiceCreate, ServiceUpdate, ServiceWithProducts, Product, ProductCreate, ProductUpdate
+from app.models.service import Service as ServiceModel
 from app.models.user import User
 import uuid
 
@@ -55,6 +57,16 @@ def create_service(
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only Admin can create services"
+        )
+
+    # Check if service with the same name already exists (case-insensitive)
+    existing_service = db.query(ServiceModel).filter(
+        func.lower(ServiceModel.name) == func.lower(service_in.name.strip())
+    ).first()
+    if existing_service:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Service Provider already exists"
         )
 
     new_service = service.create_with_products(db, obj_in=service_in)
@@ -124,6 +136,20 @@ def update_service(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Service not found"
         )
+
+    # Check if service with the same name already exists (case-insensitive)
+    # Only check if the name has changed
+    if service_update.name and existing_service.name.strip().lower() != service_update.name.strip().lower():
+        duplicate_service = db.query(ServiceModel).filter(
+            func.lower(ServiceModel.name) == func.lower(
+                service_update.name.strip()),
+            ServiceModel.id != service_id
+        ).first()
+        if duplicate_service:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Service Provider already exists"
+            )
 
     updated_service = service.update_with_products(
         db, db_obj=existing_service, obj_in=service_update)
