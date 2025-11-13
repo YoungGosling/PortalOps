@@ -38,6 +38,7 @@ class User(Base):
         "WorkflowTask", foreign_keys="WorkflowTask.target_user_id", back_populates="target_user")
     audit_logs = relationship("AuditLog", back_populates="actor")
     dept_ref = relationship("Department", foreign_keys=[department_id])
+    sap_users = relationship("SapUser", back_populates="user", cascade="all, delete-orphan")
 
 
 class Role(Base):

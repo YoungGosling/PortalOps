@@ -6,6 +6,7 @@ from .permission import PermissionAssignment
 from .workflow import WorkflowTask
 from .audit import AuditLog
 from .department import Department, DepartmentProductAssignment
+from .sap_user import SapUser
 
 __all__ = [
     "User",
@@ -21,5 +22,6 @@ __all__ = [
     "WorkflowTask",
     "AuditLog",
     "Department",
-    "DepartmentProductAssignment"
+    "DepartmentProductAssignment",
+    "SapUser"
 ]

@@ -6,6 +6,7 @@ from app.crud import user, audit_log
 from app.core.deps import require_any_admin_role, require_admin, get_user_roles
 from app.schemas.user import User, UserCreate, UserUpdate, UserPermissionUpdate, UserUpdateV2
 from app.models.user import User as UserModel
+from app.models.sap_user import SapUser
 import uuid
 
 router = APIRouter()
@@ -45,6 +46,10 @@ def read_users(
         ).all()
         assigned_product_ids = [str(a.product_id) for a in product_assignments]
 
+        # Get SAP IDs for this user
+        sap_users = db.query(SapUser).filter(SapUser.user_id == u.id).all()
+        sap_ids = [sap.sap_id for sap in sap_users]
+
         # v3: Get department name from relationship if department_id is set
         # Legacy field (for backward compatibility)
         department_name = u.department
@@ -61,7 +66,8 @@ def read_users(
             "hire_date": u.hire_date.isoformat() if u.hire_date else None,
             "resignation_date": u.resignation_date.isoformat() if u.resignation_date else None,
             "roles": roles,
-            "assignedProductIds": assigned_product_ids
+            "assignedProductIds": assigned_product_ids,
+            "sap_ids": sap_ids
         })
 
     return {

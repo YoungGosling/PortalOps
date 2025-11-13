@@ -11,6 +11,7 @@ export const UserItemSchema = z.object({
   resignation_date: z.string().nullable(),
   roles: z.array(z.string()),
   assignedProductIds: z.array(z.string()),
+  sap_ids: z.array(z.string()).optional(),
 });
 
 export const PaginationSchema = z.object({

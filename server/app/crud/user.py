@@ -50,15 +50,29 @@ class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
     def search_users(
         self, db: Session, *, search: Optional[str] = None, product_id: Optional[uuid.UUID] = None, skip: int = 0, limit: int = 100
     ) -> List[User]:
+        from app.models.sap_user import SapUser
         query = db.query(User)
         if search:
-            query = query.filter(
-                or_(
-                    User.name.ilike(f"%{search}%"),
-                    User.email.ilike(f"%{search}%"),
-                    User.department.ilike(f"%{search}%")
-                )
-            )
+            # Search by name, email, department, or SAP ID
+            # First, find user IDs that match SAP ID search
+            sap_matching_user_ids = [
+                row[0] for row in db.query(SapUser.user_id).filter(
+                    SapUser.sap_id.ilike(f"%{search}%")
+                ).all()
+            ]
+            
+            # Build search conditions
+            search_conditions = [
+                User.name.ilike(f"%{search}%"),
+                User.email.ilike(f"%{search}%"),
+                User.department.ilike(f"%{search}%")
+            ]
+            
+            # Add SAP ID search condition if there are matching IDs
+            if sap_matching_user_ids:
+                search_conditions.append(User.id.in_(sap_matching_user_ids))
+            
+            query = query.filter(or_(*search_conditions))
         if product_id:
             # Filter users assigned to the specific product
             query = query.join(

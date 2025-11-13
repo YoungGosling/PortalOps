@@ -66,6 +66,7 @@ export default function UsersPage() {
         hire_date: user.hire_date ?? undefined,
         resignation_date: user.resignation_date ?? undefined,
         roles: user.roles as ('Admin' | 'ServiceAdmin')[],
+        sap_ids: user.sap_ids ?? undefined,
       }));
       setUsers(users);
       setCurrentPage(response.pagination.page);

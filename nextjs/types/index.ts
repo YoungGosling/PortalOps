@@ -11,6 +11,7 @@ export interface User {
   resignation_date?: string;   // v3: Resignation date (YYYY-MM-DD), nullable
   roles: ('Admin' | 'ServiceAdmin')[];
   assignedProductIds: string[];
+  sap_ids?: string[];          // SAP user IDs associated with this user
 }
 
 export interface ProductSimple {

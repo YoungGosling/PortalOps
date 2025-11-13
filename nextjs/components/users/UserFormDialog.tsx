@@ -385,6 +385,28 @@ export function UserFormDialog({
               )}
             </div>
 
+            {/* SAP IDs - Display only in edit mode if user has SAP IDs */}
+            {isEditMode && user?.sap_ids && user.sap_ids.length > 0 && (
+              <div className="space-y-2">
+                <Label>SAP User IDs</Label>
+                <div className="flex gap-2 overflow-x-auto">
+                  {user.sap_ids.map((sapId, index) => (
+                    <Input
+                      key={index}
+                      value={sapId}
+                      disabled={true}
+                      className="bg-muted cursor-not-allowed flex-shrink-0"
+                      style={{ width: `${Math.max(sapId.length * 8 + 32, 100)}px` }}
+                      readOnly
+                    />
+                  ))}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  SAP IDs are read-only and cannot be edited
+                </p>
+              </div>
+            )}
+
             {/* Product Assignment - v3: Using ServiceProductSelector */}
             <div className="space-y-2">
               <Label>
