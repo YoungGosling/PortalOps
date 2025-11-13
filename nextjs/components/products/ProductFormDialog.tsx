@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -24,6 +24,7 @@ import { fetchQueryServicesAction } from '@/api/services/query_services/action';
 import { createProductAction } from '@/api/products/create_product/action';
 import { updateProductAction } from '@/api/products/update_product/action';
 import { fetchQueryProductStatusesAction } from '@/api/product_status/query_product_statuses/action';
+import { queryProductsAction } from '@/api/products/query_products/action';
 import type { Product, Service, ProductStatus } from '@/types';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
@@ -50,6 +51,9 @@ export function ProductFormDialog({
   const [loading, setLoading] = useState(false);
   const [loadingServices, setLoadingServices] = useState(false);
   const [loadingStatuses, setLoadingStatuses] = useState(false);
+  const [nameDuplicate, setNameDuplicate] = useState(false);
+  const [checkingDuplicate, setCheckingDuplicate] = useState(false);
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const isEditMode = !!product;
 
@@ -63,14 +67,77 @@ export function ProductFormDialog({
         setDescription(product.description || '');
         setServiceId(product.service_id);
         setStatusId(product.status_id?.toString() || '1');
+        setNameDuplicate(false); // Reset duplicate check when opening edit dialog
       } else {
         setName('');
         setDescription('');
         setServiceId('');
         setStatusId('1');
+        setNameDuplicate(false); // Reset duplicate check when opening add dialog
       }
     }
   }, [open, product]);
+
+  // Check for duplicate product name when name changes
+  const checkDuplicateName = useCallback(async (productName: string) => {
+    if (!productName.trim()) {
+      setNameDuplicate(false);
+      return;
+    }
+
+    // For edit mode, skip check if name hasn't changed
+    if (isEditMode && product && product.name === productName.trim()) {
+      setNameDuplicate(false);
+      return;
+    }
+
+    try {
+      setCheckingDuplicate(true);
+      const searchResult = await queryProductsAction(null, 1, 100, productName.trim());
+      
+      // Check if any product has the exact same name (case-insensitive)
+      const duplicateProduct = searchResult.products.find(
+        (p) => p.name.toLowerCase() === productName.trim().toLowerCase()
+      );
+      
+      // For edit mode, exclude the current product from duplicate check
+      if (duplicateProduct && (!isEditMode || duplicateProduct.id !== product?.id)) {
+        setNameDuplicate(true);
+      } else {
+        setNameDuplicate(false);
+      }
+    } catch (error) {
+      console.error('Error checking duplicate product name:', error);
+      setNameDuplicate(false);
+    } finally {
+      setCheckingDuplicate(false);
+    }
+  }, [isEditMode, product]);
+
+  // Debounced effect to check for duplicate names
+  useEffect(() => {
+    // Clear previous timer
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+
+    // Only check if name is not empty
+    if (name.trim()) {
+      // Set a new timer
+      debounceTimerRef.current = setTimeout(() => {
+        checkDuplicateName(name);
+      }, 500); // Wait 500ms after user stops typing
+    } else {
+      setNameDuplicate(false);
+    }
+
+    // Cleanup function
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+    };
+  }, [name, checkDuplicateName]);
 
   const fetchServices = async () => {
     try {
@@ -126,10 +193,33 @@ export function ProductFormDialog({
     try {
       setLoading(true);
 
+      const trimmedName = name.trim();
+
+      // Check if product with the same name already exists
+      // For edit mode, only check if the name has changed
+      const shouldCheckDuplicate = !isEditMode || (product && product.name !== trimmedName);
+      
+      if (shouldCheckDuplicate) {
+        // Use search API to check for duplicate product names
+        const searchResult = await queryProductsAction(null, 1, 100, trimmedName);
+        
+        // Check if any product has the exact same name (case-insensitive)
+        const duplicateProduct = searchResult.products.find(
+          (p) => p.name.toLowerCase() === trimmedName.toLowerCase()
+        );
+        
+        // For edit mode, exclude the current product from duplicate check
+        if (duplicateProduct && (!isEditMode || duplicateProduct.id !== product?.id)) {
+          toast.error('Product already exists');
+          setLoading(false);
+          return;
+        }
+      }
+
       if (isEditMode && product) {
         // V2: Update existing product with new fields
         await updateProductAction(product.id, {
-          name: name.trim(),
+          name: trimmedName,
           description: description.trim() || null,
           serviceId: serviceId,
           statusId: parseInt(statusId),
@@ -138,7 +228,7 @@ export function ProductFormDialog({
       } else {
         // V2: Create new product with new fields
         await createProductAction({
-          name: name.trim(),
+          name: trimmedName,
           description: description.trim() || null,
           serviceId: serviceId,
           statusId: parseInt(statusId),
@@ -164,8 +254,8 @@ export function ProductFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
-        <form onSubmit={handleSubmit}>
+      <DialogContent className="sm:max-w-[500px] max-w-[90vw]">
+        <form onSubmit={handleSubmit} className="min-w-0">
           <DialogHeader>
             <DialogTitle className="text-2xl">
               {isEditMode ? 'Edit Product' : 'Add Product'}
@@ -177,8 +267,8 @@ export function ProductFormDialog({
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
+          <div className="space-y-4 py-4 min-w-0">
+            <div className="space-y-2 min-w-0">
               <Label htmlFor="product-name">
                 Product Name <span className="text-destructive">*</span>
               </Label>
@@ -189,10 +279,21 @@ export function ProductFormDialog({
                 onChange={(e) => setName(e.target.value)}
                 disabled={loading}
                 required
+                className={`min-w-0 ${nameDuplicate ? 'border-destructive' : ''}`}
               />
+              {nameDuplicate && (
+                <p className="text-sm text-yellow-600 dark:text-yellow-500">
+                  Product already exists
+                </p>
+              )}
+              {checkingDuplicate && !nameDuplicate && name.trim() && (
+                <p className="text-sm text-muted-foreground">
+                  Checking...
+                </p>
+              )}
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-2 min-w-0">
               <Label htmlFor="product-description">
                 Description
               </Label>
@@ -203,10 +304,11 @@ export function ProductFormDialog({
                 onChange={(e) => setDescription(e.target.value)}
                 disabled={loading}
                 rows={3}
+                className="min-w-0"
               />
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-2 min-w-0">
               <Label htmlFor="service">
                 Service <span className="text-destructive">*</span>
               </Label>
@@ -228,12 +330,12 @@ export function ProductFormDialog({
                   disabled={loading}
                   required
                 >
-                  <SelectTrigger id="service">
+                  <SelectTrigger id="service" className="[&>span]:truncate min-w-0">
                     <SelectValue placeholder="Select a service" />
                   </SelectTrigger>
                   <SelectContent>
                     {services.map((service) => (
-                      <SelectItem key={service.id} value={service.id}>
+                      <SelectItem key={service.id} value={service.id} className="[&>span]:truncate" title={service.name}>
                         {service.name}
                       </SelectItem>
                     ))}
@@ -242,7 +344,7 @@ export function ProductFormDialog({
               )}
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-2 min-w-0">
               <Label htmlFor="status">
                 Status <span className="text-destructive">*</span>
               </Label>
@@ -264,7 +366,7 @@ export function ProductFormDialog({
                   disabled={loading}
                   required
                 >
-                  <SelectTrigger id="status">
+                  <SelectTrigger id="status" className="min-w-0">
                     <SelectValue placeholder="Select a status" />
                   </SelectTrigger>
                   <SelectContent>
@@ -290,7 +392,7 @@ export function ProductFormDialog({
             </Button>
             <Button
               type="submit"
-              disabled={loading || services.length === 0 || statuses.length === 0}
+              disabled={loading || services.length === 0 || statuses.length === 0 || nameDuplicate}
             >
               {loading ? (
                 <>
