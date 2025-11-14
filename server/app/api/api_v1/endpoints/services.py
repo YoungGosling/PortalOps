@@ -1,5 +1,5 @@
 from typing import List
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Query, UploadFile, File
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from app.db.database import get_db
@@ -9,6 +9,9 @@ from app.schemas.service import Service, ServiceCreate, ServiceUpdate, ServiceWi
 from app.models.service import Service as ServiceModel
 from app.models.user import User
 import uuid
+import pandas as pd
+import io
+from pydantic import BaseModel
 
 router = APIRouter()
 
@@ -347,4 +350,141 @@ def delete_product(
         action="product.delete",
         target_id=str(product_id),
         details={"name": existing_product.name}
+    )
+
+
+class ImportResult(BaseModel):
+    success_count: int
+    failed_count: int
+    errors: List[str]
+
+
+@router.post("/import", response_model=ImportResult)
+async def import_services(
+    file: UploadFile = File(...),
+    current_user: User = Depends(require_any_admin_role),
+    db: Session = Depends(get_db)
+):
+    """
+    Import services from Excel file.
+    Excel file should have two columns: Service (service name) and Administrators (comma-separated admin names).
+    """
+    # Check if user is Admin (only Admin can import services)
+    user_roles = get_user_roles(current_user.id, db)
+    if "Admin" not in user_roles:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only Admin can import services"
+        )
+
+    # Validate file extension
+    if not file.filename:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No file provided"
+        )
+
+    file_extension = file.filename.lower().split('.')[-1]
+    if file_extension not in ['xlsx', 'xls']:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="File must be an Excel file (.xlsx or .xls)"
+        )
+
+    # Read file content
+    try:
+        contents = await file.read()
+        df = pd.read_excel(io.BytesIO(contents))
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Failed to read Excel file: {str(e)}"
+        )
+
+    # Validate columns
+    df.columns = df.columns.str.strip()
+    required_columns = ['Service', 'Administrators']
+    missing_columns = [col for col in required_columns if col not in df.columns]
+    if missing_columns:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Missing required columns: {', '.join(missing_columns)}"
+        )
+
+    # Filter out empty rows
+    df = df.dropna(subset=['Service'], how='all')
+    df = df[df['Service'].notna()]
+
+    success_count = 0
+    failed_count = 0
+    errors = []
+
+    # Process each row
+    for index, row in df.iterrows():
+        service_name = str(row['Service']).strip()
+        if not service_name:
+            failed_count += 1
+            errors.append(f"Row {index + 2}: Service name is empty")
+            continue
+
+        # Parse administrators
+        admin_names = []
+        if pd.notna(row['Administrators']):
+            admin_str = str(row['Administrators']).strip()
+            if admin_str:
+                # Split by comma and clean up
+                admin_names = [name.strip() for name in admin_str.split(',') if name.strip()]
+
+        # Find user IDs for administrators
+        admin_user_ids = []
+        if admin_names:
+            for admin_name in admin_names:
+                # Search for user by exact name match (case-insensitive)
+                user = db.query(User).filter(
+                    func.lower(User.name) == func.lower(admin_name)
+                ).first()
+                if user:
+                    admin_user_ids.append(user.id)
+                else:
+                    errors.append(f"Row {index + 2}: Administrator '{admin_name}' not found")
+
+        # Check if service already exists
+        existing_service = db.query(ServiceModel).filter(
+            func.lower(ServiceModel.name) == func.lower(service_name)
+        ).first()
+        if existing_service:
+            failed_count += 1
+            errors.append(f"Row {index + 2}: Service '{service_name}' already exists")
+            continue
+
+        # Create service
+        try:
+            service_create = ServiceCreate(
+                name=service_name,
+                adminUserIds=admin_user_ids if admin_user_ids else []
+            )
+            new_service = service.create_with_products(db, obj_in=service_create)
+
+            # Log the action
+            details = {"name": new_service.name}
+            if admin_user_ids:
+                details["adminUserIds"] = [str(uid) for uid in admin_user_ids]
+
+            audit_log.log_action(
+                db,
+                actor_user_id=current_user.id,
+                action="service.create",
+                target_id=str(new_service.id),
+                details=details
+            )
+
+            success_count += 1
+        except Exception as e:
+            failed_count += 1
+            errors.append(f"Row {index + 2}: Failed to create service '{service_name}': {str(e)}")
+
+    return ImportResult(
+        success_count=success_count,
+        failed_count=failed_count,
+        errors=errors
     )

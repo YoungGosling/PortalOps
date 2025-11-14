@@ -16,7 +16,8 @@ import {
 } from '@/components/ui/table';
 import { ServiceFormDialog } from '@/components/services/ServiceFormDialog';
 import { DeleteServiceDialog } from '@/components/services/DeleteServiceDialog';
-import { Plus, Building, Loader2, Package, Edit2, Trash2, UserCog, ChevronLeft, ChevronRight, Search, X } from 'lucide-react';
+import { ImportServicesDialog } from '@/components/services/ImportServicesDialog';
+import { Plus, Building, Loader2, Package, Edit2, Trash2, UserCog, ChevronLeft, ChevronRight, Search, X, Upload } from 'lucide-react';
 import { toast } from 'sonner';
 import { Input } from '@/components/ui/input';
 
@@ -27,6 +28,7 @@ export default function ServicesPage() {
   const [editingService, setEditingService] = useState<Service | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletingService, setDeletingService] = useState<Service | null>(null);
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [dataLoaded, setDataLoaded] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   
@@ -162,6 +164,15 @@ export default function ServicesPage() {
               </button>
             )}
           </div>
+          <Button 
+            onClick={() => setImportDialogOpen(true)} 
+            size="default" 
+            variant="outline"
+            className="gap-2"
+          >
+            <Upload className="h-4 w-4" />
+            Import
+          </Button>
           <Button onClick={handleAddService} size="default" className="gap-2">
             <Plus className="h-4 w-4" />
             Add Service
@@ -398,6 +409,13 @@ export default function ServicesPage() {
         open={deleteDialogOpen}
         onOpenChange={setDeleteDialogOpen}
         service={deletingService}
+        onSuccess={handleDialogSuccess}
+      />
+
+      {/* Import Services Dialog */}
+      <ImportServicesDialog
+        open={importDialogOpen}
+        onOpenChange={setImportDialogOpen}
         onSuccess={handleDialogSuccess}
       />
     </div>
