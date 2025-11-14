@@ -1,4 +1,4 @@
-from sqlalchemy import Column, ForeignKey, CheckConstraint
+from sqlalchemy import Column, ForeignKey, CheckConstraint, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 import uuid
@@ -15,11 +15,14 @@ class PermissionAssignment(Base):
         "services.id", ondelete="CASCADE"), nullable=True)
     product_id = Column(UUID(as_uuid=True), ForeignKey(
         "products.id", ondelete="CASCADE"), nullable=True)
+    assignment_source = Column(String(20), default='manual', nullable=False)
 
     # Constraints
     __table_args__ = (
         CheckConstraint("service_id IS NOT NULL OR product_id IS NOT NULL",
                         name="check_permission_assignment"),
+        CheckConstraint("assignment_source IN ('manual', 'department')",
+                        name="check_assignment_source"),
     )
 
     # Relationships

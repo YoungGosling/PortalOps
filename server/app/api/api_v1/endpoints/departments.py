@@ -214,8 +214,14 @@ def set_department_products(
 ):
     """
     Set (replace) all product assignments for a department.
+    Database triggers automatically sync products to all users in the department.
+    - Adds new department products to users (with assignment_source='department')
+    - Removes old department products from users (only those with assignment_source='department')
+    - Manual assignments (assignment_source='manual') are preserved
     Admin only.
     """
+    from app.models.user import User
+
     target_department = department.get(db, department_id)
     if not target_department:
         raise HTTPException(
@@ -223,7 +229,13 @@ def set_department_products(
             detail="Department not found"
         )
 
-    # Set the product assignments
+    # Get count of users in department for logging
+    users_in_dept_count = db.query(User).filter(
+        User.department_id == department_id
+    ).count()
+
+    # Set the product assignments for the department
+    # Database triggers will automatically sync to users
     assigned_ids = department.set_department_products(
         db, department_id=department_id, product_ids=assignment.product_ids
     )
@@ -236,7 +248,9 @@ def set_department_products(
         target_id=str(department_id),
         details={
             "department_name": target_department.name,
-            "product_ids": [str(pid) for pid in assigned_ids]
+            "product_ids": [str(pid) for pid in assigned_ids],
+            "users_in_department": users_in_dept_count,
+            "note": "Database triggers automatically synced to all users in department"
         }
     )
 
