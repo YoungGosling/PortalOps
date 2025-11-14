@@ -65,16 +65,20 @@ export default function DepartmentsPage() {
       const products = await fetchDepartmentProductsAction(departmentId);
       
       // Convert backend products to frontend Product type (handle nullable fields)
-      const convertedProducts: Product[] = products.map(p => ({
-        ...p,
-        description: p.description ?? undefined,
-        url: p.url ?? undefined,
-        service_name: p.service_name ?? undefined,
-        status: p.status ?? undefined,
-        latest_payment_date: p.latest_payment_date ?? undefined,
-        latest_usage_start_date: p.latest_usage_start_date ?? undefined,
-        latest_usage_end_date: p.latest_usage_end_date ?? undefined,
-      }));
+      // Filter out products with null service_id as Product type requires service_id to be a string
+      const convertedProducts: Product[] = products
+        .filter(p => p.service_id !== null)
+        .map(p => ({
+          ...p,
+          service_id: p.service_id!, // Type assertion safe after filter
+          description: p.description ?? undefined,
+          url: p.url ?? undefined,
+          service_name: p.service_name ?? undefined,
+          status: p.status ?? undefined,
+          latest_payment_date: p.latest_payment_date ?? undefined,
+          latest_usage_start_date: p.latest_usage_start_date ?? undefined,
+          latest_usage_end_date: p.latest_usage_end_date ?? undefined,
+        }));
       
       setDepartments(prev =>
         prev.map(d =>
