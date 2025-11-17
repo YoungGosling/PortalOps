@@ -1,14 +1,18 @@
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Query, UploadFile, File
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from app.db.database import get_db
 from app.crud import product as crud_product, audit_log
 from app.core.deps import require_service_admin_or_higher, get_current_user
 from app.schemas.service import Product, ProductCreateWithUrl, ProductCreate
-from app.models.service import Product as ProductModel
+from app.models.service import Product as ProductModel, Service as ServiceModel
 from app.models.user import User
+from app.models.payment import ProductStatus
 import uuid
+import pandas as pd
+import io
+from pydantic import BaseModel
 
 router = APIRouter()
 
@@ -387,4 +391,251 @@ def delete_product(
             "service_id": str(product.service_id) if product.service_id else None,
             "status": status_name
         }
+    )
+
+
+class ImportResult(BaseModel):
+    success_count: int
+    failed_count: int
+    errors: List[str]
+
+
+@router.post("/import", response_model=ImportResult)
+async def import_products(
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Import products from Excel file.
+    Excel file should have columns: Product (required), Service (required), Description (optional), Status (optional).
+    Each imported product will automatically create an incomplete payment record.
+    """
+    # Check if user is Admin (only Admin can import products)
+    from app.core.deps import get_user_roles
+    user_roles = get_user_roles(current_user.id, db)
+    if "Admin" not in user_roles:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only Admin can import products"
+        )
+
+    # Validate file extension
+    if not file.filename:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No file provided"
+        )
+
+    file_extension = file.filename.lower().split('.')[-1]
+    if file_extension not in ['xlsx', 'xls']:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="File must be an Excel file (.xlsx or .xls)"
+        )
+
+    # Read file content
+    try:
+        contents = await file.read()
+        df = pd.read_excel(io.BytesIO(contents))
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Failed to read Excel file: {str(e)}"
+        )
+
+    # Validate columns
+    df.columns = df.columns.str.strip()
+    required_columns = ['Product', 'Service']
+    missing_columns = [
+        col for col in required_columns if col not in df.columns]
+    if missing_columns:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Missing required columns: {', '.join(missing_columns)}"
+        )
+
+    # Filter out empty rows
+    df = df.dropna(subset=['Product'], how='all')
+    df = df[df['Product'].notna()]
+
+    # Phase 1: Validate all rows without creating any data
+    # This ensures "all or nothing" transaction semantics
+    validation_errors = []
+    validated_rows = []  # Store validated data for phase 2
+
+    for idx, (_, row) in enumerate(df.iterrows()):
+        row_number = idx + 2  # +2 because Excel rows start at 1 and we have a header row
+        product_name = str(row['Product']).strip()
+
+        # Validate product name
+        if not product_name:
+            validation_errors.append(
+                f"Row {row_number}: Product name is empty")
+            continue
+
+        # Validate service name
+        service_name = str(row['Service']).strip(
+        ) if pd.notna(row['Service']) else None
+        if not service_name:
+            validation_errors.append(
+                f"Row {row_number}: Service name is required")
+            continue
+
+        # Find service by name (case-insensitive)
+        service = db.query(ServiceModel).filter(
+            func.lower(ServiceModel.name) == func.lower(service_name)
+        ).first()
+        if not service:
+            validation_errors.append(
+                f"Row {row_number}: Service '{service_name}' not found")
+            continue
+
+        # Get optional description
+        description = None
+        if 'Description' in df.columns and pd.notna(row['Description']):
+            description = str(row['Description']).strip()
+
+        # Validate and get optional status
+        status_id = 1  # Default to Active (id=1)
+        if 'Status' in df.columns and pd.notna(row['Status']):
+            status_name = str(row['Status']).strip()
+            if status_name:  # Only validate if status is provided
+                status_obj = db.query(ProductStatus).filter(
+                    func.lower(ProductStatus.name) == func.lower(status_name)
+                ).first()
+                if status_obj:
+                    status_id = status_obj.id
+                else:
+                    validation_errors.append(
+                        f"Row {row_number}: Status '{status_name}' not found")
+                    continue
+
+        # Check if product already exists in database (case-insensitive)
+        existing_product = db.query(ProductModel).filter(
+            func.lower(ProductModel.name) == func.lower(product_name)
+        ).first()
+        if existing_product:
+            validation_errors.append(
+                f"Row {row_number}: Product '{product_name}' already exists in Product Inventory")
+            continue
+
+        # Check for duplicate product names within the import file
+        duplicate_in_file = any(
+            vr.get('product_name', '').lower() == product_name.lower()
+            for vr in validated_rows
+        )
+        if duplicate_in_file:
+            validation_errors.append(
+                f"Row {row_number}: Product '{product_name}' is duplicated in the import file")
+            continue
+
+        # Store validated row data for phase 2
+        validated_rows.append({
+            'row_number': row_number,
+            'product_name': product_name,
+            'service_id': service.id,
+            'service_name': service_name,
+            'description': description,
+            'status_id': status_id
+        })
+
+    # If there are any validation errors, fail the entire import
+    if validation_errors:
+        return ImportResult(
+            success_count=0,
+            failed_count=len(df),
+            errors=validation_errors
+        )
+
+    # Phase 2: All validations passed, now create all products
+    # Use a transaction to ensure atomicity - all or nothing
+    success_count = 0
+    failed_count = 0
+    errors = []
+
+    try:
+        # Create all products without committing (use flush instead of commit)
+        created_products = []
+        for row_data in validated_rows:
+            try:
+                # Create product directly without using create_with_payment_info
+                # (which calls db.commit() internally)
+                product_data = {
+                    'name': row_data['product_name'],
+                    'url': None,  # URL is not provided in import
+                    'description': row_data['description'],
+                    'service_id': row_data['service_id'],
+                    'status_id': row_data['status_id']
+                }
+                db_obj = ProductModel(**product_data)
+                db.add(db_obj)
+                db.flush()  # Flush to get the ID but don't commit yet
+
+                # Create an incomplete payment record linked to this product
+                from app.models.payment import PaymentInfo
+                payment_record = PaymentInfo(
+                    product_id=db_obj.id,
+                    status="incomplete",
+                    payment_date=None,
+                    usage_start_date=None,
+                    usage_end_date=None,
+                    reporter=current_user.name
+                )
+                db.add(payment_record)
+                db.flush()  # Flush to get the payment record ID but don't commit yet
+
+                created_products.append({
+                    'product': db_obj,
+                    'payment_record': payment_record,
+                    'row_data': row_data
+                })
+                success_count += 1
+            except Exception as e:
+                # If any creation fails, rollback the transaction
+                db.rollback()
+                failed_count = len(validated_rows)
+                errors.append(
+                    f"Row {row_data['row_number']}: Failed to create product '{row_data['product_name']}': {str(e)}")
+                # Add error for all remaining rows
+                for remaining_row in validated_rows[validated_rows.index(row_data) + 1:]:
+                    errors.append(
+                        f"Row {remaining_row['row_number']}: Import failed due to previous error")
+                break
+
+        # Only commit and log if all creations succeeded
+        if success_count == len(validated_rows):
+            db.commit()  # Commit all products and payment records at once
+
+            # Log all actions after successful commit
+            for created_item in created_products:
+                db_obj = created_item['product']
+                row_data = created_item['row_data']
+                details = {
+                    "name": db_obj.name,
+                    "service_id": str(db_obj.service_id),
+                    "service_name": row_data['service_name'],
+                    "imported": True
+                }
+
+                audit_log.log_action(
+                    db,
+                    actor_user_id=current_user.id,
+                    action="product.create",
+                    target_id=str(db_obj.id),
+                    details=details
+                )
+        else:
+            db.rollback()
+
+    except Exception as e:
+        # Rollback on any unexpected error
+        db.rollback()
+        failed_count = len(validated_rows)
+        errors.append(f"Import failed: {str(e)}")
+
+    return ImportResult(
+        success_count=success_count,
+        failed_count=failed_count,
+        errors=errors
     )

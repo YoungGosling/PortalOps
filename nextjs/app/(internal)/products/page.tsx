@@ -26,8 +26,9 @@ import {
 } from '@/components/ui/table';
 import { ProductFormDialog } from '@/components/products/ProductFormDialog';
 import { DeleteProductDialog } from '@/components/products/DeleteProductDialog';
+import { ImportProductsDialog } from '@/components/products/ImportProductsDialog';
 import { AddPaymentModal } from '@/components/payments/AddPaymentModal';
-import { Plus, Package, Filter, Loader2, Edit2, Trash2, Building, ChevronDown, ChevronUp, Calendar, DollarSign, Tag, Receipt, PlusCircle, ChevronLeft, ChevronRight, Search, X } from 'lucide-react';
+import { Plus, Package, Filter, Loader2, Edit2, Trash2, Building, ChevronDown, ChevronUp, Calendar, DollarSign, Tag, Receipt, PlusCircle, ChevronLeft, ChevronRight, Search, X, Upload } from 'lucide-react';
 import { toast } from 'sonner';
 import { Input } from '@/components/ui/input';
 
@@ -44,6 +45,7 @@ export default function ProductsPage() {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletingProduct, setDeletingProduct] = useState<Product | null>(null);
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [addPaymentModalOpen, setAddPaymentModalOpen] = useState(false);
   const [addingPaymentForProduct, setAddingPaymentForProduct] = useState<Product | null>(null);
   const [dataLoaded, setDataLoaded] = useState(false);
@@ -334,6 +336,10 @@ export default function ProductsPage() {
               </button>
             )}
           </div>
+          <Button onClick={() => setImportDialogOpen(true)} variant="outline" size="default" className="gap-2">
+            <Upload className="h-4 w-4" />
+            Import
+          </Button>
           <Button onClick={handleAddProduct} size="default" className="gap-2">
             <Plus className="h-4 w-4" />
             Add Product
@@ -795,6 +801,13 @@ export default function ProductsPage() {
         onOpenChange={setAddPaymentModalOpen}
         product={addingPaymentForProduct}
         paymentMethods={paymentMethods}
+        onSuccess={handleDialogSuccess}
+      />
+
+      {/* Import Products Dialog */}
+      <ImportProductsDialog
+        open={importDialogOpen}
+        onOpenChange={setImportDialogOpen}
         onSuccess={handleDialogSuccess}
       />
     </div>

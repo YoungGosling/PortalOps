@@ -404,7 +404,8 @@ async def import_services(
     # Validate columns
     df.columns = df.columns.str.strip()
     required_columns = ['Service', 'Administrators']
-    missing_columns = [col for col in required_columns if col not in df.columns]
+    missing_columns = [
+        col for col in required_columns if col not in df.columns]
     if missing_columns:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -415,16 +416,19 @@ async def import_services(
     df = df.dropna(subset=['Service'], how='all')
     df = df[df['Service'].notna()]
 
-    success_count = 0
-    failed_count = 0
-    errors = []
+    # Phase 1: Validate all rows without creating any data
+    # This ensures "all or nothing" transaction semantics
+    validation_errors = []
+    validated_rows = []  # Store validated data for phase 2
 
-    # Process each row
-    for index, row in df.iterrows():
+    for idx, (_, row) in enumerate(df.iterrows()):
+        row_number = idx + 2  # +2 because Excel rows start at 1 and we have a header row
         service_name = str(row['Service']).strip()
+
+        # Validate service name
         if not service_name:
-            failed_count += 1
-            errors.append(f"Row {index + 2}: Service name is empty")
+            validation_errors.append(
+                f"Row {row_number}: Service name is empty")
             continue
 
         # Parse administrators
@@ -433,10 +437,12 @@ async def import_services(
             admin_str = str(row['Administrators']).strip()
             if admin_str:
                 # Split by comma and clean up
-                admin_names = [name.strip() for name in admin_str.split(',') if name.strip()]
+                admin_names = [name.strip()
+                               for name in admin_str.split(',') if name.strip()]
 
         # Find user IDs for administrators
         admin_user_ids = []
+        admin_not_found = []
         if admin_names:
             for admin_name in admin_names:
                 # Search for user by exact name match (case-insensitive)
@@ -446,42 +452,123 @@ async def import_services(
                 if user:
                     admin_user_ids.append(user.id)
                 else:
-                    errors.append(f"Row {index + 2}: Administrator '{admin_name}' not found")
+                    admin_not_found.append(admin_name)
+
+        # Validate administrators
+        if admin_names and admin_not_found:
+            for admin_name in admin_not_found:
+                validation_errors.append(
+                    f"Row {row_number}: Administrator '{admin_name}' not found")
+            continue
 
         # Check if service already exists
         existing_service = db.query(ServiceModel).filter(
             func.lower(ServiceModel.name) == func.lower(service_name)
         ).first()
         if existing_service:
-            failed_count += 1
-            errors.append(f"Row {index + 2}: Service '{service_name}' already exists")
+            validation_errors.append(
+                f"Row {row_number}: Service '{service_name}' already exists")
             continue
 
-        # Create service
-        try:
-            service_create = ServiceCreate(
-                name=service_name,
-                adminUserIds=admin_user_ids if admin_user_ids else []
-            )
-            new_service = service.create_with_products(db, obj_in=service_create)
+        # Check for duplicate service names within the import file
+        duplicate_in_file = any(
+            vr.get('service_name', '').lower() == service_name.lower()
+            for vr in validated_rows
+        )
+        if duplicate_in_file:
+            validation_errors.append(
+                f"Row {row_number}: Service '{service_name}' is duplicated in the import file")
+            continue
 
-            # Log the action
-            details = {"name": new_service.name}
-            if admin_user_ids:
-                details["adminUserIds"] = [str(uid) for uid in admin_user_ids]
+        # Store validated row data for phase 2
+        validated_rows.append({
+            'row_number': row_number,
+            'service_name': service_name,
+            'admin_user_ids': admin_user_ids
+        })
 
-            audit_log.log_action(
-                db,
-                actor_user_id=current_user.id,
-                action="service.create",
-                target_id=str(new_service.id),
-                details=details
-            )
+    # If there are any validation errors, fail the entire import
+    if validation_errors:
+        return ImportResult(
+            success_count=0,
+            failed_count=len(df),
+            errors=validation_errors
+        )
 
-            success_count += 1
-        except Exception as e:
-            failed_count += 1
-            errors.append(f"Row {index + 2}: Failed to create service '{service_name}': {str(e)}")
+    # Phase 2: All validations passed, now create all services
+    # Use a transaction to ensure atomicity - all or nothing
+    success_count = 0
+    failed_count = 0
+    errors = []
+
+    try:
+        # Create all services without committing (use flush instead of commit)
+        created_services = []
+        for row_data in validated_rows:
+            try:
+                # Create service without productIds and adminUserIds
+                service_data = {
+                    'name': row_data['service_name'],
+                    'vendor': None,
+                    'url': None
+                }
+                db_obj = ServiceModel(**service_data)
+                db.add(db_obj)
+                db.flush()  # Flush to get the ID but don't commit yet
+
+                # Associate admin users if provided
+                if row_data['admin_user_ids']:
+                    for user_id in row_data['admin_user_ids']:
+                        user = db.query(User).filter(
+                            User.id == user_id).first()
+                        if user:
+                            db_obj.admins.append(user)
+
+                created_services.append({
+                    'service': db_obj,
+                    'row_data': row_data
+                })
+                success_count += 1
+            except Exception as e:
+                # If any creation fails, rollback the transaction
+                db.rollback()
+                failed_count = len(validated_rows)
+                errors.append(
+                    f"Row {row_data['row_number']}: Failed to create service '{row_data['service_name']}': {str(e)}")
+                # Add error for all remaining rows
+                for remaining_row in validated_rows[validated_rows.index(row_data) + 1:]:
+                    errors.append(
+                        f"Row {remaining_row['row_number']}: Import failed due to previous error")
+                break
+
+        # Only commit and log if all creations succeeded
+        if success_count == len(validated_rows):
+            db.commit()  # Commit all services at once
+
+            # Log all actions after successful commit
+            for created_item in created_services:
+                db_obj = created_item['service']
+                row_data = created_item['row_data']
+                details = {"name": db_obj.name}
+                if row_data['admin_user_ids']:
+                    details["adminUserIds"] = [
+                        str(uid) for uid in row_data['admin_user_ids']]
+
+                audit_log.log_action(
+                    db,
+                    actor_user_id=current_user.id,
+                    action="service.create",
+                    target_id=str(db_obj.id),
+                    details=details
+                )
+        else:
+            db.rollback()
+
+    except Exception as e:
+        # Rollback on any unexpected error
+        db.rollback()
+        failed_count = len(validated_rows)
+        errors.append(f"Import failed: {str(e)}")
 
     return ImportResult(
         success_count=success_count,

@@ -1,13 +1,13 @@
-import { ImportServicesResponseSchema, ImportServicesResponse } from "./model";
+import { ImportProductsResponseSchema, ImportProductsResponse } from "./model";
 import { fetchWithToken } from "@/lib/utils";
 
-export async function importServices(file: File): Promise<ImportServicesResponse> {
+export async function importProducts(file: File): Promise<ImportProductsResponse> {
   try {
     const formData = new FormData();
     formData.append("file", file);
 
     const response = await fetchWithToken(
-      `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/services/import`,
+      `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/products/import`,
       {
         method: "POST",
         body: formData,
@@ -35,9 +35,9 @@ export async function importServices(file: File): Promise<ImportServicesResponse
     }
 
     const data = await response.json();
-    return ImportServicesResponseSchema.parse(data);
+    return ImportProductsResponseSchema.parse(data);
   } catch (error) {
-    console.error("Error importing services:", error);
+    console.error("Error importing products:", error);
     throw error;
   }
 }
