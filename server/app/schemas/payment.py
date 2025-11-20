@@ -11,6 +11,7 @@ class PaymentInfoBase(BaseModel):
     expiryDate: Optional[str] = None  # Changed to string for MM/DD/YYYY format
     paymentMethod: Optional[str] = None
     paymentMethodId: Optional[int] = None
+    currencyId: Optional[int] = None
     paymentDate: Optional[str] = None
     usageStartDate: Optional[str] = None
     usageEndDate: Optional[str] = None
@@ -26,6 +27,7 @@ class PaymentInfoCreate(BaseModel):
     cardholder_name: Optional[str] = None
     expiry_date: Optional[date] = None
     payment_method_id: Optional[int] = None
+    currency_id: Optional[int] = None
     payment_date: Optional[date] = None
     usage_start_date: Optional[date] = None
     usage_end_date: Optional[date] = None
@@ -38,6 +40,7 @@ class PaymentInfoUpdate(BaseModel):
     cardholder_name: Optional[str] = None
     expiry_date: Optional[date] = None
     payment_method_id: Optional[int] = None
+    currency_id: Optional[int] = None
     payment_date: Optional[date] = None
     usage_start_date: Optional[date] = None
     usage_end_date: Optional[date] = None
@@ -105,6 +108,34 @@ class PaymentMethodUpdate(PaymentMethodBase):
 
 
 class PaymentMethod(PaymentMethodBase):
+    id: int
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+# Currency schemas
+class CurrencyBase(BaseModel):
+    code: str
+    name: str
+    symbol: Optional[str] = None
+    description: Optional[str] = None
+
+
+class CurrencyCreate(CurrencyBase):
+    pass
+
+
+class CurrencyUpdate(BaseModel):
+    code: Optional[str] = None
+    name: Optional[str] = None
+    symbol: Optional[str] = None
+    description: Optional[str] = None
+
+
+class Currency(CurrencyBase):
     id: int
     created_at: datetime
     updated_at: datetime

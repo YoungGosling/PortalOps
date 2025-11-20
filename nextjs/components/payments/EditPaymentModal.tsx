@@ -36,7 +36,7 @@ import { createPaymentForProductAction } from '@/api/payment_register/create_pay
 import { uploadInvoicesAction } from '@/api/invoices/upload_invoices/action';
 import { deleteInvoiceAction } from '@/api/invoices/delete_invoice/action';
 import { getInvoiceAction } from '@/api/invoices/get_invoice/action';
-import type { PaymentInfo, PaymentMethod, PaymentInvoice } from '@/types';
+import type { PaymentInfo, PaymentMethod, PaymentInvoice, Currency } from '@/types';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
 
@@ -45,6 +45,7 @@ interface EditPaymentModalProps {
   onOpenChange: (open: boolean) => void;
   payment: PaymentInfo | null;
   paymentMethods: PaymentMethod[];
+  currencies: Currency[];
   onSuccess: () => void;
   mode?: 'edit' | 'add';
   productName?: string;
@@ -57,6 +58,7 @@ export function EditPaymentModal({
   onOpenChange,
   payment,
   paymentMethods,
+  currencies,
   onSuccess,
   mode = 'edit',
   productName = '',
@@ -66,6 +68,7 @@ export function EditPaymentModal({
   const [amount, setAmount] = useState('');
   const [cardholderName, setCardholderName] = useState('');
   const [paymentMethodId, setPaymentMethodId] = useState('');
+  const [currencyId, setCurrencyId] = useState('');
   const [paymentDate, setPaymentDate] = useState('');
   const [usageStartDate, setUsageStartDate] = useState('');
   const [usageEndDate, setUsageEndDate] = useState('');
@@ -96,6 +99,7 @@ export function EditPaymentModal({
         setAmount(payment.amount?.toString() || '');
         setCardholderName(payment.cardholder_name || '');
         setPaymentMethodId(payment.payment_method_id?.toString() || '');
+        setCurrencyId(payment.currency_id?.toString() || '');
         setPaymentDate(convertToDateInput(payment.payment_date || ''));
         setUsageStartDate(convertToDateInput(payment.usage_start_date || ''));
         setUsageEndDate(convertToDateInput(payment.usage_end_date || ''));
@@ -108,6 +112,7 @@ export function EditPaymentModal({
         setAmount('');
         setCardholderName('');
         setPaymentMethodId('');
+        setCurrencyId('');
         setPaymentDate('');
         setUsageStartDate('');
         setUsageEndDate('');
@@ -164,9 +169,9 @@ export function EditPaymentModal({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Validation
-    if (!amount || !cardholderName || !paymentMethodId || !paymentDate || !usageStartDate || !usageEndDate) {
-      toast.error('All fields are required');
+    // Validation - only amount, usage dates, and currency are required
+    if (!amount || !usageStartDate || !usageEndDate) {
+      toast.error('Amount, usage start date, and usage end date are required');
       return;
     }
 
@@ -209,9 +214,10 @@ export function EditPaymentModal({
         // Step 1: Create payment record
         const formData = new FormData();
         formData.append('amount', amountNum.toString());
-        formData.append('cardholder_name', cardholderName);
-        formData.append('payment_method_id', paymentMethodId);
-        formData.append('payment_date', paymentDate);
+        if (cardholderName) formData.append('cardholder_name', cardholderName);
+        if (paymentMethodId) formData.append('payment_method_id', paymentMethodId);
+        if (currencyId) formData.append('currency_id', currencyId);
+        if (paymentDate) formData.append('payment_date', paymentDate);
         formData.append('usage_start_date', usageStartDate);
         formData.append('usage_end_date', usageEndDate);
 
@@ -242,9 +248,10 @@ export function EditPaymentModal({
         // Update payment information
         const formData = new FormData();
         formData.append('amount', amountNum.toString());
-        formData.append('cardholder_name', cardholderName);
-        formData.append('payment_method_id', paymentMethodId);
-        formData.append('payment_date', paymentDate);
+        if (cardholderName) formData.append('cardholder_name', cardholderName);
+        if (paymentMethodId) formData.append('payment_method_id', paymentMethodId);
+        if (currencyId) formData.append('currency_id', currencyId);
+        if (paymentDate) formData.append('payment_date', paymentDate);
         formData.append('usage_start_date', usageStartDate);
         formData.append('usage_end_date', usageEndDate);
 
@@ -355,46 +362,69 @@ export function EditPaymentModal({
 
               <div className="space-y-2">
                 <Label htmlFor="payment-cardholder">
-                  Cardholder Name <span className="text-destructive">*</span>
+                  Cardholder Name
                 </Label>
                 <Input
                   id="payment-cardholder"
                   type="text"
-                  placeholder="Enter cardholder name"
+                  placeholder="Enter cardholder name (optional)"
                   value={cardholderName}
                   onChange={(e) => setCardholderName(e.target.value)}
                   disabled={loading || isErrorStatus}
-                  required
                 />
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="payment-method">
-                Payment Method <span className="text-destructive">*</span>
-              </Label>
-              <Select
-                value={paymentMethodId}
-                onValueChange={setPaymentMethodId}
-                disabled={loading || isErrorStatus}
-              >
-                <SelectTrigger id="payment-method">
-                  <SelectValue placeholder="Select payment method" />
-                </SelectTrigger>
-                <SelectContent>
-                  {paymentMethods.map((method) => (
-                    <SelectItem key={method.id} value={method.id.toString()}>
-                      {method.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="payment-method">
+                  Payment Method
+                </Label>
+                <Select
+                  value={paymentMethodId}
+                  onValueChange={setPaymentMethodId}
+                  disabled={loading || isErrorStatus}
+                >
+                  <SelectTrigger id="payment-method">
+                    <SelectValue placeholder="Select payment method" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {paymentMethods.map((method) => (
+                      <SelectItem key={method.id} value={method.id.toString()}>
+                        {method.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="currency">
+                  Currency
+                </Label>
+                <Select
+                  value={currencyId}
+                  onValueChange={setCurrencyId}
+                  disabled={loading || isErrorStatus}
+                >
+                  <SelectTrigger id="currency">
+                    <SelectValue placeholder="Select currency" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {currencies.map((currency) => (
+                      <SelectItem key={currency.id} value={currency.id.toString()}>
+                        {currency.code} - {currency.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
             {/* Dates */}
             <div className="space-y-2">
               <Label htmlFor="payment-date">
-                Payment Date <span className="text-destructive">*</span>
+                Payment Date
               </Label>
               <Input
                 id="payment-date"
@@ -402,7 +432,6 @@ export function EditPaymentModal({
                 value={paymentDate}
                 onChange={(e) => setPaymentDate(e.target.value)}
                 disabled={loading || isErrorStatus}
-                required
               />
             </div>
 

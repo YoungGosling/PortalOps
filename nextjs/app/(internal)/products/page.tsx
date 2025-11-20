@@ -5,7 +5,8 @@ import { fetchQueryServicesAction } from '@/api/services/query_services/action';
 import { queryProductsAction } from '@/api/products/query_products/action';
 import { queryPaymentRegisterV2Action } from '@/api/payment_register/query_payment_register_v2/action';
 import { fetchQueryPaymentMethodsAction } from '@/api/payment_method/query_payment_methods/action';
-import type { Product, Service, PaymentInfo, PaymentMethod } from '@/types';
+import { fetchQueryCurrenciesAction } from '@/api/currency/query_currencies/action';
+import type { Product, Service, PaymentInfo, PaymentMethod, Currency } from '@/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -37,6 +38,7 @@ export default function ProductsPage() {
   const [services, setServices] = useState<Service[]>([]);
   const [payments, setPayments] = useState<PaymentInfo[]>([]);
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
+  const [currencies, setCurrencies] = useState<Currency[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingPayments, setLoadingPayments] = useState(false);
   const [selectedServiceFilter, setSelectedServiceFilter] = useState<string>('all');
@@ -159,12 +161,22 @@ export default function ProductsPage() {
     }
   };
 
+  const fetchCurrencies = async () => {
+    try {
+      const data = await fetchQueryCurrenciesAction();
+      setCurrencies(data);
+    } catch (error) {
+      console.error('Failed to load currencies:', error);
+    }
+  };
+
   useEffect(() => {
     if (!dataLoaded) {
       fetchProducts();
       fetchServices();
       fetchPayments();
       fetchPaymentMethods();
+      fetchCurrencies();
       setDataLoaded(true);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -801,6 +813,7 @@ export default function ProductsPage() {
         onOpenChange={setAddPaymentModalOpen}
         product={addingPaymentForProduct}
         paymentMethods={paymentMethods}
+        currencies={currencies}
         onSuccess={handleDialogSuccess}
       />
 

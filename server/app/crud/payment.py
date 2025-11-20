@@ -108,6 +108,18 @@ class CRUDPaymentInfo(CRUDBase[PaymentInfo, PaymentInfoCreate, PaymentInfoUpdate
                     payment_method_name = payment_method.name
                     payment_method_description = payment_method.description
 
+            # Get currency information if available
+            currency_code = None
+            currency_symbol = None
+            if payment.currency_id:
+                from app.models.payment import Currency
+                currency = db.query(Currency).filter(
+                    Currency.id == payment.currency_id
+                ).first()
+                if currency:
+                    currency_code = currency.code
+                    currency_symbol = currency.symbol
+
             # Format dates for frontend display (MM/DD/YYYY)
             formatted_expiry_date = None
             formatted_payment_date = None
@@ -136,6 +148,9 @@ class CRUDPaymentInfo(CRUDBase[PaymentInfo, PaymentInfoCreate, PaymentInfoUpdate
                 "paymentMethod": payment_method_name,
                 "paymentMethodId": payment.payment_method_id,
                 "paymentMethodDescription": payment_method_description,
+                "currencyId": payment.currency_id,
+                "currencyCode": currency_code,
+                "currencySymbol": currency_symbol,
                 "paymentDate": formatted_payment_date,
                 "usageStartDate": formatted_usage_start,
                 "usageEndDate": formatted_usage_end,

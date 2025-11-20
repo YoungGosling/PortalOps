@@ -3,10 +3,11 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from app.db.database import get_db
 from app.core.deps import require_admin, get_current_user
-from app.crud import product_status, payment_method, audit_log
+from app.crud import product_status, payment_method, currency, audit_log
 from app.schemas.payment import (
     ProductStatus, ProductStatusCreate, ProductStatusUpdate,
-    PaymentMethod, PaymentMethodCreate, PaymentMethodUpdate
+    PaymentMethod, PaymentMethodCreate, PaymentMethodUpdate,
+    Currency, CurrencyCreate, CurrencyUpdate
 )
 from app.models.user import User
 
@@ -290,6 +291,168 @@ def delete_payment_method(
             action="payment_method.delete",
             target_id=str(method_id),
             details={"name": existing_method.name}
+        )
+    except Exception as e:
+        print(f"Audit log error: {e}")
+
+
+# ==================== Currencies ====================
+
+@router.get("/currencies", response_model=List[Currency])
+def get_all_currencies(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Retrieve all currencies.
+    Available to all authenticated users for viewing.
+    """
+    currencies = currency.get_multi(db)
+    return currencies
+
+
+@router.post("/currencies", response_model=Currency, status_code=status.HTTP_201_CREATED)
+def create_currency(
+    currency_in: CurrencyCreate,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """
+    Create a new currency.
+    Requires Admin role.
+    """
+    # Check if code already exists
+    existing_code = currency.get_by_code(db, code=currency_in.code)
+    if existing_code:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Currency with code '{currency_in.code}' already exists"
+        )
+
+    # Check if name already exists
+    existing_name = currency.get_by_name(db, name=currency_in.name)
+    if existing_name:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Currency with name '{currency_in.name}' already exists"
+        )
+
+    # Create the currency
+    new_currency = currency.create(db, obj_in=currency_in)
+
+    # Log the action
+    try:
+        audit_log.log_action(
+            db,
+            actor_user_id=current_user.id,
+            action="currency.create",
+            target_id=str(new_currency.id),
+            details={
+                "code": new_currency.code,
+                "name": new_currency.name,
+                "symbol": new_currency.symbol,
+                "description": new_currency.description
+            }
+        )
+    except Exception as e:
+        print(f"Audit log error: {e}")
+
+    return new_currency
+
+
+@router.put("/currencies/{currency_id}", response_model=Currency)
+def update_currency(
+    currency_id: int,
+    currency_in: CurrencyUpdate,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """
+    Update an existing currency.
+    Requires Admin role.
+    """
+    # Get existing currency
+    existing_currency = currency.get(db, id=currency_id)
+    if not existing_currency:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Currency with id {currency_id} not found"
+        )
+
+    # Check if new code conflicts with another currency
+    if currency_in.code and currency_in.code != existing_currency.code:
+        code_conflict = currency.get_by_code(db, code=currency_in.code)
+        if code_conflict:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=f"Currency with code '{currency_in.code}' already exists"
+            )
+
+    # Check if new name conflicts with another currency
+    if currency_in.name and currency_in.name != existing_currency.name:
+        name_conflict = currency.get_by_name(db, name=currency_in.name)
+        if name_conflict:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=f"Currency with name '{currency_in.name}' already exists"
+            )
+
+    # Update the currency
+    updated_currency = currency.update(
+        db, db_obj=existing_currency, obj_in=currency_in)
+
+    # Log the action
+    try:
+        audit_log.log_action(
+            db,
+            actor_user_id=current_user.id,
+            action="currency.update",
+            target_id=str(updated_currency.id),
+            details=currency_in.dict(exclude_unset=True)
+        )
+    except Exception as e:
+        print(f"Audit log error: {e}")
+
+    return updated_currency
+
+
+@router.delete("/currencies/{currency_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_currency(
+    currency_id: int,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """
+    Delete a currency.
+    Deletion is restricted if the currency is currently assigned to any payment record.
+    Requires Admin role.
+    """
+    # Get existing currency
+    existing_currency = currency.get(db, id=currency_id)
+    if not existing_currency:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Currency with id {currency_id} not found"
+        )
+
+    # Check if currency is in use
+    if currency.is_in_use(db, currency_id=currency_id):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Cannot delete currency that is currently assigned to payment records"
+        )
+
+    # Delete the currency
+    currency.remove(db, id=currency_id)
+
+    # Log the action
+    try:
+        audit_log.log_action(
+            db,
+            actor_user_id=current_user.id,
+            action="currency.delete",
+            target_id=str(currency_id),
+            details={"code": existing_currency.code, "name": existing_currency.name}
         )
     except Exception as e:
         print(f"Audit log error: {e}")

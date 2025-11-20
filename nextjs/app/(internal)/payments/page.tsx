@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react';
 import { queryPaymentRegisterV2Action } from '@/api/payment_register/query_payment_register_v2/action';
 import { fetchQueryPaymentMethodsAction } from '@/api/payment_method/query_payment_methods/action';
-import type { PaymentInfo, PaymentMethod } from '@/types';
+import { fetchQueryCurrenciesAction } from '@/api/currency/query_currencies/action';
+import type { PaymentInfo, PaymentMethod, Currency } from '@/types';
 import { sortPaymentsByCompleteness } from '@/lib/billingUtils';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -44,6 +45,7 @@ import { Input } from '@/components/ui/input';
 export default function PaymentsPage() {
   const [payments, setPayments] = useState<PaymentInfo[]>([]);
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
+  const [currencies, setCurrencies] = useState<Currency[]>([]);
   const [loading, setLoading] = useState(true);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editingPayment, setEditingPayment] = useState<PaymentInfo | null>(null);
@@ -84,6 +86,9 @@ export default function PaymentsPage() {
         payment_method: item.paymentInfo?.paymentMethod || undefined,
         payment_method_id: item.paymentInfo?.paymentMethodId || undefined,
         payment_method_description: item.paymentInfo?.paymentMethodDescription || undefined,
+        currency_id: item.paymentInfo?.currencyId || undefined,
+        currency_code: item.paymentInfo?.currencyCode || undefined,
+        currency_symbol: item.paymentInfo?.currencySymbol || undefined,
         payment_date: item.paymentInfo?.paymentDate || undefined,
         usage_start_date: item.paymentInfo?.usageStartDate || undefined,
         usage_end_date: item.paymentInfo?.usageEndDate || undefined,
@@ -118,10 +123,20 @@ export default function PaymentsPage() {
     }
   };
 
+  const fetchCurrencies = async () => {
+    try {
+      const data = await fetchQueryCurrenciesAction();
+      setCurrencies(data);
+    } catch (error) {
+      console.error('Failed to load currencies:', error);
+    }
+  };
+
   useEffect(() => {
     if (!dataLoaded) {
       fetchPayments();
       fetchPaymentMethods();
+      fetchCurrencies();
       setDataLoaded(true);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -253,6 +268,7 @@ export default function PaymentsPage() {
                     <TableHead className="w-[200px]">Product</TableHead>
                     <TableHead className="w-[150px]">Service</TableHead>
                     <TableHead className="w-[110px]">Amount</TableHead>
+                    <TableHead className="w-[80px]">Currency</TableHead>
                     <TableHead className="w-[150px]">Cardholder</TableHead>
                     <TableHead className="w-[140px]">Payment Method</TableHead>
                     <TableHead className="w-[110px]">Payment Date</TableHead>
@@ -322,6 +338,13 @@ export default function PaymentsPage() {
                               {payment.amount !== undefined ? payment.amount.toFixed(2) : '-'}
                             </span>
                           </div>
+                        </TableCell>
+
+                        {/* Currency */}
+                        <TableCell>
+                          <span className="text-sm font-medium" title={payment.currency_code || undefined}>
+                            {payment.currency_code || '-'}
+                          </span>
                         </TableCell>
 
                         {/* Cardholder Name */}
@@ -492,6 +515,7 @@ export default function PaymentsPage() {
         onOpenChange={setEditModalOpen}
         payment={editingPayment}
         paymentMethods={paymentMethods}
+        currencies={currencies}
         onSuccess={handleModalSuccess}
         mode={modalMode}
         productName={addPaymentContext?.productName || ''}

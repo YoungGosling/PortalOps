@@ -2,26 +2,121 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { BarChart3, Users, Building, CreditCard, Loader2, DollarSign, Inbox, Clock, UserPlus, Activity, CalendarClock } from 'lucide-react';
+import { BarChart3, CreditCard, Loader2, DollarSign, Inbox, Activity, Calendar, Users, Building } from 'lucide-react';
 import { fetchDashboardStatsAction } from '@/api/dashboard/stats/action';
 import { fetchRecentActivitiesAction } from '@/api/dashboard/recent-activities/action';
 import { fetchUpcomingRenewalsAction } from '@/api/dashboard/upcoming-renewals/action';
 import { fetchPendingTasksCountAction } from '@/api/dashboard/pending-tasks-count/action';
+import { fetchCurrencyStatsAction } from '@/api/dashboard/currency-stats/action';
 import { useAuth } from '@/providers/auth-provider';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
-import type { DashboardStats, RecentActivity, UpcomingRenewal, PendingTasksCount } from '@/types';
+import type { RecentActivity, UpcomingRenewal, PendingTasksCount } from '@/types';
+import type { CurrencyStats } from '@/api/dashboard/currency-stats/model';
+import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
 
 export default function DashboardPage() {
   const { user, isAdmin } = useAuth();
   const router = useRouter();
-  const [stats, setStats] = useState<DashboardStats | null>(null);
   const [activities, setActivities] = useState<RecentActivity[]>([]);
   const [renewals, setRenewals] = useState<UpcomingRenewal[]>([]);
   const [pendingTasks, setPendingTasks] = useState<PendingTasksCount | null>(null);
+  const [incompletePayments, setIncompletePayments] = useState<number>(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const hasFetchedRef = useRef(false);
+  
+  // Currency stats states
+  const [hkdStats, setHkdStats] = useState<CurrencyStats>({ totalAmount: 0, currencyCode: 'HKD', currencySymbol: 'HK$' });
+  const [usdStats, setUsdStats] = useState<CurrencyStats>({ totalAmount: 0, currencyCode: 'USD', currencySymbol: '$' });
+  const [eurStats, setEurStats] = useState<CurrencyStats>({ totalAmount: 0, currencyCode: 'EUR', currencySymbol: '€' });
+  const [currencyLoading, setCurrencyLoading] = useState(false);
+  
+  // Date filter states
+  const [datePreset, setDatePreset] = useState<string>('all');
+  const [customStartDate, setCustomStartDate] = useState('');
+  const [customEndDate, setCustomEndDate] = useState('');
+
+  // Function to calculate date range based on preset
+  const getDateRange = (preset: string): { start?: string; end?: string } => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth();
+    const day = now.getDate();
+    
+    switch (preset) {
+      case 'year': {
+        // This year: Jan 1 to Dec 31 of current year
+        const start = new Date(year, 0, 1);
+        const end = new Date(year, 11, 31);
+        return {
+          start: start.toISOString().split('T')[0],
+          end: end.toISOString().split('T')[0],
+        };
+      }
+      case 'quarter': {
+        // This quarter
+        const quarterStartMonth = Math.floor(month / 3) * 3;
+        const start = new Date(year, quarterStartMonth, 1);
+        const end = new Date(year, quarterStartMonth + 3, 0); // Last day of quarter
+        return {
+          start: start.toISOString().split('T')[0],
+          end: end.toISOString().split('T')[0],
+        };
+      }
+      case 'month': {
+        // This month
+        const start = new Date(year, month, 1);
+        const end = new Date(year, month + 1, 0); // Last day of month
+        return {
+          start: start.toISOString().split('T')[0],
+          end: end.toISOString().split('T')[0],
+        };
+      }
+      case 'custom': {
+        return {
+          start: customStartDate || undefined,
+          end: customEndDate || undefined,
+        };
+      }
+      default:
+        return {};
+    }
+  };
+
+  // Function to fetch currency stats
+  const fetchAllCurrencyStats = async () => {
+    if (!isAdmin()) return;
+    
+    try {
+      setCurrencyLoading(true);
+      const dateRange = getDateRange(datePreset);
+      
+      const [hkd, usd, eur] = await Promise.all([
+        fetchCurrencyStatsAction('HKD', dateRange.start, dateRange.end),
+        fetchCurrencyStatsAction('USD', dateRange.start, dateRange.end),
+        fetchCurrencyStatsAction('EUR', dateRange.start, dateRange.end),
+      ]);
+      
+      setHkdStats(hkd);
+      setUsdStats(usd);
+      setEurStats(eur);
+    } catch (error) {
+      console.error('Failed to fetch currency stats:', error);
+      toast.error('Failed to load currency statistics');
+    } finally {
+      setCurrencyLoading(false);
+    }
+  };
 
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -46,14 +141,8 @@ export default function DashboardPage() {
           fetchPendingTasksCountAction(),
         ]);
         
-        // Transform snake_case to camelCase for stats
-        setStats({
-          totalServices: statsData.totalServices,
-          totalProducts: statsData.totalProducts,
-          totalUsers: statsData.totalUsers,
-          totalAmount: statsData.totalAmount,
-          incompletePayments: statsData.incompletePayments,
-        });
+        // Only extract incomplete payments count from stats
+        setIncompletePayments(statsData.incompletePayments || 0);
         
         // Extract activities array - backend already returns camelCase format
         setActivities(activitiesData.map((activity) => ({
@@ -81,6 +170,11 @@ export default function DashboardPage() {
           pendingCount: tasksData.pendingCount,
         });
         hasFetchedRef.current = true; // Mark as fetched
+        
+        // Fetch currency stats if admin
+        if (isAdmin()) {
+          fetchAllCurrencyStats();
+        }
       } catch (error) {
         console.error('Failed to fetch dashboard data:', error);
         setError(true);
@@ -95,6 +189,13 @@ export default function DashboardPage() {
       fetchDashboardData();
     }
   }, [user]); // Depend on user object but with hasFetchedRef guard
+  
+  // Refetch currency stats when date preset changes
+  useEffect(() => {
+    if (hasFetchedRef.current && isAdmin()) {
+      fetchAllCurrencyStats();
+    }
+  }, [datePreset, customStartDate, customEndDate]);
 
   if (loading) {
     return (
@@ -116,85 +217,158 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-4 animate-fade-in pb-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">
-          Welcome back, {user?.name?.split(' ')[0] || 'User'}!
-        </h1>
-        <p className="text-muted-foreground text-sm mt-0.5">
-          Here's what's happening with your enterprise services today.
-        </p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">
+            Welcome back, {user?.name?.split(' ')[0] || 'User'}!
+          </h1>
+          <p className="text-muted-foreground text-sm mt-0.5">
+            Here's what's happening with your enterprise services today.
+          </p>
+        </div>
+
+        {/* Date Filter Section - Only for Admin */}
+        {isAdmin() && (
+          <div className="flex flex-wrap items-end gap-3 min-w-fit">
+            <div className="min-w-[200px] space-y-2">
+              <Label htmlFor="date-preset">Payment Statistics Filter</Label>
+              <Select value={datePreset} onValueChange={setDatePreset}>
+                <SelectTrigger id="date-preset">
+                  <SelectValue placeholder="Select date range" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Time</SelectItem>
+                  <SelectItem value="year">This Year</SelectItem>
+                  <SelectItem value="quarter">This Quarter</SelectItem>
+                  <SelectItem value="month">This Month</SelectItem>
+                  <SelectItem value="custom">Custom Range</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            {datePreset === 'custom' && (
+              <>
+                <div className="min-w-[150px] space-y-2">
+                  <Label htmlFor="custom-start">Start Date</Label>
+                  <Input
+                    id="custom-start"
+                    type="date"
+                    value={customStartDate}
+                    onChange={(e) => setCustomStartDate(e.target.value)}
+                    disabled={currencyLoading}
+                  />
+                </div>
+                <div className="min-w-[150px] space-y-2">
+                  <Label htmlFor="custom-end">End Date</Label>
+                  <Input
+                    id="custom-end"
+                    type="date"
+                    value={customEndDate}
+                    onChange={(e) => setCustomEndDate(e.target.value)}
+                    disabled={currencyLoading}
+                  />
+                </div>
+              </>
+            )}
+          </div>
+        )}
       </div>
 
-      {/* Top Section: Statistics Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-foreground">Total Services</CardTitle>
-            <div className="p-2.5 rounded-lg bg-blue-50 dark:bg-blue-950">
-              <Building className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold">{stats?.totalServices ?? 0}</div>
-            <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
-              <span className="text-green-600 dark:text-green-400">↗ 8.2%</span>
-              <span>from last month</span>
-            </p>
-          </CardContent>
-        </Card>
 
-        <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-foreground">Total Products</CardTitle>
-            <div className="p-2.5 rounded-lg bg-green-50 dark:bg-green-950">
-              <BarChart3 className="h-5 w-5 text-green-600 dark:text-green-400" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold">{stats?.totalProducts ?? 0}</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              {isAdmin() ? 'All products' : 'Products in your services'}
-            </p>
-          </CardContent>
-        </Card>
-
-        {isAdmin() && (
-          <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
+      {/* Currency Cards - Only for Admin */}
+      {isAdmin() && (
+        <div className="grid gap-4 md:grid-cols-3">
+          {/* HKD Card */}
+          <Card className="relative overflow-hidden border-0 shadow-sm hover:shadow-md transition-shadow">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-500/10 to-transparent rounded-full -mr-16 -mt-16" />
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-foreground">Total Users</CardTitle>
-              <div className="p-2.5 rounded-lg bg-purple-50 dark:bg-purple-950">
-                <Users className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+              <CardTitle className="text-sm font-medium">
+                Hong Kong Dollar
+              </CardTitle>
+              <div className="p-2 rounded-lg bg-blue-50 dark:bg-blue-950">
+                <DollarSign className="h-4 w-4 text-blue-600 dark:text-blue-400" />
               </div>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold">{stats?.totalUsers ?? 0}</div>
-              <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
-                <span className="text-green-600 dark:text-green-400">↗ 12.5%</span>
-                <span>from last month</span>
-              </p>
+              {currencyLoading ? (
+                <div className="flex items-center gap-2">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span className="text-sm text-muted-foreground">Loading...</span>
+                </div>
+              ) : (
+                <>
+                  <div className="text-2xl font-bold">
+                    {hkdStats.currencySymbol || 'HK$'} {hkdStats.totalAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {hkdStats.currencyCode} Total
+                  </p>
+                </>
+              )}
             </CardContent>
           </Card>
-        )}
 
-        {isAdmin() && (
-          <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
+          {/* USD Card */}
+          <Card className="relative overflow-hidden border-0 shadow-sm hover:shadow-md transition-shadow">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-green-500/10 to-transparent rounded-full -mr-16 -mt-16" />
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-foreground">Total Amount</CardTitle>
-              <div className="p-2.5 rounded-lg bg-amber-50 dark:bg-amber-950">
-                <DollarSign className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+              <CardTitle className="text-sm font-medium">
+                US Dollar
+              </CardTitle>
+              <div className="p-2 rounded-lg bg-green-50 dark:bg-green-950">
+                <DollarSign className="h-4 w-4 text-green-600 dark:text-green-400" />
               </div>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold">
-                ${(stats?.totalAmount ?? 0).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                Total payment amounts
-              </p>
+              {currencyLoading ? (
+                <div className="flex items-center gap-2">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span className="text-sm text-muted-foreground">Loading...</span>
+                </div>
+              ) : (
+                <>
+                  <div className="text-2xl font-bold">
+                    {usdStats.currencySymbol || '$'} {usdStats.totalAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {usdStats.currencyCode} Total
+                  </p>
+                </>
+              )}
             </CardContent>
           </Card>
-        )}
-      </div>
+
+          {/* EUR Card */}
+          <Card className="relative overflow-hidden border-0 shadow-sm hover:shadow-md transition-shadow">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-amber-500/10 to-transparent rounded-full -mr-16 -mt-16" />
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">
+                Euro
+              </CardTitle>
+              <div className="p-2 rounded-lg bg-amber-50 dark:bg-amber-950">
+                <DollarSign className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              {currencyLoading ? (
+                <div className="flex items-center gap-2">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span className="text-sm text-muted-foreground">Loading...</span>
+                </div>
+              ) : (
+                <>
+                  <div className="text-2xl font-bold">
+                    {eurStats.currencySymbol || '€'} {eurStats.totalAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {eurStats.currencyCode} Total
+                  </p>
+                </>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* Middle Section: Recent Activity and Upcoming Renewals */}
       <div className="grid gap-4 md:grid-cols-2">
@@ -358,21 +532,21 @@ export default function DashboardPage() {
                 <button 
                   onClick={() => router.push('/payments')}
                   className={`relative p-4 rounded-xl border-2 transition-all duration-200 text-left ${
-                    (stats?.incompletePayments ?? 0) > 0 
+                    incompletePayments > 0 
                       ? 'border-red-200 bg-red-50 dark:border-red-900 dark:bg-red-950/30 shadow-md' 
                       : 'border-transparent bg-muted/30 hover:bg-muted/50 hover:shadow-md'
                   }`}
                 >
                   <div className="flex flex-col items-center text-center gap-2">
                     <div className={`p-3 rounded-full ${
-                      (stats?.incompletePayments ?? 0) > 0 
+                      incompletePayments > 0 
                         ? 'bg-red-100 dark:bg-red-900/50' 
-                        : 'bg-amber-100 dark:bg-amber-900/50'  // 改为琥珀色背景
+                        : 'bg-amber-100 dark:bg-amber-900/50'
                     }`}>
                       <CreditCard className={`h-5 w-5 ${
-                        (stats?.incompletePayments ?? 0) > 0 
+                        incompletePayments > 0 
                           ? 'text-red-600 dark:text-red-400' 
-                          : 'text-amber-600 dark:text-amber-400'  // 改为琥珀色图标
+                          : 'text-amber-600 dark:text-amber-400'
                       }`} />
                     </div>
                     <div>
@@ -383,9 +557,9 @@ export default function DashboardPage() {
                         Complete pending renewals
                       </p>
                     </div>
-                    {(stats?.incompletePayments ?? 0) > 0 && (
+                    {incompletePayments > 0 && (
                       <span className="absolute -top-1.5 -right-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-red-500 text-white text-xs font-bold shadow-lg">
-                        {stats?.incompletePayments}
+                        {incompletePayments}
                       </span>
                     )}
                   </div>

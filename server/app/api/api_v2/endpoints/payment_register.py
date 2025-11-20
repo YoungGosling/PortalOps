@@ -74,6 +74,7 @@ def update_payment_by_id_v2(
     cardholder_name: str = Form(None),
     expiry_date: str = Form(None),
     payment_method_id: int = Form(None),
+    currency_id: int = Form(None),
     payment_date: str = Form(None),
     usage_start_date: str = Form(None),
     usage_end_date: str = Form(None),
@@ -107,6 +108,8 @@ def update_payment_by_id_v2(
         update_data['expiry_date'] = date.fromisoformat(expiry_date)
     if payment_method_id is not None:
         update_data['payment_method_id'] = payment_method_id
+    if currency_id is not None:
+        update_data['currency_id'] = currency_id
     if payment_date is not None:
         update_data['payment_date'] = date.fromisoformat(payment_date)
     if usage_start_date is not None:
@@ -373,6 +376,18 @@ def get_product_payments(
                 payment_method_name = payment_method.name
                 payment_method_description = payment_method.description
 
+        # Get currency information
+        currency_code = None
+        currency_symbol = None
+        if payment.currency_id:
+            from app.models.payment import Currency
+            currency = db.query(Currency).filter(
+                Currency.id == payment.currency_id
+            ).first()
+            if currency:
+                currency_code = currency.code
+                currency_symbol = currency.symbol
+
         # Get invoices for this specific payment record
         invoices = payment_invoice.get_by_payment_info_id(
             db, payment_info_id=payment.id)
@@ -411,6 +426,9 @@ def get_product_payments(
                 "paymentMethod": payment_method_name,
                 "paymentMethodId": payment.payment_method_id,
                 "paymentMethodDescription": payment_method_description,
+                "currencyId": payment.currency_id,
+                "currencyCode": currency_code,
+                "currencySymbol": currency_symbol,
                 "paymentDate": formatted_payment_date,
                 "usageStartDate": formatted_usage_start,
                 "usageEndDate": formatted_usage_end,
@@ -431,6 +449,7 @@ def create_payment_for_product(
     cardholder_name: str = Form(None),
     expiry_date: str = Form(None),
     payment_method_id: int = Form(None),
+    currency_id: int = Form(None),
     payment_date: str = Form(...),
     usage_start_date: str = Form(...),
     usage_end_date: str = Form(...),
@@ -462,7 +481,8 @@ def create_payment_for_product(
         amount=Decimal(amount) if amount else None,
         cardholder_name=cardholder_name,
         expiry_date=date.fromisoformat(expiry_date) if expiry_date else None,
-        payment_method_id=payment_method_id
+        payment_method_id=payment_method_id,
+        currency_id=currency_id
     )
 
     new_payment = payment_info.create(db, obj_in=payment_create)

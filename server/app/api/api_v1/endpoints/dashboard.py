@@ -1,12 +1,14 @@
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import func, desc
+from datetime import datetime
+from typing import Optional
 from app.db.database import get_db
 from app.core.deps import get_current_active_user, get_user_roles
 from app.models.user import User
 from app.models.service import Service, Product
 from app.models.user import User as UserModel
-from app.models.payment import PaymentInfo
+from app.models.payment import PaymentInfo, Currency
 from app.models.audit import AuditLog
 from app.models.workflow import WorkflowTask
 from app.crud.payment import payment_info
@@ -20,56 +22,79 @@ def get_dashboard_stats(
     db: Session = Depends(get_db)
 ):
     """
-    Get dashboard statistics including total services, products, users, total amount, and incomplete payments.
+    Get dashboard statistics - now only returns incomplete payments count.
+    Services, products, and users counts have been removed.
+    Use /currency-stats endpoint for currency-specific payment amounts.
     """
     user_roles = get_user_roles(current_user.id, db)  # type: ignore
     is_admin = "Admin" in user_roles
 
-    # Get counts based on user role
-    if is_admin:
-        # Admin sees all data
-        total_services = db.query(Service).count()
-        total_products = db.query(Product).count()
-        total_users = db.query(UserModel).count()
-    else:
-        # ServiceAdmin sees only their assigned services and products
-        from app.models.permission import PermissionAssignment
-
-        # Get assigned service IDs
-        service_assignments = db.query(PermissionAssignment).filter(
-            PermissionAssignment.user_id == current_user.id,
-            PermissionAssignment.service_id.isnot(None)
-        ).all()
-        assigned_service_ids = [a.service_id for a in service_assignments]
-
-        # Count services user has access to
-        total_services = len(assigned_service_ids)
-
-        # Count products under those services
-        total_products = db.query(Product).filter(
-            Product.service_id.in_(assigned_service_ids)
-        ).count() if assigned_service_ids else 0
-
-        # ServiceAdmin doesn't see user count
-        total_users = 0
-
-    # Get incomplete payment count and total amount (only for Admin)
+    # Get incomplete payment count (only for Admin)
     incomplete_payments = 0
-    total_amount = 0
     if is_admin:
         incomplete_payments = payment_info.get_incomplete_count(db)
-        # Calculate total amount from all payment records
-        amount_sum = db.query(func.sum(PaymentInfo.amount)).filter(
-            PaymentInfo.amount.isnot(None)
-        ).scalar()
-        total_amount = float(amount_sum) if amount_sum else 0
 
     return {
-        "totalServices": total_services,
-        "totalProducts": total_products,
-        "totalUsers": total_users,
+        "totalServices": 0,  # Deprecated - kept for backward compatibility
+        "totalProducts": 0,  # Deprecated - kept for backward compatibility
+        "totalUsers": 0,  # Deprecated - kept for backward compatibility
+        "totalAmount": 0,  # Deprecated - kept for backward compatibility
+        "incompletePayments": incomplete_payments,
+        "currencyAmounts": {}  # Deprecated - use /currency-stats endpoint instead
+    }
+
+
+@router.get("/currency-stats")
+def get_currency_stats(
+    currency_code: str = Query(..., description="Currency code (e.g., HKD, USD, EUR)"),
+    start_date: Optional[str] = Query(None, description="Start date (YYYY-MM-DD)"),
+    end_date: Optional[str] = Query(None, description="End date (YYYY-MM-DD)"),
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Get total amount for a specific currency with optional date range filtering.
+    Date range is applied to payment_date field.
+    """
+    user_roles = get_user_roles(current_user.id, db)  # type: ignore
+    is_admin = "Admin" in user_roles
+
+    if not is_admin:
+        return {"totalAmount": 0, "currencyCode": currency_code, "currencySymbol": None}
+
+    # Get currency by code
+    currency = db.query(Currency).filter(Currency.code == currency_code).first()
+    if not currency:
+        return {"totalAmount": 0, "currencyCode": currency_code, "currencySymbol": None}
+
+    # Build query
+    query = db.query(func.sum(PaymentInfo.amount)).filter(
+        PaymentInfo.amount.isnot(None),
+        PaymentInfo.currency_id == currency.id
+    )
+
+    # Apply date filters if provided
+    if start_date:
+        try:
+            start = datetime.strptime(start_date, "%Y-%m-%d").date()
+            query = query.filter(PaymentInfo.payment_date >= start)
+        except ValueError:
+            pass  # Ignore invalid date format
+
+    if end_date:
+        try:
+            end = datetime.strptime(end_date, "%Y-%m-%d").date()
+            query = query.filter(PaymentInfo.payment_date <= end)
+        except ValueError:
+            pass  # Ignore invalid date format
+
+    amount_sum = query.scalar()
+    total_amount = float(amount_sum) if amount_sum else 0
+
+    return {
         "totalAmount": total_amount,
-        "incompletePayments": incomplete_payments
+        "currencyCode": currency.code,
+        "currencySymbol": currency.symbol
     }
 
 

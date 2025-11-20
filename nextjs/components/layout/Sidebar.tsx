@@ -21,6 +21,7 @@ import {
   Building2,
   Tag,
   Wallet,
+  DollarSign,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import {
@@ -130,6 +131,11 @@ export function Sidebar({ collapsed }: SidebarProps) {
       label: 'Payment Master',
       icon: Wallet,
       path: '/admin/payment-methods',
+    },
+    {
+      label: 'Currency Master',
+      icon: DollarSign,
+      path: '/admin/currencies',
     },
     // {
     //   label: 'User Administration',

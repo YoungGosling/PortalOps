@@ -20,7 +20,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { createPaymentForProductAction } from '@/api/payment_register/create_payment_for_product/action';
-import type { Product, PaymentMethod } from '@/types';
+import type { Product, PaymentMethod, Currency } from '@/types';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
 
@@ -29,6 +29,7 @@ interface AddPaymentModalProps {
   onOpenChange: (open: boolean) => void;
   product: Product | null;
   paymentMethods: PaymentMethod[];
+  currencies: Currency[];
   onSuccess: () => void;
 }
 
@@ -37,11 +38,13 @@ export function AddPaymentModal({
   onOpenChange,
   product,
   paymentMethods,
+  currencies,
   onSuccess,
 }: AddPaymentModalProps) {
   const [amount, setAmount] = useState('');
   const [cardholderName, setCardholderName] = useState('');
   const [paymentMethodId, setPaymentMethodId] = useState('');
+  const [currencyId, setCurrencyId] = useState('');
   const [paymentDate, setPaymentDate] = useState('');
   const [usageStartDate, setUsageStartDate] = useState('');
   const [usageEndDate, setUsageEndDate] = useState('');
@@ -54,6 +57,7 @@ export function AddPaymentModal({
       setAmount('');
       setCardholderName('');
       setPaymentMethodId('');
+      setCurrencyId('');
       setPaymentDate('');
       setUsageStartDate('');
       setUsageEndDate('');
@@ -96,6 +100,7 @@ export function AddPaymentModal({
       if (amount) formData.append('amount', amount);
       if (cardholderName) formData.append('cardholder_name', cardholderName);
       if (paymentMethodId) formData.append('payment_method_id', paymentMethodId);
+      if (currencyId) formData.append('currency_id', currencyId);
       formData.append('payment_date', paymentDate);
       formData.append('usage_start_date', usageStartDate);
       formData.append('usage_end_date', usageEndDate);
@@ -208,24 +213,45 @@ export function AddPaymentModal({
               />
             </div>
 
-            {/* Payment Method */}
-            <div className="space-y-2">
-              <Label htmlFor="payment-method">Payment Method</Label>
-              <Select
-                value={paymentMethodId}
-                onValueChange={setPaymentMethodId}
-              >
-                <SelectTrigger id="payment-method">
-                  <SelectValue placeholder="Select payment method" />
-                </SelectTrigger>
-                <SelectContent>
-                  {paymentMethods.map((method) => (
-                    <SelectItem key={method.id} value={method.id.toString()}>
-                      {method.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            {/* Payment Method and Currency */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="payment-method">Payment Method</Label>
+                <Select
+                  value={paymentMethodId}
+                  onValueChange={setPaymentMethodId}
+                >
+                  <SelectTrigger id="payment-method">
+                    <SelectValue placeholder="Select payment method" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {paymentMethods.map((method) => (
+                      <SelectItem key={method.id} value={method.id.toString()}>
+                        {method.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="currency">Currency</Label>
+                <Select
+                  value={currencyId}
+                  onValueChange={setCurrencyId}
+                >
+                  <SelectTrigger id="currency">
+                    <SelectValue placeholder="Select currency" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {currencies.map((currency) => (
+                      <SelectItem key={currency.id} value={currency.id.toString()}>
+                        {currency.code} - {currency.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
             {/* Reporter */}

@@ -38,6 +38,24 @@ class PaymentMethod(Base):
     payment_info = relationship("PaymentInfo", back_populates="payment_method")
 
 
+class Currency(Base):
+    """Master data table for currencies used in payment records."""
+    __tablename__ = "currencies"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    code = Column(String(10), unique=True, nullable=False)
+    name = Column(String(50), unique=True, nullable=False)
+    symbol = Column(String(10), nullable=True)
+    description = Column(String, nullable=True)
+    created_at = Column(DateTime(timezone=True),
+                        server_default=func.now(), nullable=False)
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(
+    ), onupdate=func.now(), nullable=False)
+
+    # Relationships
+    payment_info = relationship("PaymentInfo", back_populates="currency")
+
+
 class PaymentInfo(Base):
     """Payment records for products - supports one-to-many relationship allowing multiple payments per product."""
     __tablename__ = "payment_info"
@@ -51,6 +69,8 @@ class PaymentInfo(Base):
     expiry_date = Column(Date, nullable=True)
     payment_method_id = Column(Integer, ForeignKey(
         "payment_methods.id", ondelete="RESTRICT"), nullable=True)
+    currency_id = Column(Integer, ForeignKey(
+        "currencies.id", ondelete="RESTRICT"), nullable=True)
     payment_date = Column(Date, nullable=True)
     usage_start_date = Column(Date, nullable=True)
     usage_end_date = Column(Date, nullable=True)
@@ -72,5 +92,6 @@ class PaymentInfo(Base):
     product = relationship("Product", back_populates="payment_info")
     payment_method = relationship(
         "PaymentMethod", back_populates="payment_info")
+    currency = relationship("Currency", back_populates="payment_info")
     invoices = relationship(
         "PaymentInvoice", back_populates="payment_info", cascade="all, delete-orphan")

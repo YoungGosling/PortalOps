@@ -72,6 +72,9 @@ export interface PaymentInfo {
   payment_method?: string;        // V2: Payment method name (resolved from FK)
   payment_method_id?: number;     // V2: FK to payment_methods
   payment_method_description?: string; // V2: Payment method description
+  currency_id?: number;           // V2: FK to currencies
+  currency_code?: string;         // V2: Currency code (e.g., HKD, USD, EUR)
+  currency_symbol?: string;       // V2: Currency symbol (e.g., HK$, $, €)
   payment_date?: string;          // V2: Payment date (YYYY-MM-DD)
   usage_start_date?: string;      // V2: Usage start date (YYYY-MM-DD)
   usage_end_date?: string;        // V2: Usage end date (YYYY-MM-DD)
@@ -128,11 +131,18 @@ export interface BillAttachment {
 }
 
 export interface DashboardStats {
-  totalServices: number;
-  totalProducts: number;
-  totalUsers: number;
-  totalAmount: number;
+  totalServices: number;  // Deprecated - kept for backward compatibility
+  totalProducts: number;  // Deprecated - kept for backward compatibility
+  totalUsers: number;  // Deprecated - kept for backward compatibility
+  totalAmount: number;  // Deprecated - kept for backward compatibility
   incompletePayments: number;
+  currencyAmounts?: Record<string, number>;  // Deprecated - use currency-stats endpoint
+}
+
+export interface CurrencyStats {
+  totalAmount: number;
+  currencyCode: string;
+  currencySymbol?: string;
 }
 
 export interface RecentActivity {
@@ -237,6 +247,7 @@ export interface PaymentUpdateRequest {
   expiry_date?: string;
   payment_method?: string;           // Deprecated: replaced by payment_method_id
   payment_method_id?: number;        // V2: FK to payment_methods
+  currency_id?: number;              // V2: FK to currencies
   payment_date?: string;             // V2: Payment date (YYYY-MM-DD)
   usage_start_date?: string;         // V2: Usage start date (YYYY-MM-DD)
   usage_end_date?: string;           // V2: Usage end date (YYYY-MM-DD)
@@ -308,6 +319,30 @@ export interface PaymentMethodCreateRequest {
 
 export interface PaymentMethodUpdateRequest {
   name?: string;
+  description?: string;
+}
+
+export interface Currency {
+  id: number;
+  code: string;
+  name: string;
+  symbol?: string;
+  description?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface CurrencyCreateRequest {
+  code: string;
+  name: string;
+  symbol?: string;
+  description?: string;
+}
+
+export interface CurrencyUpdateRequest {
+  code?: string;
+  name?: string;
+  symbol?: string;
   description?: string;
 }
 
