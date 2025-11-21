@@ -118,7 +118,7 @@ export function Sidebar({ collapsed }: SidebarProps) {
 
   const adminItems = [
     {
-      label: 'Deparment Master',
+      label: 'Department Master',
       icon: Building2,
       path: '/admin/departments',
     },
