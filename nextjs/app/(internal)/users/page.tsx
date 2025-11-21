@@ -24,7 +24,8 @@ import {
 } from '@/components/ui/table';
 import { UserFormDialog } from '@/components/users/UserFormDialog';
 import { DeleteUserDialog } from '@/components/users/DeleteUserDialog';
-import { Plus, Users as UsersIcon, Pencil, Trash2, Mail, Briefcase, Shield, UserCircle2, Loader2, Building2, Calendar, User as UserIcon, ChevronLeft, ChevronRight, Search, X } from 'lucide-react';
+import { ImportAssignmentsDialog } from '@/components/users/ImportAssignmentsDialog';
+import { Plus, Users as UsersIcon, Pencil, Trash2, Mail, Briefcase, Shield, UserCircle2, Loader2, Building2, Calendar, User as UserIcon, ChevronLeft, ChevronRight, Search, X, Upload } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/providers/auth-provider';
 import { Input } from '@/components/ui/input';
@@ -38,6 +39,7 @@ export default function UsersPage() {
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletingUser, setDeletingUser] = useState<User | null>(null);
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [dataLoaded, setDataLoaded] = useState(false); // Track if data has been loaded
   const [searchQuery, setSearchQuery] = useState('');
   const [productsDialogOpen, setProductsDialogOpen] = useState(false);
@@ -248,6 +250,15 @@ export default function UsersPage() {
               </button>
             )}
           </div>
+          <Button 
+            onClick={() => setImportDialogOpen(true)} 
+            size="default" 
+            variant="outline"
+            className="gap-2"
+          >
+            <Upload className="h-4 w-4" />
+            Import
+          </Button>
           <Button onClick={handleAddUser} size="default" className="gap-2">
             <Plus className="h-4 w-4" />
             Add User
@@ -536,6 +547,13 @@ export default function UsersPage() {
         open={deleteDialogOpen}
         onOpenChange={setDeleteDialogOpen}
         user={deletingUser}
+        onSuccess={handleDialogSuccess}
+      />
+
+      {/* Import Assignments Dialog */}
+      <ImportAssignmentsDialog
+        open={importDialogOpen}
+        onOpenChange={setImportDialogOpen}
         onSuccess={handleDialogSuccess}
       />
 

@@ -10,22 +10,22 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { importProductsAction } from '@/api/products/import_products/action';
+import { importAssignmentsAction } from '@/api/users/import_assignments/action';
 import { toast } from 'sonner';
 import { Loader2, Upload, X, CheckCircle2, XCircle, AlertCircle } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
-interface ImportProductsDialogProps {
+interface ImportAssignmentsDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSuccess: () => void;
 }
 
-export function ImportProductsDialog({
+export function ImportAssignmentsDialog({
   open,
   onOpenChange,
   onSuccess,
-}: ImportProductsDialogProps) {
+}: ImportAssignmentsDialogProps) {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isDragOver, setIsDragOver] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -89,21 +89,22 @@ export function ImportProductsDialog({
 
     try {
       setUploading(true);
-      const result = await importProductsAction(selectedFile);
+      const result = await importAssignmentsAction(selectedFile);
       setImportResult(result);
       
       if (result.success_count > 0) {
-        toast.success(`Successfully imported ${result.success_count} product(s)`);
+        toast.success(`Successfully imported ${result.success_count} product assignment(s)`);
         if (result.failed_count > 0) {
-          toast.warning(`${result.failed_count} product(s) failed to import`);
+          toast.warning(`${result.failed_count} assignment(s) failed to import`);
         }
         onSuccess();
       } else {
-        toast.error('No products were imported. Please check the errors.');
+        toast.error('No assignments were imported. Please check the errors.');
       }
     } catch (error: any) {
-      console.error('Error importing products:', error);
-      toast.error(error.message || 'Failed to import products');
+      console.error('Error importing assignments:', error);
+      toast.error(error.message || 'Failed to import product assignments');
+      // Don't set importResult on error, keep the form visible
     } finally {
       setUploading(false);
     }
@@ -122,10 +123,10 @@ export function ImportProductsDialog({
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="max-w-2xl max-h-[90vh]">
         <DialogHeader>
-          <DialogTitle>Import Products</DialogTitle>
+          <DialogTitle>Import Product Assignments</DialogTitle>
           <DialogDescription>
-            Upload an Excel file with Product, Service, Description (optional), and Status (optional) columns.
-            Each product will automatically create an incomplete payment record.
+            Upload an Excel file with Employee, Email, and product columns.
+            Mark assignments with &apos;Y&apos;. All users must exist in the system.
           </DialogDescription>
         </DialogHeader>
 
@@ -153,6 +154,12 @@ export function ImportProductsDialog({
                   </p>
                   <p className="text-xs text-muted-foreground mt-1">
                     Excel files only (.xlsx, .xls)
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Format: Employee | Email | Product1 | Product2 | ...
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Mark assignments with &apos;Y&apos; in product columns
                   </p>
                 </div>
               </div>
@@ -273,9 +280,4 @@ export function ImportProductsDialog({
     </Dialog>
   );
 }
-
-
-
-
-
 

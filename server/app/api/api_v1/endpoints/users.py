@@ -1,13 +1,19 @@
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Query, UploadFile, File
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from app.db.database import get_db
 from app.crud import user, audit_log
 from app.core.deps import require_any_admin_role, require_admin, get_user_roles
 from app.schemas.user import User, UserCreate, UserUpdate, UserPermissionUpdate, UserUpdateV2
 from app.models.user import User as UserModel
 from app.models.sap_user import SapUser
+from app.models.service import Product as ProductModel
+from app.models.permission import PermissionAssignment
+from pydantic import BaseModel
 import uuid
+import pandas as pd
+import io
 
 router = APIRouter()
 
@@ -391,4 +397,188 @@ def delete_user(
         action="user.delete",
         target_id=str(user_id),
         details={"email": target_user.email, "name": target_user.name}
+    )
+
+
+class ImportAssignmentsResult(BaseModel):
+    success_count: int
+    failed_count: int
+    errors: List[str]
+
+
+@router.post("/import-assignments", response_model=ImportAssignmentsResult)
+async def import_product_assignments(
+    file: UploadFile = File(...),
+    current_user: UserModel = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """
+    Import user-product assignments from Excel file.
+    Excel file should have Employee and Email as first two columns,
+    followed by product columns with 'Y' marking assignments.
+    
+    All users in the Excel file must exist in the system, otherwise the entire import will fail.
+    """
+    # Validate file extension
+    if not file.filename:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No file provided"
+        )
+
+    file_extension = file.filename.lower().split('.')[-1]
+    if file_extension not in ['xlsx', 'xls']:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="File must be an Excel file (.xlsx or .xls)"
+        )
+
+    # Read file content
+    try:
+        contents = await file.read()
+        df = pd.read_excel(io.BytesIO(contents))
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Failed to read Excel file: {str(e)}"
+        )
+
+    # Validate columns
+    df.columns = df.columns.str.strip()
+    required_columns = ['Employee', 'Email']
+    missing_columns = [col for col in required_columns if col not in df.columns]
+    if missing_columns:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Missing required columns: {', '.join(missing_columns)}"
+        )
+
+    # Filter out empty rows
+    df = df.dropna(how='all')
+    df = df[df['Email'].notna()]
+
+    # Get product columns (all columns except Employee and Email)
+    product_columns = [col for col in df.columns if col not in ['Employee', 'Email']]
+    
+    if not product_columns:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No product columns found in Excel file"
+        )
+
+    # Phase 1: Validate all users exist in the system
+    validation_errors = []
+    user_email_to_id = {}
+    
+    for idx, (_, row) in enumerate(df.iterrows()):
+        row_number = idx + 2  # Excel row number (1-indexed + header)
+        
+        employee_name = str(row['Employee']).strip() if pd.notna(row['Employee']) else ""
+        email = str(row['Email']).strip().lower() if pd.notna(row['Email']) else ""
+        
+        if not employee_name or not email:
+            validation_errors.append(f"Row {row_number}: Employee name or email is empty")
+            continue
+        
+        # Check if user exists in database
+        existing_user = db.query(UserModel).filter(
+            func.lower(UserModel.email) == email
+        ).first()
+        
+        if not existing_user:
+            validation_errors.append(
+                f"Row {row_number}: User '{employee_name}' ({email}) not found in system"
+            )
+        else:
+            user_email_to_id[email] = existing_user.id
+    
+    # If any user validation fails, return errors without importing anything
+    if validation_errors:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Validation failed. All users must exist in the system before import. Errors: {'; '.join(validation_errors)}"
+        )
+
+    # Phase 2: Get product mapping
+    product_name_to_id = {}
+    products = db.query(ProductModel).all()
+    for product in products:
+        normalized_name = product.name.strip().lower()
+        product_name_to_id[normalized_name] = product.id
+
+    # Phase 3: Process assignments
+    assignments_to_create = []
+    errors = []
+    success_count = 0
+    failed_count = 0
+    
+    for idx, (_, row) in enumerate(df.iterrows()):
+        row_number = idx + 2  # Excel row number (1-indexed + header)
+        email = str(row['Email']).strip().lower()
+        user_id = user_email_to_id[email]
+        employee_name = str(row['Employee']).strip() if pd.notna(row['Employee']) else ""
+        
+        # Process each product column
+        for product_col in product_columns:
+            cell_value = row[product_col]
+            
+            # Check if marked as 'Y'
+            if pd.notna(cell_value) and str(cell_value).strip().upper() == 'Y':
+                normalized_product_name = product_col.strip().lower()
+                product_id = product_name_to_id.get(normalized_product_name)
+                
+                if not product_id:
+                    errors.append(f"Row {row_number}: Product '{product_col}' not found in Product Inventory")
+                    failed_count += 1
+                    continue
+                
+                # Check if assignment already exists
+                existing = db.query(PermissionAssignment).filter(
+                    PermissionAssignment.user_id == user_id,
+                    PermissionAssignment.product_id == product_id
+                ).first()
+                
+                if existing:
+                    errors.append(f"Row {row_number}: Product '{product_col}' is already assigned to '{employee_name}'")
+                    failed_count += 1
+                else:
+                    assignments_to_create.append({
+                        'user_id': user_id,
+                        'product_id': product_id,
+                        'assignment_source': 'manual'
+                    })
+
+    # Phase 4: Batch insert assignments
+    if assignments_to_create:
+        try:
+            for assignment in assignments_to_create:
+                new_assignment = PermissionAssignment(**assignment)
+                db.add(new_assignment)
+            db.commit()
+            success_count = len(assignments_to_create)
+        except Exception as e:
+            db.rollback()
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Failed to insert assignments: {str(e)}"
+            )
+
+    # Log the action
+    audit_log.log_action(
+        db,
+        actor_user_id=current_user.id,
+        action="user.import_assignments",
+        target_id=str(current_user.id),
+        details={
+            "filename": file.filename,
+            "rows_processed": len(df),
+            "assignments_created": success_count,
+            "failed_count": failed_count
+        }
+    )
+
+    return ImportAssignmentsResult(
+        success_count=success_count,
+        failed_count=failed_count,
+        errors=errors
     )

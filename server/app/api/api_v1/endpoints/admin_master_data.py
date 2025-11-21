@@ -452,7 +452,8 @@ def delete_currency(
             actor_user_id=current_user.id,
             action="currency.delete",
             target_id=str(currency_id),
-            details={"code": existing_currency.code, "name": existing_currency.name}
+            details={"code": existing_currency.code,
+                     "name": existing_currency.name}
         )
     except Exception as e:
         print(f"Audit log error: {e}")
