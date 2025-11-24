@@ -20,6 +20,7 @@ class Department(DepartmentBase):
     id: uuid.UUID
     created_at: datetime
     updated_at: datetime
+    users: Optional[List[str]] = None  # List of user names in this department
 
     class Config:
         from_attributes = True

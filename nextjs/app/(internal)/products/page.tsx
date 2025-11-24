@@ -68,6 +68,13 @@ export default function ProductsPage() {
     users: User[];
   } | null>(null);
   const [loadingUsers, setLoadingUsers] = useState(false);
+  
+  // Admins dialog state
+  const [adminsDialogOpen, setAdminsDialogOpen] = useState(false);
+  const [selectedProductAdmins, setSelectedProductAdmins] = useState<{
+    productName: string;
+    admins: { id: string; name: string; email: string }[];
+  } | null>(null);
   const [loadingUserCounts, setLoadingUserCounts] = useState(false);
   const [productUserCounts, setProductUserCounts] = useState<Record<string, number>>({});
   
@@ -544,6 +551,7 @@ export default function ProductsPage() {
                     <TableHead className="w-[130px]">End Date</TableHead>
                     <TableHead className="w-[120px]">Bills</TableHead>
                     <TableHead className="w-[120px]">Users</TableHead>
+                    <TableHead className="w-[200px]">Admins</TableHead>
                     <TableHead className="text-right w-[140px]">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -589,16 +597,13 @@ export default function ProductsPage() {
                           {/* Service */}
                           <TableCell>
                             {product.service_name ? (
-                              <div className="flex items-center gap-1.5 max-w-[200px]">
-                                <Building className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400 flex-shrink-0" />
-                                <Badge 
-                                  variant="outline" 
-                                  className="text-xs bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-400 truncate max-w-[160px]"
-                                  title={product.service_name}
-                                >
-                                  {product.service_name}
-                                </Badge>
-                              </div>
+                              <Badge 
+                                variant="outline" 
+                                className="text-xs bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-400 truncate max-w-[200px]"
+                                title={product.service_name}
+                              >
+                                {product.service_name}
+                              </Badge>
                             ) : (
                               <Badge 
                                 variant="outline" 
@@ -617,7 +622,6 @@ export default function ProductsPage() {
                                 className={`text-xs max-w-[140px] truncate ${getStatusColorClasses(product.status)}`}
                                 title={product.status}
                               >
-                                <Tag className="h-3 w-3 mr-1 flex-shrink-0" />
                                 <span className="truncate">{product.status}</span>
                               </Badge>
                             ) : (
@@ -656,7 +660,6 @@ export default function ProductsPage() {
                                 variant="outline" 
                                 className="text-xs bg-amber-50 dark:bg-amber-950 border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-400"
                               >
-                                <Receipt className="h-3 w-3 mr-1" />
                                 {productPayments.length}
                               </Badge>
                             ) : (
@@ -682,13 +685,57 @@ export default function ProductsPage() {
                                     handleShowAllUsers(product);
                                   }}
                                 >
-                                  <Users className="h-3 w-3 mr-1"/>{productUserCounts[product.id]}
+                                  {productUserCounts[product.id]}
                                 </Button>
                               ) : (
                                 <span className="text-xs text-muted-foreground">No users</span>
                               )
                             ) : (
                               <span className="text-xs text-muted-foreground">-</span>
+                            )}
+                          </TableCell>
+
+                          {/* Admins */}
+                          <TableCell>
+                            {product.admins && product.admins.length > 0 ? (
+                              <div className="flex flex-wrap gap-1 max-w-[200px]">
+                                {product.admins.slice(0, 2).map((admin) => (
+                                  <Badge
+                                    key={admin.id}
+                                    variant="outline"
+                                    className="text-xs bg-purple-50 text-purple-700 dark:bg-purple-950 dark:text-purple-400 border-purple-200 cursor-pointer hover:bg-purple-100 dark:hover:bg-purple-900"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setSelectedProductAdmins({
+                                        productName: product.name || 'Unknown Product',
+                                        admins: product.admins || [],
+                                      });
+                                      setAdminsDialogOpen(true);
+                                    }}
+                                  >
+                                    {admin.name}
+                                  </Badge>
+                                ))}
+                                {product.admins.length > 2 && (
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-6 px-2 text-xs bg-muted hover:bg-muted/80"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setSelectedProductAdmins({
+                                        productName: product.name || 'Unknown Product',
+                                        admins: product.admins || [],
+                                      });
+                                      setAdminsDialogOpen(true);
+                                    }}
+                                  >
+                                    +{product.admins.length - 2}
+                                  </Button>
+                                )}
+                              </div>
+                            ) : (
+                              <span className="text-xs text-muted-foreground">No admins</span>
                             )}
                           </TableCell>
 
@@ -726,7 +773,7 @@ export default function ProductsPage() {
                         {/* Expandable Payment Bills Table */}
                         {isExpanded && (
                             <TableRow>
-                              <TableCell colSpan={9} className="p-0">
+                              <TableCell colSpan={10} className="p-0">
                                 <div className="bg-muted/20 border-t">
                                   <div className="p-5">
                                     <div className="flex items-center justify-between mb-3">
@@ -986,19 +1033,57 @@ export default function ProductsPage() {
               </div>
             ) : selectedProductUsers && selectedProductUsers.users.length > 0 ? (
               <div className="flex flex-wrap gap-2 max-h-[400px] overflow-y-auto">
-                {selectedProductUsers.users.map((user) => (
-                  <Badge
-                    key={user.id}
-                    variant="outline"
-                    className="text-sm bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-400 border-blue-200 px-3 py-1.5"
-                  >
-                    {user.name}
-                  </Badge>
-                ))}
+                {[...selectedProductUsers.users]
+                  .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }))
+                  .map((user) => (
+                    <Badge
+                      key={user.id}
+                      variant="outline"
+                      className="text-sm bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-400 border-blue-200 px-3 py-1.5"
+                    >
+                      {user.name}
+                    </Badge>
+                  ))}
               </div>
             ) : (
               <div className="text-center py-8 text-muted-foreground">
                 No users assigned
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Admins Dialog */}
+      <Dialog open={adminsDialogOpen} onOpenChange={setAdminsDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <UserCircle2 className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+              Admins for {selectedProductAdmins?.productName || 'Product'}
+            </DialogTitle>
+            <DialogDescription>
+              All administrators assigned to this product
+            </DialogDescription>
+          </DialogHeader>
+          <div className="mt-4">
+            {selectedProductAdmins && selectedProductAdmins.admins.length > 0 ? (
+              <div className="flex flex-wrap gap-2 max-h-[400px] overflow-y-auto">
+                {[...selectedProductAdmins.admins]
+                  .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }))
+                  .map((admin) => (
+                    <Badge
+                      key={admin.id}
+                      variant="outline"
+                      className="text-sm bg-purple-50 text-purple-700 dark:bg-purple-950 dark:text-purple-400 border-purple-200 px-3 py-1.5"
+                    >
+                      {admin.name}
+                    </Badge>
+                  ))}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                No admins assigned
               </div>
             )}
           </div>
