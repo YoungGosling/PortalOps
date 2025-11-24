@@ -25,7 +25,7 @@ import {
 import { UserFormDialog } from '@/components/users/UserFormDialog';
 import { DeleteUserDialog } from '@/components/users/DeleteUserDialog';
 import { ImportAssignmentsDialog } from '@/components/users/ImportAssignmentsDialog';
-import { Plus, Users as UsersIcon, Pencil, Trash2, Mail, Briefcase, Shield, UserCircle2, Loader2, Building2, Calendar, User as UserIcon, ChevronLeft, ChevronRight, Search, X, Upload } from 'lucide-react';
+import { Plus, Users as UsersIcon, Pencil, Trash2, Briefcase, Shield, UserCircle2, Loader2, Building2, Calendar, User as UserIcon, ChevronLeft, ChevronRight, Search, X, Upload, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/providers/auth-provider';
 import { Input } from '@/components/ui/input';
@@ -54,11 +54,26 @@ export default function UsersPage() {
   const [totalUsers, setTotalUsers] = useState(0);
   const [pageSize] = useState(20); // Users per page
   const [pageInput, setPageInput] = useState('');
+  
+  // Sorting state - default to hire_date descending (newest hires first)
+  const [sortBy, setSortBy] = useState<string | undefined>('hire_date');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  
+  // Active/Inactive filter state
+  const [showInactive, setShowInactive] = useState(false);
+  
+  // Statistics state
+  const [statistics, setStatistics] = useState<{
+    total: number;
+    active: number;
+    inactive: number;
+  } | null>(null);
 
-  const fetchUsers = async (page: number = currentPage, search?: string) => {
+  const fetchUsers = async (page: number = currentPage, search?: string, sortByParam?: string, sortOrderParam?: 'asc' | 'desc', isActiveParam?: boolean) => {
     try {
       setLoading(true);
-      const response = await fetchListUserAction(search, undefined, page, pageSize);
+      const isActive = isActiveParam !== undefined ? isActiveParam : !showInactive; // true = show active, false = show inactive
+      const response = await fetchListUserAction(search, undefined, page, pageSize, sortByParam, sortOrderParam, isActive);
       // Convert null values to undefined to match User type
       const users: User[] = response.data.map(user => ({
         ...user,
@@ -67,6 +82,7 @@ export default function UsersPage() {
         position: user.position ?? undefined,
         hire_date: user.hire_date ?? undefined,
         resignation_date: user.resignation_date ?? undefined,
+        is_active: user.is_active ?? true,
         roles: user.roles as ('Admin' | 'ServiceAdmin')[],
         sap_ids: user.sap_ids ?? undefined,
       }));
@@ -74,6 +90,11 @@ export default function UsersPage() {
       setCurrentPage(response.pagination.page);
       setTotalUsers(response.pagination.total);
       setTotalPages(Math.ceil(response.pagination.total / response.pagination.limit));
+      
+      // Update statistics if available
+      if (response.statistics) {
+        setStatistics(response.statistics);
+      }
     } catch (error) {
       toast.error('Failed to load users');
       console.error(error);
@@ -108,7 +129,7 @@ export default function UsersPage() {
   useEffect(() => {
     // Only fetch data once when component mounts and user is admin
     if (isAdmin() && !dataLoaded) {
-      fetchUsers();
+      fetchUsers(1, undefined, sortBy, sortOrder);
       fetchProducts();
       setDataLoaded(true);
     } else if (!isAdmin()) {
@@ -137,7 +158,24 @@ export default function UsersPage() {
 
   // Handle dialog success
   const handleDialogSuccess = () => {
-    fetchUsers(currentPage, searchQuery || undefined);
+    fetchUsers(currentPage, searchQuery || undefined, sortBy, sortOrder);
+  };
+
+  // Handle sorting
+  const handleSort = (column: string) => {
+    if (sortBy === column) {
+      // Toggle order if clicking the same column
+      const newOrder = sortOrder === 'asc' ? 'desc' : 'asc';
+      setSortOrder(newOrder);
+      fetchUsers(1, searchQuery || undefined, column, newOrder);
+      setCurrentPage(1);
+    } else {
+      // Set new column and default to ascending
+      setSortBy(column);
+      setSortOrder('asc');
+      fetchUsers(1, searchQuery || undefined, column, 'asc');
+      setCurrentPage(1);
+    }
   };
 
   // Handle page change
@@ -145,7 +183,7 @@ export default function UsersPage() {
     if (newPage >= 1 && newPage <= totalPages) {
       setCurrentPage(newPage);
       setPageInput('');
-      fetchUsers(newPage, searchQuery || undefined);
+      fetchUsers(newPage, searchQuery || undefined, sortBy, sortOrder);
     }
   };
 
@@ -184,7 +222,7 @@ export default function UsersPage() {
   const handleSearch = (query: string) => {
     setSearchQuery(query);
     setCurrentPage(1); // Reset to page 1 when searching
-    fetchUsers(1, query || undefined);
+    fetchUsers(1, query || undefined, sortBy, sortOrder);
   };
 
   // Handle showing all products for a user
@@ -225,9 +263,30 @@ export default function UsersPage() {
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Employee Directory</h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-3xl font-bold tracking-tight">Employee Directory</h1>
+            <Button
+              variant={showInactive ? "default" : "outline"}
+              size="sm"
+              onClick={() => {
+                const newShowInactive = !showInactive;
+                setShowInactive(newShowInactive);
+                setCurrentPage(1);
+                // Pass the new value directly to fetchUsers
+                const isActive = !newShowInactive;
+                fetchUsers(1, searchQuery || undefined, sortBy, sortOrder, isActive);
+              }}
+              className="gap-2"
+            >
+              {showInactive ? 'Show Active' : 'Show Iactive'}
+            </Button>
+          </div>
           <p className="text-muted-foreground mt-0.5">
-            {totalUsers > 0 ? `${totalUsers} ${totalUsers === 1 ? 'employee' : 'employees'} in directory` : 'No employees in directory'}
+            {statistics ? (
+              `The total headcount is ${statistics.total}, with ${statistics.active} currently employed and ${statistics.inactive} resigned.`
+            ) : (
+              totalUsers > 0 ? `${totalUsers} ${totalUsers === 1 ? 'employee' : 'employees'} in directory` : 'No employees in directory'
+            )}
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -235,7 +294,7 @@ export default function UsersPage() {
           <div className="relative w-[300px]">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search employees..."
+              placeholder="Search by name or product..."
               value={searchQuery}
               onChange={(e) => handleSearch(e.target.value)}
               className="pl-10 pr-10"
@@ -298,11 +357,74 @@ export default function UsersPage() {
               <Table>
                 <TableHeader>
                   <TableRow className="hover:bg-transparent border-b">
-                    <TableHead className="w-[250px]">Name</TableHead>
-                    <TableHead className="w-[200px]">Email</TableHead>
-                    <TableHead className="w-[150px]">Department</TableHead>
-                    <TableHead className="w-[150px]">Position</TableHead>
-                    <TableHead className="w-[120px]">Hire Date</TableHead>
+                    <TableHead 
+                      className="w-[250px] cursor-pointer hover:bg-accent/50 transition-colors"
+                      onClick={() => handleSort('name')}
+                    >
+                      <div className="flex items-center gap-2">
+                        Name
+                        {sortBy === 'name' ? (
+                          sortOrder === 'asc' ? (
+                            <ArrowUp className="h-4 w-4" />
+                          ) : (
+                            <ArrowDown className="h-4 w-4" />
+                          )
+                        ) : (
+                          <ArrowUpDown className="h-4 w-4 opacity-50" />
+                        )}
+                      </div>
+                    </TableHead>
+                    <TableHead 
+                      className="w-[150px] cursor-pointer hover:bg-accent/50 transition-colors"
+                      onClick={() => handleSort('department')}
+                    >
+                      <div className="flex items-center gap-2">
+                        Department
+                        {sortBy === 'department' ? (
+                          sortOrder === 'asc' ? (
+                            <ArrowUp className="h-4 w-4" />
+                          ) : (
+                            <ArrowDown className="h-4 w-4" />
+                          )
+                        ) : (
+                          <ArrowUpDown className="h-4 w-4 opacity-50" />
+                        )}
+                      </div>
+                    </TableHead>
+                    <TableHead 
+                      className="w-[150px] cursor-pointer hover:bg-accent/50 transition-colors"
+                      onClick={() => handleSort('position')}
+                    >
+                      <div className="flex items-center gap-2">
+                        Position
+                        {sortBy === 'position' ? (
+                          sortOrder === 'asc' ? (
+                            <ArrowUp className="h-4 w-4" />
+                          ) : (
+                            <ArrowDown className="h-4 w-4" />
+                          )
+                        ) : (
+                          <ArrowUpDown className="h-4 w-4 opacity-50" />
+                        )}
+                      </div>
+                    </TableHead>
+                    <TableHead 
+                      className="w-[120px] cursor-pointer hover:bg-accent/50 transition-colors"
+                      onClick={() => handleSort('hire_date')}
+                    >
+                      <div className="flex items-center gap-2">
+                        Hire Date
+                        {sortBy === 'hire_date' ? (
+                          sortOrder === 'asc' ? (
+                            <ArrowUp className="h-4 w-4" />
+                          ) : (
+                            <ArrowDown className="h-4 w-4" />
+                          )
+                        ) : (
+                          <ArrowUpDown className="h-4 w-4 opacity-50" />
+                        )}
+                      </div>
+                    </TableHead>
                     <TableHead className="w-[200px]">Products</TableHead>
                     <TableHead className="text-right w-[140px]">Actions</TableHead>
                   </TableRow>
@@ -340,14 +462,6 @@ export default function UsersPage() {
                                 </div>
                               )}
                             </div>
-                          </div>
-                        </TableCell>
-
-                        {/* Email */}
-                        <TableCell>
-                          <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                            <Mail className="h-3.5 w-3.5 flex-shrink-0" />
-                            <span className="truncate">{user.email}</span>
                           </div>
                         </TableCell>
 

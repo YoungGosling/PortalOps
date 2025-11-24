@@ -24,11 +24,36 @@ def list_departments(
     db: Session = Depends(get_db)
 ):
     """
-    List all departments.
+    List all departments with their users.
     Admin only.
     """
+    from app.models.user import User
+    
     departments = department.get_multi(db)
-    return departments
+    
+    # Build a dictionary of department_id -> list of user names
+    users_by_dept = {}
+    all_users = db.query(User).filter(User.department_id.isnot(None)).all()
+    for u in all_users:
+        if u.department_id:
+            dept_id = u.department_id
+            if dept_id not in users_by_dept:
+                users_by_dept[dept_id] = []
+            users_by_dept[dept_id].append(u.name)
+    
+    # Convert departments to Department schema with users
+    result = []
+    for dept in departments:
+        dept_data = Department(
+            id=dept.id,
+            name=dept.name,
+            created_at=dept.created_at,
+            updated_at=dept.updated_at,
+            users=users_by_dept.get(dept.id, [])
+        )
+        result.append(dept_data)
+    
+    return result
 
 
 @router.post("", response_model=Department, status_code=status.HTTP_201_CREATED)

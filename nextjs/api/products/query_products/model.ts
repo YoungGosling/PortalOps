@@ -1,5 +1,11 @@
 import { z } from "zod";
 
+export const AdminSimpleSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  email: z.string(),
+});
+
 export const ProductSchema = z.object({
   id: z.string().uuid(),
   name: z.string(),
@@ -11,6 +17,7 @@ export const ProductSchema = z.object({
   latest_payment_date: z.string().nullable().optional(),
   latest_usage_start_date: z.string().nullable().optional(),
   latest_usage_end_date: z.string().nullable().optional(),
+  admins: z.array(AdminSimpleSchema).optional(),
   created_at: z.string().optional(),
   updated_at: z.string().optional(),
 });

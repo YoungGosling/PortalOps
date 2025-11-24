@@ -4,12 +4,13 @@ export interface User {
   id: string;
   name: string;
   email: string;
-  department?: string;         // Deprecated: kept for backward compatibility
-  department_id?: string;      // v3: FK to Department (UUID)
-  position?: string;           // v3: Job title/position
-  hire_date?: string;          // v3: Hire date (YYYY-MM-DD)
-  resignation_date?: string;   // v3: Resignation date (YYYY-MM-DD), nullable
-  roles: ('Admin' | 'ServiceAdmin')[];
+  department?: string | null;         // Deprecated: kept for backward compatibility
+  department_id?: string | null;      // v3: FK to Department (UUID)
+  position?: string | null;           // v3: Job title/position
+  hire_date?: string | null;          // v3: Hire date (YYYY-MM-DD)
+  resignation_date?: string | null;   // v3: Resignation date (YYYY-MM-DD), nullable
+  is_active?: boolean;                // User active status (true = active, false = inactive/resigned)
+  roles: string[];
   assignedProductIds: string[];
   sap_ids?: string[];          // SAP user IDs associated with this user
 }
@@ -48,6 +49,7 @@ export interface Product {
   latest_payment_date?: string;       // V2: Latest payment date
   latest_usage_start_date?: string;   // V2: Latest usage start date
   latest_usage_end_date?: string;     // V2: Latest usage end date
+  admins?: AdminSimple[];      // V2: Product administrators
   created_at?: string;
   updated_at?: string;
 }
@@ -220,11 +222,11 @@ export interface ProductUpdateRequest {
 export interface UserCreateRequest {
   name: string;
   email: string;
-  department?: string;       // Deprecated
-  department_id?: string;    // v3: FK to Department (UUID)
-  position?: string;         // v3: Job title
-  hire_date?: string;        // v3: Hire date (YYYY-MM-DD)
-  resignation_date?: string; // v3: Resignation date (YYYY-MM-DD)
+  department?: string | null;       // Deprecated
+  department_id?: string | null;    // v3: FK to Department (UUID)
+  position?: string | null;         // v3: Job title
+  hire_date?: string | null;        // v3: Hire date (YYYY-MM-DD)
+  resignation_date?: string | null; // v3: Resignation date (YYYY-MM-DD)
   role?: 'Admin' | 'ServiceAdmin';
   assignedProductIds?: string[];
 }
@@ -232,11 +234,11 @@ export interface UserCreateRequest {
 export interface UserUpdateRequest {
   name?: string;
   email?: string;
-  department?: string;       // Deprecated
-  department_id?: string;    // v3: FK to Department (UUID)
-  position?: string;         // v3: Job title
-  hire_date?: string;        // v3: Hire date (YYYY-MM-DD)
-  resignation_date?: string; // v3: Resignation date (YYYY-MM-DD)
+  department?: string | null;       // Deprecated
+  department_id?: string | null;    // v3: FK to Department (UUID)
+  position?: string | null;         // v3: Job title
+  hire_date?: string | null;        // v3: Hire date (YYYY-MM-DD)
+  resignation_date?: string | null; // v3: Resignation date (YYYY-MM-DD)
   role?: 'Admin' | 'ServiceAdmin';
   assignedProductIds?: string[];
 }
@@ -260,6 +262,7 @@ export interface Department {
   name: string;
   created_at?: string;
   updated_at?: string;
+  users?: string[]; // List of user names in this department
 }
 
 export interface DepartmentCreateRequest {

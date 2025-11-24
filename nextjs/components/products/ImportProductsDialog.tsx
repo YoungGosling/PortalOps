@@ -124,7 +124,8 @@ export function ImportProductsDialog({
         <DialogHeader>
           <DialogTitle>Import Products</DialogTitle>
           <DialogDescription>
-            Upload an Excel file with Product, Service, Description (optional), and Status (optional) columns.
+            Upload an Excel file with Product, Service, Description (optional), Status (optional), and Administrator (optional) columns.
+            Administrator column can contain a single admin name or multiple admin names separated by commas.
             Each product will automatically create an incomplete payment record.
           </DialogDescription>
         </DialogHeader>

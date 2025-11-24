@@ -8,6 +8,7 @@ async function createProductAction(data: {
   description?: string | null;
   serviceId: string;
   statusId?: number | null;
+  adminUserIds?: string[];
 }) {
   return await createProduct(data);
 }

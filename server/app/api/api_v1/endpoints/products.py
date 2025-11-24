@@ -51,7 +51,9 @@ def create_product(
         url=product_in.url,
         description=product_in.description,
         service_id=product_in.serviceId,
-        status_id=product_in.statusId if product_in.statusId is not None else 1
+        status_id=product_in.statusId if product_in.statusId is not None else 1,
+        adminUserIds=product_in.adminUserIds if hasattr(
+            product_in, 'adminUserIds') else []
     )
 
     new_product = crud_product.create_with_payment_info(
@@ -88,13 +90,20 @@ def create_product(
             latest_usage_end = latest_payment.usage_end_date.strftime(
                 "%m/%d/%Y")
 
+    # Log the action with admin info
+    details = {
+        "name": new_product.name,
+        "service_id": str(new_product.service_id) if new_product.service_id else None
+    }
+    if product_in.adminUserIds:
+        details["adminUserIds"] = [str(uid) for uid in product_in.adminUserIds]
+
     audit_log.log_action(
         db,
         actor_user_id=current_user.id,
         action="product.create",
         target_id=str(new_product.id),
-        details={"name": new_product.name,
-                 "service_id": str(new_product.service_id) if new_product.service_id else None}
+        details=details
     )
 
     # Return product with all required fields
@@ -112,6 +121,40 @@ def create_product(
         "latest_usage_end_date": latest_usage_end,
         "created_at": new_product.created_at,
         "updated_at": new_product.updated_at
+    }
+
+
+@router.get("/{product_id}/details")
+def get_product_details(
+    product_id: uuid.UUID,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Get product details including administrators."""
+    from app.schemas.service import AdminSimple
+
+    product = crud_product.get(db, id=product_id)
+    if not product:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Product not found"
+        )
+
+    # Return product with admins
+    return {
+        "id": product.id,
+        "name": product.name,
+        "url": product.url,
+        "description": product.description,
+        "service_id": product.service_id,
+        "status_id": product.status_id,
+        "admins": [AdminSimple(
+            id=admin.id,
+            name=admin.name,
+            email=admin.email
+        ) for admin in product.admins],
+        "created_at": product.created_at,
+        "updated_at": product.updated_at
     }
 
 
@@ -177,6 +220,15 @@ def get_products(
                 latest_usage_end = latest_payment.usage_end_date.strftime(
                     "%m/%d/%Y")
 
+        # Get product admins
+        product_admins = [
+            {
+                "id": str(admin.id),
+                "name": admin.name,
+                "email": admin.email
+            } for admin in product.admins
+        ]
+
         product_dict = {
             "id": product.id,
             "name": product.name,
@@ -189,6 +241,7 @@ def get_products(
             "latest_payment_date": latest_payment_date,
             "latest_usage_start_date": latest_usage_start,
             "latest_usage_end_date": latest_usage_end,
+            "admins": product_admins,
             "created_at": product.created_at,
             "updated_at": product.updated_at
         }
@@ -253,14 +306,16 @@ def update_product(
         name=product_in.name,
         url=product_in.url,
         description=product_in.description,
-        status_id=product_in.statusId if product_in.statusId is not None else product.status_id
+        status_id=product_in.statusId if product_in.statusId is not None else product.status_id,
+        adminUserIds=product_in.adminUserIds if hasattr(
+            product_in, 'adminUserIds') else None
     )
 
     # Update service_id separately if provided
     if product_in.serviceId:
         product.service_id = product_in.serviceId
 
-    updated_product = crud_product.update(
+    updated_product = crud_product.update_with_admins(
         db, db_obj=product, obj_in=product_update)
     db.commit()
     db.refresh(updated_product)
@@ -297,14 +352,20 @@ def update_product(
             latest_usage_end = latest_payment.usage_end_date.strftime(
                 "%m/%d/%Y")
 
-    # Log the action
+    # Log the action with admin info
+    details = {
+        "name": updated_product.name,
+        "service_id": str(updated_product.service_id) if updated_product.service_id else None
+    }
+    if hasattr(product_in, 'adminUserIds') and product_in.adminUserIds is not None:
+        details["adminUserIds"] = [str(uid) for uid in product_in.adminUserIds]
+
     audit_log.log_action(
         db,
         actor_user_id=current_user.id,
         action="product.update",
         target_id=str(product_id),
-        details={"name": updated_product.name, "service_id": str(
-            updated_product.service_id) if updated_product.service_id else None}
+        details=details
     )
 
     # Return product with service_name, status, and latest payment info
@@ -408,7 +469,8 @@ async def import_products(
 ):
     """
     Import products from Excel file.
-    Excel file should have columns: Product (required), Service (required), Description (optional), Status (optional).
+    Excel file should have columns: Product (required), Service (required), Description (optional), Status (optional), Administrator (optional).
+    Administrator column can contain a single admin name or multiple admin names separated by commas.
     Each imported product will automatically create an incomplete payment record.
     """
     # Check if user is Admin (only Admin can import products)
@@ -530,6 +592,25 @@ async def import_products(
                 f"Row {row_number}: Product '{product_name}' is duplicated in the import file")
             continue
 
+        # Validate and get optional administrators
+        admin_user_ids = []
+        if 'Administrator' in df.columns and pd.notna(row['Administrator']):
+            admin_names_str = str(row['Administrator']).strip()
+            if admin_names_str:
+                # Split by comma and process each admin name
+                admin_names = [name.strip()
+                               for name in admin_names_str.split(',') if name.strip()]
+                for admin_name in admin_names:
+                    # Find user by name (case-insensitive)
+                    admin_user = db.query(User).filter(
+                        func.lower(User.name) == func.lower(admin_name)
+                    ).first()
+                    if admin_user:
+                        admin_user_ids.append(admin_user.id)
+                    else:
+                        validation_errors.append(
+                            f"Row {row_number}: Administrator '{admin_name}' not found in the system")
+
         # Store validated row data for phase 2
         validated_rows.append({
             'row_number': row_number,
@@ -537,7 +618,8 @@ async def import_products(
             'service_id': service.id,
             'service_name': service_name,
             'description': description,
-            'status_id': status_id
+            'status_id': status_id,
+            'admin_user_ids': admin_user_ids
         })
 
     # If there are any validation errors, fail the entire import
@@ -571,6 +653,15 @@ async def import_products(
                 db_obj = ProductModel(**product_data)
                 db.add(db_obj)
                 db.flush()  # Flush to get the ID but don't commit yet
+
+                # Associate admin users if provided
+                if row_data.get('admin_user_ids'):
+                    for admin_user_id in row_data['admin_user_ids']:
+                        admin_user = db.query(User).filter(
+                            User.id == admin_user_id).first()
+                        if admin_user:
+                            db_obj.admins.append(admin_user)
+                    db.flush()
 
                 # Create an incomplete payment record linked to this product
                 from app.models.payment import PaymentInfo
@@ -617,6 +708,9 @@ async def import_products(
                     "service_name": row_data['service_name'],
                     "imported": True
                 }
+                if row_data.get('admin_user_ids'):
+                    details["adminUserIds"] = [
+                        str(uid) for uid in row_data['admin_user_ids']]
 
                 audit_log.log_action(
                     db,

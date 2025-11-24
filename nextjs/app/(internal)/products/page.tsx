@@ -6,7 +6,8 @@ import { queryProductsAction } from '@/api/products/query_products/action';
 import { queryPaymentRegisterV2Action } from '@/api/payment_register/query_payment_register_v2/action';
 import { fetchQueryPaymentMethodsAction } from '@/api/payment_method/query_payment_methods/action';
 import { fetchQueryCurrenciesAction } from '@/api/currency/query_currencies/action';
-import type { Product, Service, PaymentInfo, PaymentMethod, Currency } from '@/types';
+import { fetchListUserAction } from '@/api/users/list_user/action';
+import type { Product, Service, PaymentInfo, PaymentMethod, Currency, User } from '@/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -25,11 +26,18 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { ProductFormDialog } from '@/components/products/ProductFormDialog';
 import { DeleteProductDialog } from '@/components/products/DeleteProductDialog';
 import { ImportProductsDialog } from '@/components/products/ImportProductsDialog';
 import { AddPaymentModal } from '@/components/payments/AddPaymentModal';
-import { Plus, Package, Filter, Loader2, Edit2, Trash2, Building, ChevronDown, ChevronUp, Calendar, DollarSign, Tag, Receipt, PlusCircle, ChevronLeft, ChevronRight, Search, X, Upload } from 'lucide-react';
+import { Plus, Package, Filter, Loader2, Edit2, Trash2, Building, ChevronDown, ChevronUp, Calendar, DollarSign, Tag, Receipt, PlusCircle, ChevronLeft, ChevronRight, Search, X, Upload, Users, UserCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Input } from '@/components/ui/input';
 
@@ -52,6 +60,16 @@ export default function ProductsPage() {
   const [addingPaymentForProduct, setAddingPaymentForProduct] = useState<Product | null>(null);
   const [dataLoaded, setDataLoaded] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  
+  // Users dialog state
+  const [usersDialogOpen, setUsersDialogOpen] = useState(false);
+  const [selectedProductUsers, setSelectedProductUsers] = useState<{
+    productName: string;
+    users: User[];
+  } | null>(null);
+  const [loadingUsers, setLoadingUsers] = useState(false);
+  const [loadingUserCounts, setLoadingUserCounts] = useState(false);
+  const [productUserCounts, setProductUserCounts] = useState<Record<string, number>>({});
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -82,6 +100,11 @@ export default function ProductsPage() {
       setCurrentPage(response.page);
       setTotalProducts(response.total);
       setTotalPages(Math.ceil(response.total / response.limit));
+      
+      // Immediately start loading user counts after products are loaded
+      if (products.length > 0) {
+        loadUserCountsForProducts(products);
+      }
     } catch (error) {
       toast.error('Failed to load products');
       console.error(error);
@@ -318,6 +341,97 @@ export default function ProductsPage() {
     fetchProducts(serviceId, 1, query || undefined);
   };
 
+  // Fetch user count for a product
+  const fetchProductUserCount = async (productId: string) => {
+    try {
+      const response = await fetchListUserAction(undefined, productId, 1, 1);
+      return response.pagination.total;
+    } catch (error) {
+      console.error('Failed to fetch user count for product:', error);
+      return 0;
+    }
+  };
+
+  // Load user counts for products (with batch processing for better performance)
+  const loadUserCountsForProducts = async (productsToLoad: Product[]) => {
+    if (productsToLoad.length === 0) return;
+    
+    setLoadingUserCounts(true);
+    try {
+      // Process in batches to avoid overwhelming the server
+      const batchSize = 10;
+      
+      for (let i = 0; i < productsToLoad.length; i += batchSize) {
+        const batch = productsToLoad.slice(i, i + batchSize);
+        const countPromises = batch.map(async (product) => {
+          const count = await fetchProductUserCount(product.id);
+          return { productId: product.id, count };
+        });
+        
+        const results = await Promise.all(countPromises);
+        const batchCounts: Record<string, number> = {};
+        results.forEach(({ productId, count }) => {
+          batchCounts[productId] = count;
+        });
+        
+        // Update state incrementally for better UX
+        setProductUserCounts(prev => ({ ...prev, ...batchCounts }));
+      }
+    } catch (error) {
+      console.error('Failed to load user counts:', error);
+    } finally {
+      setLoadingUserCounts(false);
+    }
+  };
+
+  // Fetch all users for a product (with pagination support)
+  const fetchProductUsers = async (productId: string) => {
+    try {
+      setLoadingUsers(true);
+      const allUsers: User[] = [];
+      let page = 1;
+      const limit = 100; // Backend max limit
+      let hasMore = true;
+
+      while (hasMore) {
+        const response = await fetchListUserAction(undefined, productId, page, limit);
+        allUsers.push(...response.data);
+        
+        // Check if there are more pages
+        const totalPages = Math.ceil(response.pagination.total / response.pagination.limit);
+        hasMore = page < totalPages;
+        page++;
+      }
+
+      return allUsers;
+    } catch (error) {
+      console.error('Failed to fetch users for product:', error);
+      toast.error('Failed to load users');
+      return [];
+    } finally {
+      setLoadingUsers(false);
+    }
+  };
+
+  // Handle showing all users for a product
+  const handleShowAllUsers = async (product: Product) => {
+    const users = await fetchProductUsers(product.id);
+    // Ensure we use product.name, not service_name
+    const productName = product.name || 'Unknown Product';
+    setSelectedProductUsers({
+      productName: productName,
+      users: users,
+    });
+    setUsersDialogOpen(true);
+  };
+
+  // Clear user counts when products change (they will be reloaded in fetchProducts)
+  useEffect(() => {
+    if (products.length === 0) {
+      setProductUserCounts({});
+    }
+  }, [products]);
+
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Page Header */}
@@ -426,9 +540,10 @@ export default function ProductsPage() {
                     <TableHead className="w-[250px]">Product Name</TableHead>
                     <TableHead className="w-[200px]">Service</TableHead>
                     <TableHead className="w-[150px]">Status</TableHead>
-                    <TableHead className="w-[130px]">Usage Start Date</TableHead>
-                    <TableHead className="w-[130px]">Usage End Date</TableHead>
+                    <TableHead className="w-[130px]">Start Date</TableHead>
+                    <TableHead className="w-[130px]">End Date</TableHead>
                     <TableHead className="w-[120px]">Bills</TableHead>
+                    <TableHead className="w-[120px]">Users</TableHead>
                     <TableHead className="text-right w-[140px]">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -542,10 +657,38 @@ export default function ProductsPage() {
                                 className="text-xs bg-amber-50 dark:bg-amber-950 border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-400"
                               >
                                 <Receipt className="h-3 w-3 mr-1" />
-                                {productPayments.length} {productPayments.length === 1 ? 'bill' : 'bills'}
+                                {productPayments.length}
                               </Badge>
                             ) : (
                               <span className="text-xs text-muted-foreground">No bills</span>
+                            )}
+                          </TableCell>
+
+                          {/* Users Count */}
+                          <TableCell>
+                            {loadingUserCounts && productUserCounts[product.id] === undefined ? (
+                              <div className="flex items-center gap-1.5">
+                                <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
+                                <span className="text-xs text-muted-foreground">Loading...</span>
+                              </div>
+                            ) : productUserCounts[product.id] !== undefined ? (
+                              productUserCounts[product.id] > 0 ? (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="h-6 px-2 text-xs bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900 cursor-pointer"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleShowAllUsers(product);
+                                  }}
+                                >
+                                  <Users className="h-3 w-3 mr-1"/>{productUserCounts[product.id]}
+                                </Button>
+                              ) : (
+                                <span className="text-xs text-muted-foreground">No users</span>
+                              )
+                            ) : (
+                              <span className="text-xs text-muted-foreground">-</span>
                             )}
                           </TableCell>
 
@@ -583,7 +726,7 @@ export default function ProductsPage() {
                         {/* Expandable Payment Bills Table */}
                         {isExpanded && (
                             <TableRow>
-                              <TableCell colSpan={8} className="p-0">
+                              <TableCell colSpan={9} className="p-0">
                                 <div className="bg-muted/20 border-t">
                                   <div className="p-5">
                                     <div className="flex items-center justify-between mb-3">
@@ -823,6 +966,44 @@ export default function ProductsPage() {
         onOpenChange={setImportDialogOpen}
         onSuccess={handleDialogSuccess}
       />
+
+      {/* Users Dialog */}
+      <Dialog open={usersDialogOpen} onOpenChange={setUsersDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <UserCircle2 className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+              Users Assigned to {selectedProductUsers?.productName || 'Product'}
+            </DialogTitle>
+            <DialogDescription>
+              All users who assigned to this product
+            </DialogDescription>
+          </DialogHeader>
+          <div className="mt-4">
+            {loadingUsers ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-6 w-6 animate-spin text-primary" />
+              </div>
+            ) : selectedProductUsers && selectedProductUsers.users.length > 0 ? (
+              <div className="flex flex-wrap gap-2 max-h-[400px] overflow-y-auto">
+                {selectedProductUsers.users.map((user) => (
+                  <Badge
+                    key={user.id}
+                    variant="outline"
+                    className="text-sm bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-400 border-blue-200 px-3 py-1.5"
+                  >
+                    {user.name}
+                  </Badge>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                No users assigned
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

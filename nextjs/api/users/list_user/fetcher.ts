@@ -6,11 +6,17 @@ export async function fetchListUser(
   productId?: string,
   page: number = 1,
   limit: number = 20,
+  sortBy?: string,
+  sortOrder?: string,
+  isActive?: boolean,
 ) {
   try {
     const params = new URLSearchParams();
     if (search) params.append("search", search);
     if (productId) params.append("productId", productId);
+    if (sortBy) params.append("sortBy", sortBy);
+    if (sortOrder) params.append("sortOrder", sortOrder);
+    if (isActive !== undefined) params.append("is_active", isActive.toString());
     params.append("page", page.toString());
     params.append("limit", limit.toString());
 

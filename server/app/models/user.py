@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Integer, ForeignKey, DateTime, Text, Date
+from sqlalchemy import Column, String, Integer, ForeignKey, DateTime, Text, Date, Boolean
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
@@ -22,6 +22,7 @@ class User(Base):
     position = Column(String(255), nullable=True)  # Job title/position
     hire_date = Column(Date, nullable=True)  # Date of hire
     resignation_date = Column(Date, nullable=True)  # Date of resignation
+    is_active = Column(Boolean, nullable=False, default=True)  # Active (true) or resigned/inactive (false)
     created_at = Column(DateTime(timezone=True),
                         server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), server_default=func.now(

@@ -6,6 +6,7 @@ export const DepartmentSchema = z.object({
   name: z.string(),
   created_at: z.string().optional(),
   updated_at: z.string().optional(),
+  users: z.array(z.string()).optional(), // List of user names in this department
 });
 
 export type Department = z.infer<typeof DepartmentSchema>;

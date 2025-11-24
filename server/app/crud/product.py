@@ -11,6 +11,29 @@ from datetime import date
 
 
 class CRUDProduct(CRUDBase[Product, ProductCreate, ProductUpdate]):
+    def update_with_admins(self, db: Session, *, db_obj: Product, obj_in: ProductUpdate) -> Product:
+        """Update product and manage admin assignments."""
+        # Update basic fields
+        update_data = obj_in.model_dump(
+            exclude={'adminUserIds'}, exclude_unset=True)
+        for field, value in update_data.items():
+            setattr(db_obj, field, value)
+
+        # Update admin assignments if provided
+        if obj_in.adminUserIds is not None:
+            from app.models.user import User
+            # Clear existing admins
+            db_obj.admins = []
+            # Add new admins
+            for user_id in obj_in.adminUserIds:
+                user = db.query(User).filter(User.id == user_id).first()
+                if user:
+                    db_obj.admins.append(user)
+
+        db.commit()
+        db.refresh(db_obj)
+        return db_obj
+
     def get_products_for_user(
         self, db: Session, *, user_id: uuid.UUID, is_admin: bool = False, skip: int = 0, limit: int = 100, search: Optional[str] = None
     ) -> tuple[List[Product], int]:
@@ -23,7 +46,10 @@ class CRUDProduct(CRUDBase[Product, ProductCreate, ProductUpdate]):
             tuple: (list of products, total count)
         """
         if is_admin:
-            query = db.query(Product).options(joinedload(Product.service))
+            query = db.query(Product).options(
+                joinedload(Product.service),
+                joinedload(Product.admins)
+            )
             # Apply search filter if provided
             if search:
                 query = query.filter(Product.name.ilike(f"%{search}%"))
@@ -31,7 +57,8 @@ class CRUDProduct(CRUDBase[Product, ProductCreate, ProductUpdate]):
             products = query.offset(skip).limit(limit).all()
         else:
             query = db.query(Product).options(
-                joinedload(Product.service)
+                joinedload(Product.service),
+                joinedload(Product.admins)
             ).join(
                 PermissionAssignment,
                 Product.id == PermissionAssignment.product_id
@@ -59,7 +86,8 @@ class CRUDProduct(CRUDBase[Product, ProductCreate, ProductUpdate]):
         """
         if is_admin:
             query = db.query(Product).options(
-                joinedload(Product.service)
+                joinedload(Product.service),
+                joinedload(Product.admins)
             ).filter(Product.service_id == service_id)
             # Apply search filter if provided
             if search:
@@ -68,7 +96,8 @@ class CRUDProduct(CRUDBase[Product, ProductCreate, ProductUpdate]):
             products = query.offset(skip).limit(limit).all()
         else:
             query = db.query(Product).options(
-                joinedload(Product.service)
+                joinedload(Product.service),
+                joinedload(Product.admins)
             ).join(
                 PermissionAssignment,
                 Product.id == PermissionAssignment.product_id
@@ -102,7 +131,7 @@ class CRUDProduct(CRUDBase[Product, ProductCreate, ProductUpdate]):
         self, db: Session, *, obj_in: ProductCreate, reporter: str = "System"
     ) -> Product:
         """
-        Create a new product with an associated incomplete payment record.
+        Create a new product with an associated incomplete payment record and admins.
 
         Args:
             db: Database session
@@ -112,8 +141,19 @@ class CRUDProduct(CRUDBase[Product, ProductCreate, ProductUpdate]):
         Returns:
             The newly created Product instance with payment_info relationship loaded
         """
-        # Create the product first
-        product = self.create(db, obj_in=obj_in)
+        # Create product without adminUserIds
+        product_data = obj_in.model_dump(exclude={'adminUserIds'})
+        product = Product(**product_data)
+        db.add(product)
+        db.flush()
+
+        # Associate admin users if provided
+        if obj_in.adminUserIds:
+            from app.models.user import User
+            for user_id in obj_in.adminUserIds:
+                user = db.query(User).filter(User.id == user_id).first()
+                if user:
+                    product.admins.append(user)
 
         # Create an incomplete payment record linked to this product
         # Date fields are set to None to indicate they need to be filled in

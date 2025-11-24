@@ -43,6 +43,7 @@ class ProductBase(BaseModel):
 class ProductCreate(ProductBase):
     service_id: Optional[uuid.UUID] = None
     status_id: int = 1  # Default to Active
+    adminUserIds: Optional[List[uuid.UUID]] = []
 
 
 class ProductCreateWithUrl(BaseModel):
@@ -51,6 +52,7 @@ class ProductCreateWithUrl(BaseModel):
     description: Optional[str] = None
     serviceId: uuid.UUID
     statusId: Optional[int] = 1  # Default to Active
+    adminUserIds: Optional[List[uuid.UUID]] = []
 
 
 class ProductUpdate(BaseModel):
@@ -58,6 +60,7 @@ class ProductUpdate(BaseModel):
     url: Optional[str] = None
     description: Optional[str] = None
     status_id: Optional[int] = None
+    adminUserIds: Optional[List[uuid.UUID]] = None
 
 
 class Product(ProductBase):
@@ -80,6 +83,8 @@ class ProductSimple(BaseModel):
     """Simplified product info for service listings"""
     id: uuid.UUID
     name: str
+    url: Optional[str] = None
+    description: Optional[str] = None
 
     class Config:
         from_attributes = True
@@ -97,4 +102,9 @@ class AdminSimple(BaseModel):
 
 class ServiceWithProducts(Service):
     products: List[ProductSimple] = []
+    admins: List[AdminSimple] = []
+
+
+class ProductWithAdmins(Product):
+    """Product with administrators information"""
     admins: List[AdminSimple] = []

@@ -367,7 +367,7 @@ export function WorkflowChecklistDialog({
         
         // Show different success message based on whether it's full or partial offboarding
         if (selectedProductIdsToRemove.size === taskDetails.assigned_products?.length) {
-          toast.success('Offboarding completed successfully - user has been removed');
+          toast.success('Offboarding completed successfully');
         } else {
           toast.success('Offboarding completed - user marked as resigned with remaining products');
         }

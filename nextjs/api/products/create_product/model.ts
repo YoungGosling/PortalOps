@@ -6,6 +6,7 @@ export const ProductCreateWithUrlSchema = z.object({
   description: z.string().nullable().optional(),
   serviceId: z.string().uuid(),
   statusId: z.number().int().nullable().optional().default(1),
+  adminUserIds: z.array(z.string().uuid()).optional(),
 });
 
 export const ProductSchema = z.object({

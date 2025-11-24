@@ -9,6 +9,7 @@ export async function updateProduct(
     description?: string | null;
     serviceId: string;
     statusId?: number | null;
+    adminUserIds?: string[];
   }
 ) {
   try {

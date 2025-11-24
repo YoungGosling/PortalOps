@@ -24,20 +24,26 @@ def read_users(
     productId: Optional[uuid.UUID] = Query(None),
     page: int = Query(1, ge=1),
     limit: int = Query(20, ge=1, le=100),
+    sortBy: Optional[str] = Query(None),
+    sortOrder: Optional[str] = Query("asc"),
+    is_active: Optional[bool] = Query(True, description="Filter by active status (default: true)"),
     current_user: UserModel = Depends(require_admin),
     db: Session = Depends(get_db)
 ):
     """
     Retrieve users with pagination and search.
-    Optionally filter by productId.
+    Optionally filter by productId, is_active status, and sort by column.
+    Returns statistics: total, active, and inactive user counts.
     """
     skip = (page - 1) * limit
+    
+    # Get statistics (total, active, inactive counts)
+    stats = user.get_user_statistics(db, search=search, product_id=productId)
+    
+    # Get filtered users
     users = user.search_users(
-        db, search=search, product_id=productId, skip=skip, limit=limit)
-
-    # Get total count for pagination
-    total_users = len(user.search_users(db, search=search, product_id=productId,
-                      skip=0, limit=1000))  # Simple approach
+        db, search=search, product_id=productId, skip=skip, limit=limit, 
+        sort_by=sortBy, sort_order=sortOrder, is_active=is_active)
 
     user_data = []
     for u in users:
@@ -71,17 +77,27 @@ def read_users(
             "position": u.position,
             "hire_date": u.hire_date.isoformat() if u.hire_date else None,
             "resignation_date": u.resignation_date.isoformat() if u.resignation_date else None,
+            "is_active": u.is_active,
             "roles": roles,
             "assignedProductIds": assigned_product_ids,
             "sap_ids": sap_ids
         })
 
+    # Get total count for current filter
+    total_filtered = len(user.search_users(db, search=search, product_id=productId,
+                      skip=0, limit=1000, sort_by=None, sort_order=None, is_active=is_active))
+
     return {
         "data": user_data,
         "pagination": {
-            "total": total_users,
+            "total": total_filtered,
             "page": page,
             "limit": limit
+        },
+        "statistics": {
+            "total": stats["total"],
+            "active": stats["active"],
+            "inactive": stats["inactive"]
         }
     }
 

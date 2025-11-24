@@ -513,7 +513,7 @@ def complete_task(
     Requires attachment to be uploaded before completion.
 
     For ONBOARDING: Expects user to be created first via Employee Directory, then marks task complete.
-    For OFFBOARDING: Deletes the user and marks task as complete.
+    For OFFBOARDING: Sets user is_active=False (instead of deleting) and marks task as complete.
     """
     existing_task = workflow_task.get(db, task_id)
     if not existing_task:
@@ -633,11 +633,16 @@ def complete_task(
                     f"Saved {len(product_assignments_snapshot)} product assignments for offboarding task {task_id}")
 
                 if is_full_removal:
-                    # Full removal: delete the user entirely
+                    # Full removal: mark user as inactive instead of deleting
                     logger.info(
-                        f"Full offboarding: deleting user {existing_task.target_user_id}")
+                        f"Full offboarding: marking user {existing_task.target_user_id} as inactive")
 
-                    # Log before deletion (audit trail)
+                    # Set resignation date and is_active to False
+                    target_user.resignation_date = existing_task.employee_resignation_date
+                    target_user.is_active = False
+                    db.commit()
+
+                    # Log status change (audit trail)
                     audit_log.log_action(
                         db,
                         actor_user_id=current_user.id,
@@ -653,21 +658,21 @@ def complete_task(
                             "resignation_date": str(existing_task.employee_resignation_date) if existing_task.employee_resignation_date else None,
                             "attachment": existing_task.attachment_path,
                             "product_count": len(product_assignments_snapshot),
-                            "removal_type": "full"
+                            "removal_type": "full",
+                            "status_change": "marked as inactive (is_active=False)"
                         }
                     )
 
-                    # Delete the user (CASCADE will handle related records)
-                    user.remove(db, id=existing_task.target_user_id)
                     logger.info(
-                        f"User {existing_task.target_user_id} deleted successfully for offboarding task {task_id}")
+                        f"User {existing_task.target_user_id} marked as inactive successfully for offboarding task {task_id}")
                 else:
                     # Partial removal: mark as resigned and remove selected product permissions
                     logger.info(
                         f"Partial offboarding: removing {len(product_ids_to_remove)} products from user {existing_task.target_user_id}")
 
-                    # Set resignation date
+                    # Set resignation date (keep user active for partial offboarding)
                     target_user.resignation_date = existing_task.employee_resignation_date
+                    # Note: For partial offboarding, user remains active (is_active=True)
                     db.commit()
 
                     # Remove only the selected product permissions

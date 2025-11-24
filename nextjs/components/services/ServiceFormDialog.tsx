@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Dialog,
   DialogContent,
@@ -13,15 +14,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Checkbox } from '@/components/ui/checkbox';
 import { fetchListUserAction } from '@/api/users/list_user/action';
 import { fetchCreateServiceAction } from '@/api/services/create_service/action';
 import { fetchUpdateServiceAction } from '@/api/services/update_service/action';
 import { fetchQueryServicesAction } from '@/api/services/query_services/action';
 import type { Service, User } from '@/types';
 import { toast } from 'sonner';
-import { Loader2, X, Users } from 'lucide-react';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { Loader2, X } from 'lucide-react';
 
 interface ServiceFormDialogProps {
   open: boolean;
@@ -43,7 +42,12 @@ export function ServiceFormDialog({
   const [loadingUsers, setLoadingUsers] = useState(false);
   const [nameDuplicate, setNameDuplicate] = useState(false);
   const [checkingDuplicate, setCheckingDuplicate] = useState(false);
+  const [adminSearchQuery, setAdminSearchQuery] = useState('');
+  const [showAdminDropdown, setShowAdminDropdown] = useState(false);
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 });
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const adminSearchRef = useRef<HTMLDivElement>(null);
+  const adminInputRef = useRef<HTMLInputElement>(null);
 
   const isEditMode = !!service;
 
@@ -60,8 +64,57 @@ export function ServiceFormDialog({
         setSelectedAdminIds([]);
         setNameDuplicate(false); // Reset duplicate check when opening add dialog
       }
+      setAdminSearchQuery('');
+      setShowAdminDropdown(false);
     }
   }, [open, service]);
+
+  // Calculate dropdown position
+  useEffect(() => {
+    const updatePosition = () => {
+      if (adminInputRef.current && showAdminDropdown) {
+        const rect = adminInputRef.current.getBoundingClientRect();
+        setDropdownPosition({
+          top: rect.bottom + window.scrollY + 4,
+          left: rect.left + window.scrollX,
+          width: rect.width,
+        });
+      }
+    };
+
+    if (showAdminDropdown) {
+      updatePosition();
+      window.addEventListener('scroll', updatePosition, true);
+      window.addEventListener('resize', updatePosition);
+    }
+
+    return () => {
+      window.removeEventListener('scroll', updatePosition, true);
+      window.removeEventListener('resize', updatePosition);
+    };
+  }, [showAdminDropdown, adminSearchQuery]);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Node;
+      if (
+        adminSearchRef.current &&
+        !adminSearchRef.current.contains(target) &&
+        !(target as Element).closest('[data-admin-dropdown]')
+      ) {
+        setShowAdminDropdown(false);
+      }
+    };
+
+    if (showAdminDropdown) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showAdminDropdown]);
 
   // Check for duplicate service name when name changes
   const checkDuplicateName = useCallback(async (serviceName: string) => {
@@ -147,21 +200,24 @@ export function ServiceFormDialog({
     }
   };
 
-  const handleAdminToggle = (userId: string) => {
-    setSelectedAdminIds(prev => 
-      prev.includes(userId) 
-        ? prev.filter(id => id !== userId)
-        : [...prev, userId]
-    );
+  const addAdmin = (userId: string) => {
+    if (!selectedAdminIds.includes(userId)) {
+      setSelectedAdminIds(prev => [...prev, userId]);
+    }
+    setAdminSearchQuery('');
+    setShowAdminDropdown(false);
   };
 
   const handleRemoveAdmin = (userId: string) => {
     setSelectedAdminIds(prev => prev.filter(id => id !== userId));
   };
 
-  const getSelectedAdmins = () => {
-    return allUsers.filter(user => selectedAdminIds.includes(user.id));
-  };
+  // Filter users based on search query, excluding already selected users
+  const filteredUsers = allUsers.filter(user => {
+    if (selectedAdminIds.includes(user.id)) return false;
+    if (!adminSearchQuery.trim()) return false;
+    return user.name.toLowerCase().includes(adminSearchQuery.toLowerCase());
+  });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -281,68 +337,110 @@ export function ServiceFormDialog({
             {/* Admin Selection */}
             <div className="space-y-2.5">
               <Label className="text-sm font-semibold text-foreground">
-                Service Administrators
+                Administrators
               </Label>
               
               {/* Selected Admins Display */}
               {selectedAdminIds.length > 0 && (
-                <div className="flex flex-wrap gap-2 p-3 bg-muted/50 rounded-lg border">
-                  {getSelectedAdmins().map(admin => (
-                    <Badge
-                      key={admin.id}
-                      variant="secondary"
-                      className="pl-2.5 pr-1 py-1 gap-1.5"
-                    >
-                      <span className="text-xs">{admin.name}</span>
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveAdmin(admin.id)}
-                        className="ml-1 rounded-full hover:bg-muted-foreground/20 p-0.5"
-                        disabled={loading}
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
-                    </Badge>
-                  ))}
+                <div className="flex flex-wrap gap-2 p-2 border rounded-md bg-muted/50">
+                  {selectedAdminIds.map((adminId) => {
+                    const admin = allUsers.find(u => u.id === adminId);
+                    return admin ? (
+                      <Badge key={adminId} variant="secondary" className="gap-1">
+                        {admin.name}
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveAdmin(adminId)}
+                          className="ml-1 hover:bg-destructive/20 rounded-full"
+                          disabled={loading}
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </Badge>
+                    ) : null;
+                  })}
                 </div>
               )}
 
-              {/* User Selection List */}
-              <div className="border rounded-lg">
-                <ScrollArea className="h-[200px]">
-                  {loadingUsers ? (
-                    <div className="flex items-center justify-center py-8">
-                      <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-                    </div>
-                  ) : allUsers.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
-                      <Users className="h-8 w-8 mb-2" />
-                      <p className="text-sm">No users available</p>
-                    </div>
-                  ) : (
-                    <div className="p-2">
-                      {allUsers.map(user => (
-                        <label
-                          key={user.id}
-                          className="flex items-center space-x-3 p-2 hover:bg-accent rounded-md cursor-pointer"
+              {loadingUsers ? (
+                <div className="flex items-center justify-center p-4 border rounded-md">
+                  <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                  <span className="ml-2 text-sm text-muted-foreground">Loading users...</span>
+                </div>
+              ) : (
+                <div className="relative min-w-0" ref={adminSearchRef}>
+                  <Input
+                    ref={adminInputRef}
+                    placeholder="Search administrators by name..."
+                    value={adminSearchQuery}
+                    onChange={(e) => {
+                      setAdminSearchQuery(e.target.value);
+                      setShowAdminDropdown(true);
+                    }}
+                    onFocus={() => setShowAdminDropdown(true)}
+                    disabled={loading}
+                    className="min-w-0"
+                  />
+                  
+                  {showAdminDropdown && typeof window !== 'undefined' && createPortal(
+                    <>
+                      {/* Dropdown */}
+                      {filteredUsers.length > 0 && (
+                        <div
+                          data-admin-dropdown
+                          className="fixed bg-white dark:bg-gray-950 border rounded-md shadow-lg max-h-[200px] overflow-y-auto overflow-x-hidden"
+                          style={{
+                            top: `${dropdownPosition.top}px`,
+                            left: `${dropdownPosition.left}px`,
+                            width: `${dropdownPosition.width}px`,
+                            zIndex: 9999,
+                            pointerEvents: 'auto',
+                          }}
+                          onMouseDown={(e) => e.stopPropagation()}
+                          onClick={(e) => e.stopPropagation()}
+                          onWheel={(e) => e.stopPropagation()}
                         >
-                          <Checkbox
-                            checked={selectedAdminIds.includes(user.id)}
-                            onCheckedChange={() => handleAdminToggle(user.id)}
-                            disabled={loading}
-                          />
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium truncate">{user.name}</p>
-                            <p className="text-xs text-muted-foreground truncate">{user.email}</p>
-                          </div>
-                        </label>
-                      ))}
-                    </div>
+                          {filteredUsers.map((user) => (
+                            <div
+                              key={user.id}
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                addAdmin(user.id);
+                              }}
+                              onMouseDown={(e) => e.stopPropagation()}
+                              className="px-3 py-2 hover:bg-accent cursor-pointer text-sm"
+                            >
+                              <div className="font-medium">{user.name}</div>
+                              <div className="text-xs text-muted-foreground">{user.email}</div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      {adminSearchQuery.trim() && filteredUsers.length === 0 && (
+                        <div
+                          data-admin-dropdown
+                          className="fixed bg-white dark:bg-gray-950 border rounded-md shadow-lg p-3 text-sm text-muted-foreground"
+                          style={{
+                            top: `${dropdownPosition.top}px`,
+                            left: `${dropdownPosition.left}px`,
+                            width: `${dropdownPosition.width}px`,
+                            zIndex: 9999,
+                            pointerEvents: 'auto',
+                          }}
+                          onMouseDown={(e) => e.stopPropagation()}
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          No matching users found
+                        </div>
+                      )}
+                    </>,
+                    document.body
                   )}
-                </ScrollArea>
-              </div>
+                </div>
+              )}
               <p className="text-xs text-muted-foreground">
-                Select one or more users to be administrators of this service
+                Search and select administrators for this service
               </p>
             </div>
           </div>

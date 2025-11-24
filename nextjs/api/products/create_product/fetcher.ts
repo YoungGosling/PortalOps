@@ -7,6 +7,7 @@ export async function createProduct(data: {
   description?: string | null;
   serviceId: string;
   statusId?: number | null;
+  adminUserIds?: string[];
 }) {
   try {
     const validatedData = ProductCreateWithUrlSchema.parse(data);

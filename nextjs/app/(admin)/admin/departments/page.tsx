@@ -222,8 +222,8 @@ export default function DepartmentsPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-12"></TableHead>
-                  <TableHead>Department Name</TableHead>
-                  <TableHead>Assigned Products</TableHead>
+                  <TableHead>Name</TableHead>
+                  <TableHead className="pl-8">Users</TableHead>
                   <TableHead className="w-32 text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -256,20 +256,26 @@ export default function DepartmentsPage() {
                             {department.name}
                           </div>
                         </TableCell>
-                        <TableCell>
-                          {isLoadingProducts ? (
-                            <div className="flex items-center gap-2">
-                              <Loader2 className="h-3 w-3 animate-spin" />
-                              <span className="text-xs text-muted-foreground">Loading...</span>
+                        <TableCell className="pl-8">
+                          {department.users && department.users.length > 0 ? (
+                            <div className="flex items-start gap-2">
+                              <span className="text-xs text-muted-foreground font-medium whitespace-nowrap flex-shrink-0">
+                                {department.users.length} {department.users.length === 1 ? 'user' : 'users'}
+                              </span>
+                              <div className="flex flex-wrap gap-1">
+                                {department.users.map((userName, index) => (
+                                  <Badge
+                                    key={index}
+                                    variant="outline"
+                                    className="text-xs bg-purple-50 text-purple-700 dark:bg-purple-950 dark:text-purple-400 border-purple-200 dark:border-purple-800"
+                                  >
+                                    {userName}
+                                  </Badge>
+                                ))}
+                              </div>
                             </div>
-                          ) : hasProducts ? (
-                            <span className="text-sm text-muted-foreground">
-                              {department.products!.length} product{department.products!.length === 1 ? '' : 's'}
-                            </span>
-                          ) : department.products ? (
-                            <span className="text-xs text-muted-foreground">No products assigned</span>
                           ) : (
-                            <span className="text-xs text-muted-foreground">Click to view</span>
+                            <span className="text-xs text-muted-foreground">No users</span>
                           )}
                         </TableCell>
                         <TableCell className="text-right">
@@ -312,8 +318,8 @@ export default function DepartmentsPage() {
                                     {department.products!.map((product) => (
                                       <Badge
                                         key={product.id}
-                                        variant="secondary"
-                                        className="gap-1.5 px-3 py-1"
+                                        variant="outline"
+                                        className="gap-1.5 px-3 py-1 bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-400 border-green-200 dark:border-green-800"
                                       >
                                         <Package className="h-3 w-3" />
                                         {product.name}

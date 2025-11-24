@@ -10,6 +10,7 @@ async function updateProductAction(
     description?: string | null;
     serviceId: string;
     statusId?: number | null;
+    adminUserIds?: string[];
   }
 ) {
   return await updateProduct(productId, data);

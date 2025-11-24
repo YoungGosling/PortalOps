@@ -15,6 +15,16 @@ service_admins = Table(
         'users.id', ondelete='CASCADE'), primary_key=True)
 )
 
+# Association table for product admins (many-to-many)
+product_admins = Table(
+    'product_admins',
+    Base.metadata,
+    Column('product_id', UUID(as_uuid=True), ForeignKey(
+        'products.id', ondelete='CASCADE'), primary_key=True),
+    Column('user_id', UUID(as_uuid=True), ForeignKey(
+        'users.id', ondelete='CASCADE'), primary_key=True)
+)
+
 
 class Service(Base):
     __tablename__ = "services"
@@ -64,3 +74,9 @@ class Product(Base):
         "PaymentInfo", back_populates="product")
     permission_assignments = relationship(
         "PermissionAssignment", back_populates="product")
+    # Many-to-many relationship with User through product_admins table
+    admins = relationship(
+        "User",
+        secondary=product_admins,
+        backref="administered_products"
+    )
