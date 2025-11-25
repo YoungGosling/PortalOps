@@ -50,9 +50,9 @@ class CRUDProduct(CRUDBase[Product, ProductCreate, ProductUpdate]):
                 joinedload(Product.service),
                 joinedload(Product.admins)
             )
-            # Apply search filter if provided
+            # Apply search filter if provided (prefix match)
             if search:
-                query = query.filter(Product.name.ilike(f"%{search}%"))
+                query = query.filter(Product.name.ilike(f"{search}%"))
             total = query.count()
             products = query.offset(skip).limit(limit).all()
         else:
@@ -65,9 +65,9 @@ class CRUDProduct(CRUDBase[Product, ProductCreate, ProductUpdate]):
             ).filter(
                 PermissionAssignment.user_id == user_id
             )
-            # Apply search filter if provided
+            # Apply search filter if provided (prefix match)
             if search:
-                query = query.filter(Product.name.ilike(f"%{search}%"))
+                query = query.filter(Product.name.ilike(f"{search}%"))
             total = query.count()
             products = query.offset(skip).limit(limit).all()
 
@@ -89,9 +89,9 @@ class CRUDProduct(CRUDBase[Product, ProductCreate, ProductUpdate]):
                 joinedload(Product.service),
                 joinedload(Product.admins)
             ).filter(Product.service_id == service_id)
-            # Apply search filter if provided
+            # Apply search filter if provided (prefix match)
             if search:
-                query = query.filter(Product.name.ilike(f"%{search}%"))
+                query = query.filter(Product.name.ilike(f"{search}%"))
             total = query.count()
             products = query.offset(skip).limit(limit).all()
         else:
@@ -105,9 +105,9 @@ class CRUDProduct(CRUDBase[Product, ProductCreate, ProductUpdate]):
                 Product.service_id == service_id,
                 PermissionAssignment.user_id == user_id
             )
-            # Apply search filter if provided
+            # Apply search filter if provided (prefix match)
             if search:
-                query = query.filter(Product.name.ilike(f"%{search}%"))
+                query = query.filter(Product.name.ilike(f"{search}%"))
             total = query.count()
             products = query.offset(skip).limit(limit).all()
 
