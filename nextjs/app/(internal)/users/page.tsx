@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { fetchListUserAction } from '@/api/users/list_user/action';
 import { queryProductsAction } from '@/api/products/query_products/action';
 import type { User, Product } from '@/types';
@@ -42,6 +42,12 @@ export default function UsersPage() {
   const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [dataLoaded, setDataLoaded] = useState(false); // Track if data has been loaded
   const [searchQuery, setSearchQuery] = useState('');
+  const [productNameQuery, setProductNameQuery] = useState('');
+  const [productSearchInput, setProductSearchInput] = useState('');
+  const [showProductDropdown, setShowProductDropdown] = useState(false);
+  const [matchedProducts, setMatchedProducts] = useState<Product[]>([]);
+  const [loadingProducts, setLoadingProducts] = useState(false);
+  const productSearchRef = useRef<HTMLDivElement>(null);
   const [productsDialogOpen, setProductsDialogOpen] = useState(false);
   const [selectedUserProducts, setSelectedUserProducts] = useState<{
     userName: string;
@@ -69,11 +75,11 @@ export default function UsersPage() {
     inactive: number;
   } | null>(null);
 
-  const fetchUsers = async (page: number = currentPage, search?: string, sortByParam?: string, sortOrderParam?: 'asc' | 'desc', isActiveParam?: boolean) => {
+  const fetchUsers = async (page: number = currentPage, search?: string, productName?: string, sortByParam?: string, sortOrderParam?: 'asc' | 'desc', isActiveParam?: boolean) => {
     try {
       setLoading(true);
       const isActive = isActiveParam !== undefined ? isActiveParam : !showInactive; // true = show active, false = show inactive
-      const response = await fetchListUserAction(search, undefined, page, pageSize, sortByParam, sortOrderParam, isActive);
+      const response = await fetchListUserAction(search, undefined, productName, page, pageSize, sortByParam, sortOrderParam, isActive);
       // Convert null values to undefined to match User type
       const users: User[] = response.data.map(user => ({
         ...user,
@@ -129,7 +135,7 @@ export default function UsersPage() {
   useEffect(() => {
     // Only fetch data once when component mounts and user is admin
     if (isAdmin() && !dataLoaded) {
-      fetchUsers(1, undefined, sortBy, sortOrder);
+      fetchUsers(1, undefined, undefined, sortBy, sortOrder);
       fetchProducts();
       setDataLoaded(true);
     } else if (!isAdmin()) {
@@ -158,7 +164,7 @@ export default function UsersPage() {
 
   // Handle dialog success
   const handleDialogSuccess = () => {
-    fetchUsers(currentPage, searchQuery || undefined, sortBy, sortOrder);
+    fetchUsers(currentPage, searchQuery || undefined, productNameQuery || undefined, sortBy, sortOrder);
   };
 
   // Handle sorting
@@ -167,13 +173,13 @@ export default function UsersPage() {
       // Toggle order if clicking the same column
       const newOrder = sortOrder === 'asc' ? 'desc' : 'asc';
       setSortOrder(newOrder);
-      fetchUsers(1, searchQuery || undefined, column, newOrder);
+      fetchUsers(1, searchQuery || undefined, productNameQuery || undefined, column, newOrder);
       setCurrentPage(1);
     } else {
       // Set new column and default to ascending
       setSortBy(column);
       setSortOrder('asc');
-      fetchUsers(1, searchQuery || undefined, column, 'asc');
+      fetchUsers(1, searchQuery || undefined, productNameQuery || undefined, column, 'asc');
       setCurrentPage(1);
     }
   };
@@ -183,7 +189,7 @@ export default function UsersPage() {
     if (newPage >= 1 && newPage <= totalPages) {
       setCurrentPage(newPage);
       setPageInput('');
-      fetchUsers(newPage, searchQuery || undefined, sortBy, sortOrder);
+      fetchUsers(newPage, searchQuery || undefined, productNameQuery || undefined, sortBy, sortOrder);
     }
   };
 
@@ -222,8 +228,76 @@ export default function UsersPage() {
   const handleSearch = (query: string) => {
     setSearchQuery(query);
     setCurrentPage(1); // Reset to page 1 when searching
-    fetchUsers(1, query || undefined, sortBy, sortOrder);
+    fetchUsers(1, query || undefined, productNameQuery || undefined, sortBy, sortOrder);
   };
+
+  // Handle product name search input (for autocomplete)
+  const handleProductSearchInput = async (query: string) => {
+    setProductSearchInput(query);
+    
+    if (query.trim().length === 0) {
+      setMatchedProducts([]);
+      setShowProductDropdown(false);
+      return;
+    }
+    
+    setShowProductDropdown(true);
+
+    try {
+      setLoadingProducts(true);
+      const response = await queryProductsAction(undefined, 1, 50, query);
+      // Convert null values to undefined to match Product type
+      const products: Product[] = (response.products || []).map(p => ({
+        ...p,
+        service_id: p.service_id!,
+        description: p.description ?? undefined,
+        service_name: p.service_name ?? undefined,
+        status: p.status ?? undefined,
+        latest_payment_date: p.latest_payment_date ?? undefined,
+        latest_usage_start_date: p.latest_usage_start_date ?? undefined,
+        latest_usage_end_date: p.latest_usage_end_date ?? undefined,
+      }));
+      setMatchedProducts(products);
+    } catch (error) {
+      console.error('Failed to search products:', error);
+      setMatchedProducts([]);
+    } finally {
+      setLoadingProducts(false);
+    }
+  };
+
+  // Handle product selection from dropdown
+  const handleProductSelect = (product: Product) => {
+    setProductNameQuery(product.name);
+    setProductSearchInput(product.name);
+    setShowProductDropdown(false);
+    setCurrentPage(1);
+    fetchUsers(1, searchQuery || undefined, product.name, sortBy, sortOrder);
+  };
+
+  // Handle clearing product search
+  const handleClearProductSearch = () => {
+    setProductNameQuery('');
+    setProductSearchInput('');
+    setMatchedProducts([]);
+    setShowProductDropdown(false);
+    setCurrentPage(1);
+    fetchUsers(1, searchQuery || undefined, undefined, sortBy, sortOrder);
+  };
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (productSearchRef.current && !productSearchRef.current.contains(event.target as Node)) {
+        setShowProductDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   // Handle showing all products for a user
   const handleShowAllProducts = (user: User, userProducts: Product[]) => {
@@ -274,7 +348,7 @@ export default function UsersPage() {
                 setCurrentPage(1);
                 // Pass the new value directly to fetchUsers
                 const isActive = !newShowInactive;
-                fetchUsers(1, searchQuery || undefined, sortBy, sortOrder, isActive);
+                fetchUsers(1, searchQuery || undefined, productNameQuery || undefined, sortBy, sortOrder, isActive);
               }}
               className="gap-2"
             >
@@ -290,11 +364,61 @@ export default function UsersPage() {
           </p>
         </div>
         <div className="flex items-center gap-3">
-          {/* Search Box */}
-          <div className="relative w-[300px]">
+          {/* Product Name Search Box with Autocomplete */}
+          <div className="relative w-[220px]" ref={productSearchRef}>
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
+            <Input
+              placeholder="Enter pro name"
+              value={productSearchInput}
+              onChange={(e) => handleProductSearchInput(e.target.value)}
+              onFocus={() => {
+                if (productSearchInput.trim().length > 0) {
+                  setShowProductDropdown(true);
+                }
+              }}
+              className="pl-10 pr-10"
+            />
+            {productNameQuery && (
+              <button
+                onClick={handleClearProductSearch}
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors z-10"
+                aria-label="Clear product search"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
+            
+            {/* Product Dropdown */}
+            {showProductDropdown && (
+              <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-gray-950 border rounded-md shadow-lg max-h-[300px] overflow-y-auto z-50">
+                {loadingProducts ? (
+                  <div className="flex items-center justify-center p-4">
+                    <Loader2 className="h-4 w-4 animate-spin text-muted-foreground mr-2" />
+                    <span className="text-sm text-muted-foreground">Searching...</span>
+                  </div>
+                ) : matchedProducts.length > 0 ? (
+                  matchedProducts.map((product) => (
+                    <div
+                      key={product.id}
+                      onClick={() => handleProductSelect(product)}
+                      className="px-3 py-2 hover:bg-accent cursor-pointer text-sm border-b last:border-b-0"
+                    >
+                      <div className="font-medium">{product.name}</div>
+                    </div>
+                  ))
+                ) : productSearchInput.trim().length > 0 ? (
+                  <div className="px-3 py-2 text-sm text-muted-foreground">
+                    No matching products found
+                  </div>
+                ) : null}
+              </div>
+            )}
+          </div>
+          {/* Employee Name Search Box */}
+          <div className="relative w-[200px]">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search by name or product..."
+              placeholder="Enter emp name"
               value={searchQuery}
               onChange={(e) => handleSearch(e.target.value)}
               className="pl-10 pr-10"
@@ -527,7 +651,7 @@ export default function UsersPage() {
                                   className="h-6 px-2 text-xs bg-muted hover:bg-muted/80"
                                   onClick={() => handleShowAllProducts(user, userProducts)}
                                 >
-                                  +{userProducts.length - 2} more
+                                  +{userProducts.length - 2}
                                 </Button>
                               )}
                             </div>
@@ -686,15 +810,17 @@ export default function UsersPage() {
           <div className="mt-4">
             {selectedUserProducts && selectedUserProducts.products.length > 0 ? (
               <div className="flex flex-wrap gap-2 max-h-[400px] overflow-y-auto">
-                {selectedUserProducts.products.map((product) => (
-                  <Badge
-                    key={product.id}
-                    variant="outline"
-                    className="text-sm bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-400 border-green-200 px-3 py-1.5"
-                  >
-                    {product.name}
-                  </Badge>
-                ))}
+                {[...selectedUserProducts.products]
+                  .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }))
+                  .map((product) => (
+                    <Badge
+                      key={product.id}
+                      variant="outline"
+                      className="text-sm bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-400 border-green-200 px-3 py-1.5"
+                    >
+                      {product.name}
+                    </Badge>
+                  ))}
               </div>
             ) : (
               <div className="text-center py-8 text-muted-foreground">

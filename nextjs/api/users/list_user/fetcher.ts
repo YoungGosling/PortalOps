@@ -4,6 +4,7 @@ import { fetchWithToken } from "@/lib/utils";
 export async function fetchListUser(
   search?: string,
   productId?: string,
+  productName?: string,
   page: number = 1,
   limit: number = 20,
   sortBy?: string,
@@ -14,6 +15,7 @@ export async function fetchListUser(
     const params = new URLSearchParams();
     if (search) params.append("search", search);
     if (productId) params.append("productId", productId);
+    if (productName) params.append("productName", productName);
     if (sortBy) params.append("sortBy", sortBy);
     if (sortOrder) params.append("sortOrder", sortOrder);
     if (isActive !== undefined) params.append("is_active", isActive.toString());

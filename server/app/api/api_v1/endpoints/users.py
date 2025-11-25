@@ -22,6 +22,7 @@ router = APIRouter()
 def read_users(
     search: Optional[str] = Query(None),
     productId: Optional[uuid.UUID] = Query(None),
+    productName: Optional[str] = Query(None),
     page: int = Query(1, ge=1),
     limit: int = Query(20, ge=1, le=100),
     sortBy: Optional[str] = Query(None),
@@ -32,17 +33,17 @@ def read_users(
 ):
     """
     Retrieve users with pagination and search.
-    Optionally filter by productId, is_active status, and sort by column.
+    Optionally filter by productId, productName, is_active status, and sort by column.
     Returns statistics: total, active, and inactive user counts.
     """
     skip = (page - 1) * limit
     
     # Get statistics (total, active, inactive counts)
-    stats = user.get_user_statistics(db, search=search, product_id=productId)
+    stats = user.get_user_statistics(db, search=search, product_id=productId, product_name=productName)
     
     # Get filtered users
     users = user.search_users(
-        db, search=search, product_id=productId, skip=skip, limit=limit, 
+        db, search=search, product_id=productId, product_name=productName, skip=skip, limit=limit, 
         sort_by=sortBy, sort_order=sortOrder, is_active=is_active)
 
     user_data = []
@@ -84,7 +85,7 @@ def read_users(
         })
 
     # Get total count for current filter
-    total_filtered = len(user.search_users(db, search=search, product_id=productId,
+    total_filtered = len(user.search_users(db, search=search, product_id=productId, product_name=productName,
                       skip=0, limit=1000, sort_by=None, sort_order=None, is_active=is_active))
 
     return {

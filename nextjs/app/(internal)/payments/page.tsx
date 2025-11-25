@@ -219,7 +219,7 @@ export default function PaymentsPage() {
         <div className="relative w-[300px]">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search by product..."
+            placeholder="Enter product..."
             value={searchQuery}
             onChange={(e) => handleSearch(e.target.value)}
             className="pl-10 pr-10"

@@ -351,7 +351,7 @@ export default function ProductsPage() {
   // Fetch user count for a product
   const fetchProductUserCount = async (productId: string) => {
     try {
-      const response = await fetchListUserAction(undefined, productId, 1, 1);
+      const response = await fetchListUserAction(undefined, productId, undefined, 1, 1);
       return response.pagination.total;
     } catch (error) {
       console.error('Failed to fetch user count for product:', error);
@@ -401,7 +401,7 @@ export default function ProductsPage() {
       let hasMore = true;
 
       while (hasMore) {
-        const response = await fetchListUserAction(undefined, productId, page, limit);
+        const response = await fetchListUserAction(undefined, productId, undefined, page, limit);
         allUsers.push(...response.data);
         
         // Check if there are more pages

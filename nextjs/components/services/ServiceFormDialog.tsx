@@ -180,7 +180,7 @@ export function ServiceFormDialog({
   const fetchUsers = async () => {
     try {
       setLoadingUsers(true);
-      const response = await fetchListUserAction(undefined, undefined, 1, 100); // Fetch up to 100 users
+      const response = await fetchListUserAction(undefined, undefined, undefined, 1, 100); // Fetch up to 100 users
       // Convert null values to undefined to match User type
       const users: User[] = response.data.map(user => ({
         ...user,

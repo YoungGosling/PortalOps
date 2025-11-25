@@ -48,7 +48,7 @@ class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
         return user
 
     def search_users(
-        self, db: Session, *, search: Optional[str] = None, product_id: Optional[uuid.UUID] = None, skip: int = 0, limit: int = 100, sort_by: Optional[str] = None, sort_order: Optional[str] = "asc", is_active: Optional[bool] = None
+        self, db: Session, *, search: Optional[str] = None, product_id: Optional[uuid.UUID] = None, product_name: Optional[str] = None, skip: int = 0, limit: int = 100, sort_by: Optional[str] = None, sort_order: Optional[str] = "asc", is_active: Optional[bool] = None
     ) -> List[User]:
         from app.models.sap_user import SapUser
         from app.models.service import Product
@@ -61,29 +61,13 @@ class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
             query = query.filter(User.is_active == is_active)
         
         if search:
-            # Search by name, email, department, SAP ID, or Product Name
+            # Search by name, email, department, or SAP ID (product name search removed)
             # First, find user IDs that match SAP ID search
             sap_matching_user_ids = [
                 row[0] for row in db.query(SapUser.user_id).filter(
                     SapUser.sap_id.ilike(f"%{search}%")
                 ).all()
             ]
-            
-            # Find product IDs that match the search term
-            matching_product_ids = [
-                row[0] for row in db.query(Product.id).filter(
-                    Product.name.ilike(f"%{search}%")
-                ).all()
-            ]
-            
-            # Find user IDs assigned to matching products
-            product_matching_user_ids = []
-            if matching_product_ids:
-                product_matching_user_ids = [
-                    row[0] for row in db.query(PermissionAssignment.user_id).filter(
-                        PermissionAssignment.product_id.in_(matching_product_ids)
-                    ).distinct().all()
-                ]
             
             # Build search conditions
             search_conditions = [
@@ -96,11 +80,28 @@ class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
             if sap_matching_user_ids:
                 search_conditions.append(User.id.in_(sap_matching_user_ids))
             
-            # Add Product Name search condition if there are matching user IDs
-            if product_matching_user_ids:
-                search_conditions.append(User.id.in_(product_matching_user_ids))
-            
             query = query.filter(or_(*search_conditions))
+        
+        # Filter by product name if provided
+        if product_name:
+            # Find product IDs that match the product name
+            matching_product_ids = [
+                row[0] for row in db.query(Product.id).filter(
+                    Product.name.ilike(f"%{product_name}%")
+                ).all()
+            ]
+            
+            # Find user IDs assigned to matching products
+            if matching_product_ids:
+                product_matching_user_ids = [
+                    row[0] for row in db.query(PermissionAssignment.user_id).filter(
+                        PermissionAssignment.product_id.in_(matching_product_ids)
+                    ).distinct().all()
+                ]
+                query = query.filter(User.id.in_(product_matching_user_ids))
+            else:
+                # No matching products, return empty result
+                return []
         if product_id:
             # Filter users assigned to the specific product
             query = query.join(
@@ -133,18 +134,6 @@ class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
                             SapUser.sap_id.ilike(f"%{search}%")
                         ).all()
                     ]
-                    matching_product_ids = [
-                        row[0] for row in db.query(Product.id).filter(
-                            Product.name.ilike(f"%{search}%")
-                        ).all()
-                    ]
-                    product_matching_user_ids = []
-                    if matching_product_ids:
-                        product_matching_user_ids = [
-                            row[0] for row in db.query(PermissionAssignment.user_id).filter(
-                                PermissionAssignment.product_id.in_(matching_product_ids)
-                            ).distinct().all()
-                        ]
                     search_conditions_sub = [
                         User.name.ilike(f"%{search}%"),
                         User.email.ilike(f"%{search}%"),
@@ -152,9 +141,24 @@ class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
                     ]
                     if sap_matching_user_ids:
                         search_conditions_sub.append(User.id.in_(sap_matching_user_ids))
-                    if product_matching_user_ids:
-                        search_conditions_sub.append(User.id.in_(product_matching_user_ids))
                     subquery = subquery.filter(or_(*search_conditions_sub))
+                if product_name:
+                    # Find product IDs that match the product name
+                    matching_product_ids = [
+                        row[0] for row in db.query(Product.id).filter(
+                            Product.name.ilike(f"%{product_name}%")
+                        ).all()
+                    ]
+                    if matching_product_ids:
+                        product_matching_user_ids = [
+                            row[0] for row in db.query(PermissionAssignment.user_id).filter(
+                                PermissionAssignment.product_id.in_(matching_product_ids)
+                            ).distinct().all()
+                        ]
+                        subquery = subquery.filter(User.id.in_(product_matching_user_ids))
+                    else:
+                        # No matching products, return empty result
+                        return []
                 if product_id:
                     subquery = subquery.join(
                         PermissionAssignment,
@@ -199,7 +203,7 @@ class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
         return query.offset(skip).limit(limit).all()
 
     def get_user_statistics(
-        self, db: Session, *, search: Optional[str] = None, product_id: Optional[uuid.UUID] = None
+        self, db: Session, *, search: Optional[str] = None, product_id: Optional[uuid.UUID] = None, product_name: Optional[str] = None
     ) -> dict:
         """
         Get user statistics: total, active, and inactive counts.
@@ -214,26 +218,12 @@ class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
         
         # Apply same filters as search_users (without is_active filter)
         if search:
-            # Search by name, email, department, SAP ID, or Product Name
+            # Search by name, email, department, or SAP ID (product name search removed)
             sap_matching_user_ids = [
                 row[0] for row in db.query(SapUser.user_id).filter(
                     SapUser.sap_id.ilike(f"%{search}%")
                 ).all()
             ]
-            
-            matching_product_ids = [
-                row[0] for row in db.query(Product.id).filter(
-                    Product.name.ilike(f"%{search}%")
-                ).all()
-            ]
-            
-            product_matching_user_ids = []
-            if matching_product_ids:
-                product_matching_user_ids = [
-                    row[0] for row in db.query(PermissionAssignment.user_id).filter(
-                        PermissionAssignment.product_id.in_(matching_product_ids)
-                    ).distinct().all()
-                ]
             
             search_conditions = [
                 User.name.ilike(f"%{search}%"),
@@ -244,10 +234,32 @@ class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
             if sap_matching_user_ids:
                 search_conditions.append(User.id.in_(sap_matching_user_ids))
             
-            if product_matching_user_ids:
-                search_conditions.append(User.id.in_(product_matching_user_ids))
-            
             query = query.filter(or_(*search_conditions))
+        
+        # Filter by product name if provided
+        if product_name:
+            # Find product IDs that match the product name
+            matching_product_ids = [
+                row[0] for row in db.query(Product.id).filter(
+                    Product.name.ilike(f"%{product_name}%")
+                ).all()
+            ]
+            
+            # Find user IDs assigned to matching products
+            if matching_product_ids:
+                product_matching_user_ids = [
+                    row[0] for row in db.query(PermissionAssignment.user_id).filter(
+                        PermissionAssignment.product_id.in_(matching_product_ids)
+                    ).distinct().all()
+                ]
+                query = query.filter(User.id.in_(product_matching_user_ids))
+            else:
+                # No matching products, return empty statistics
+                return {
+                    "total": 0,
+                    "active": 0,
+                    "inactive": 0
+                }
         
         if product_id:
             query = query.join(
