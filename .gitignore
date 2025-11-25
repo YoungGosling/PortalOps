@@ -156,3 +156,14 @@ temp/
 /doc/
 
 /database/
+
+# Project-specific directories
+n8n_workflows/
+issues/
+import Service/
+import Product/
+import pro-user-rel/
+import Employee/
+example/
+clean inbox/
+.claude/
