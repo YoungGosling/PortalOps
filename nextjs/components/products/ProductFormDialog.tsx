@@ -51,18 +51,20 @@ export function ProductFormDialog({
   const [statusId, setStatusId] = useState('1');  // V2: Default to 'Active' (ID: 1)
   const [services, setServices] = useState<Service[]>([]);
   const [statuses, setStatuses] = useState<ProductStatus[]>([]);
-  const [allUsers, setAllUsers] = useState<User[]>([]);
+  const [selectedAdmins, setSelectedAdmins] = useState<User[]>([]); // Store full user objects for selected admins
   const [selectedAdminIds, setSelectedAdminIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadingServices, setLoadingServices] = useState(false);
   const [loadingStatuses, setLoadingStatuses] = useState(false);
-  const [loadingUsers, setLoadingUsers] = useState(false);
+  const [searchingUsers, setSearchingUsers] = useState(false); // For search loading state
   const [nameDuplicate, setNameDuplicate] = useState(false);
   const [checkingDuplicate, setCheckingDuplicate] = useState(false);
   const [adminSearchQuery, setAdminSearchQuery] = useState('');
   const [showAdminDropdown, setShowAdminDropdown] = useState(false);
+  const [searchedUsers, setSearchedUsers] = useState<User[]>([]); // Store search results
   const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 });
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const adminSearchTimerRef = useRef<NodeJS.Timeout | null>(null); // For admin search debounce
   const adminSearchRef = useRef<HTMLDivElement>(null);
   const adminInputRef = useRef<HTMLInputElement>(null);
 
@@ -120,13 +122,23 @@ export function ProductFormDialog({
     if (open) {
       fetchServices();
       fetchStatuses();
-      fetchUsers();
       if (product) {
         setName(product.name);
         setDescription(product.description || '');
         setServiceId(product.service_id);
         setStatusId(product.status_id?.toString() || '1');
-        setSelectedAdminIds(product.admins?.map((admin) => admin.id) || []);
+        // Initialize selected admins from product data
+        const adminIds = product.admins?.map((admin) => admin.id) || [];
+        setSelectedAdminIds(adminIds);
+        // Convert AdminSimple to User format for display
+        const admins: User[] = product.admins?.map((admin) => ({
+          id: admin.id,
+          name: admin.name,
+          email: admin.email,
+          roles: [],
+          assignedProductIds: [],
+        })) || [];
+        setSelectedAdmins(admins);
         setNameDuplicate(false); // Reset duplicate check when opening edit dialog
       } else {
         setName('');
@@ -134,10 +146,12 @@ export function ProductFormDialog({
         setServiceId('');
         setStatusId('1');
         setSelectedAdminIds([]);
+        setSelectedAdmins([]);
         setNameDuplicate(false); // Reset duplicate check when opening add dialog
       }
       setAdminSearchQuery('');
       setShowAdminDropdown(false);
+      setSearchedUsers([]);
     }
   }, [open, product]);
 
@@ -239,36 +253,77 @@ export function ProductFormDialog({
     }
   };
 
-  const fetchUsers = async () => {
+  // Search users by name (server-side search like Employee Directory)
+  const searchUsers = async (query: string) => {
+    if (!query.trim()) {
+      setSearchedUsers([]);
+      return;
+    }
+    
     try {
-      setLoadingUsers(true);
-      const response = await fetchListUserAction();
-      setAllUsers(response.data || []);
+      setSearchingUsers(true);
+      // Use server-side search like Employee Directory does
+      const response = await fetchListUserAction(query, undefined, undefined, 1, 50);
+      // Convert to User type
+      const users: User[] = (response.data || []).map(user => ({
+        ...user,
+        department: user.department ?? undefined,
+        department_id: user.department_id ?? undefined,
+        position: user.position ?? undefined,
+        hire_date: user.hire_date ?? undefined,
+        resignation_date: user.resignation_date ?? undefined,
+        is_active: user.is_active ?? true,
+        roles: user.roles as string[],
+        sap_ids: user.sap_ids ?? undefined,
+      }));
+      setSearchedUsers(users);
     } catch (error) {
-      toast.error('Failed to load users');
-      console.error(error);
+      console.error('Failed to search users:', error);
+      setSearchedUsers([]);
     } finally {
-      setLoadingUsers(false);
+      setSearchingUsers(false);
     }
   };
+  
+  // Debounced admin search
+  const handleAdminSearchChange = (query: string) => {
+    setAdminSearchQuery(query);
+    setShowAdminDropdown(true);
+    
+    // Clear previous timer
+    if (adminSearchTimerRef.current) {
+      clearTimeout(adminSearchTimerRef.current);
+    }
+    
+    if (!query.trim()) {
+      setSearchedUsers([]);
+      return;
+    }
+    
+    // Set new debounce timer for server-side search
+    adminSearchTimerRef.current = setTimeout(() => {
+      searchUsers(query);
+    }, 300); // 300ms debounce
+  };
 
-  const addAdmin = (userId: string) => {
-    if (!selectedAdminIds.includes(userId)) {
-      setSelectedAdminIds(prev => [...prev, userId]);
+  const addAdmin = (user: User) => {
+    if (!selectedAdminIds.includes(user.id)) {
+      setSelectedAdminIds(prev => [...prev, user.id]);
+      setSelectedAdmins(prev => [...prev, user]);
     }
     setAdminSearchQuery('');
     setShowAdminDropdown(false);
+    setSearchedUsers([]);
   };
 
   const removeAdmin = (userId: string) => {
     setSelectedAdminIds(prev => prev.filter(id => id !== userId));
+    setSelectedAdmins(prev => prev.filter(admin => admin.id !== userId));
   };
 
-  // Filter users based on search query, excluding already selected users
-  const filteredUsers = allUsers.filter(user => {
-    if (selectedAdminIds.includes(user.id)) return false;
-    if (!adminSearchQuery.trim()) return false;
-    return user.name.toLowerCase().includes(adminSearchQuery.toLowerCase());
+  // Filter search results to exclude already selected users
+  const filteredUsers = searchedUsers.filter(user => {
+    return !selectedAdminIds.includes(user.id);
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -480,104 +535,118 @@ export function ProductFormDialog({
             <div className="space-y-2 min-w-0">
               <Label>Administrators</Label>
               
-              {selectedAdminIds.length > 0 && (
+              {selectedAdmins.length > 0 && (
                 <div className="flex flex-wrap gap-2 p-2 border rounded-md bg-muted/50">
-                  {selectedAdminIds.map((adminId) => {
-                    const admin = allUsers.find(u => u.id === adminId);
-                    return admin ? (
-                      <Badge key={adminId} variant="secondary" className="gap-1">
-                        {admin.name}
-                        <button
-                          type="button"
-                          onClick={() => removeAdmin(adminId)}
-                          className="ml-1 hover:bg-destructive/20 rounded-full"
-                          disabled={loading}
-                        >
-                          <X className="h-3 w-3" />
-                        </button>
-                      </Badge>
-                    ) : null;
-                  })}
+                  {selectedAdmins.map((admin) => (
+                    <Badge key={admin.id} variant="secondary" className="gap-1">
+                      {admin.name}
+                      <button
+                        type="button"
+                        onClick={() => removeAdmin(admin.id)}
+                        className="ml-1 hover:bg-destructive/20 rounded-full"
+                        disabled={loading}
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  ))}
                 </div>
               )}
 
-              {loadingUsers ? (
-                <div className="flex items-center justify-center p-4 border rounded-md">
-                  <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-                  <span className="ml-2 text-sm text-muted-foreground">Loading users...</span>
-                </div>
-              ) : (
-                <div className="relative min-w-0" ref={adminSearchRef}>
-                  <Input
-                    ref={adminInputRef}
-                    placeholder="Search administrators by name..."
-                    value={adminSearchQuery}
-                    onChange={(e) => {
-                      setAdminSearchQuery(e.target.value);
-                      setShowAdminDropdown(true);
-                    }}
-                    onFocus={() => setShowAdminDropdown(true)}
-                    disabled={loading}
-                    className="min-w-0"
-                  />
-                  
-                  {showAdminDropdown && typeof window !== 'undefined' && createPortal(
-                    <>
-                      {/* Dropdown */}
-                      {filteredUsers.length > 0 && (
-                        <div
-                          data-admin-dropdown
-                          className="fixed bg-white dark:bg-gray-950 border rounded-md shadow-lg max-h-[200px] overflow-y-auto overflow-x-hidden"
-                          style={{
-                            top: `${dropdownPosition.top}px`,
-                            left: `${dropdownPosition.left}px`,
-                            width: `${dropdownPosition.width}px`,
-                            zIndex: 9999,
-                            pointerEvents: 'auto',
-                          }}
-                          onMouseDown={(e) => e.stopPropagation()}
-                          onClick={(e) => e.stopPropagation()}
-                          onWheel={(e) => e.stopPropagation()}
-                        >
-                          {filteredUsers.map((user) => (
-                            <div
-                              key={user.id}
-                              onClick={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                addAdmin(user.id);
-                              }}
-                              onMouseDown={(e) => e.stopPropagation()}
-                              className="px-3 py-2 hover:bg-accent cursor-pointer text-sm"
-                            >
-                              <div className="font-medium">{user.name}</div>
-                              <div className="text-xs text-muted-foreground">{user.email}</div>
-                            </div>
-                          ))}
+              <div className="relative min-w-0" ref={adminSearchRef}>
+                <Input
+                  ref={adminInputRef}
+                  placeholder="Search administrators by name..."
+                  value={adminSearchQuery}
+                  onChange={(e) => handleAdminSearchChange(e.target.value)}
+                  onFocus={() => {
+                    setShowAdminDropdown(true);
+                    // Trigger search if there's existing query
+                    if (adminSearchQuery.trim()) {
+                      searchUsers(adminSearchQuery);
+                    }
+                  }}
+                  disabled={loading}
+                  className="min-w-0"
+                />
+                
+                {showAdminDropdown && typeof window !== 'undefined' && createPortal(
+                  <>
+                    {/* Loading indicator */}
+                    {searchingUsers && adminSearchQuery.trim() && (
+                      <div
+                        data-admin-dropdown
+                        className="fixed bg-white dark:bg-gray-950 border rounded-md shadow-lg p-3"
+                        style={{
+                          top: `${dropdownPosition.top}px`,
+                          left: `${dropdownPosition.left}px`,
+                          width: `${dropdownPosition.width}px`,
+                          zIndex: 9999,
+                          pointerEvents: 'auto',
+                        }}
+                        onMouseDown={(e) => e.stopPropagation()}
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <div className="flex items-center justify-center">
+                          <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                          <span className="ml-2 text-sm text-muted-foreground">Searching...</span>
                         </div>
-                      )}
-                      {adminSearchQuery.trim() && filteredUsers.length === 0 && (
-                        <div
-                          data-admin-dropdown
-                          className="fixed bg-white dark:bg-gray-950 border rounded-md shadow-lg p-3 text-sm text-muted-foreground"
-                          style={{
-                            top: `${dropdownPosition.top}px`,
-                            left: `${dropdownPosition.left}px`,
-                            width: `${dropdownPosition.width}px`,
-                            zIndex: 9999,
-                            pointerEvents: 'auto',
-                          }}
-                          onMouseDown={(e) => e.stopPropagation()}
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          No matching users found
-                        </div>
-                      )}
-                    </>,
-                    document.body
-                  )}
-                </div>
-              )}
+                      </div>
+                    )}
+                    {/* Dropdown */}
+                    {!searchingUsers && filteredUsers.length > 0 && (
+                      <div
+                        data-admin-dropdown
+                        className="fixed bg-white dark:bg-gray-950 border rounded-md shadow-lg max-h-[200px] overflow-y-auto overflow-x-hidden"
+                        style={{
+                          top: `${dropdownPosition.top}px`,
+                          left: `${dropdownPosition.left}px`,
+                          width: `${dropdownPosition.width}px`,
+                          zIndex: 9999,
+                          pointerEvents: 'auto',
+                        }}
+                        onMouseDown={(e) => e.stopPropagation()}
+                        onClick={(e) => e.stopPropagation()}
+                        onWheel={(e) => e.stopPropagation()}
+                      >
+                        {filteredUsers.map((user) => (
+                          <div
+                            key={user.id}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              addAdmin(user);
+                            }}
+                            onMouseDown={(e) => e.stopPropagation()}
+                            className="px-3 py-2 hover:bg-accent cursor-pointer text-sm"
+                          >
+                            <div className="font-medium">{user.name}</div>
+                            <div className="text-xs text-muted-foreground">{user.email}</div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {!searchingUsers && adminSearchQuery.trim() && filteredUsers.length === 0 && (
+                      <div
+                        data-admin-dropdown
+                        className="fixed bg-white dark:bg-gray-950 border rounded-md shadow-lg p-3 text-sm text-muted-foreground"
+                        style={{
+                          top: `${dropdownPosition.top}px`,
+                          left: `${dropdownPosition.left}px`,
+                          width: `${dropdownPosition.width}px`,
+                          zIndex: 9999,
+                          pointerEvents: 'auto',
+                        }}
+                        onMouseDown={(e) => e.stopPropagation()}
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        No matching users found
+                      </div>
+                    )}
+                  </>,
+                  document.body
+                )}
+              </div>
             </div>
           </div>
 
