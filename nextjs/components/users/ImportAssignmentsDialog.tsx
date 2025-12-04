@@ -12,7 +12,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { importAssignmentsAction } from '@/api/users/import_assignments/action';
 import { toast } from 'sonner';
-import { Loader2, Upload, X, CheckCircle2, XCircle, AlertCircle } from 'lucide-react';
+import { Loader2, Upload, X, CheckCircle2, XCircle, AlertCircle, Download } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface ImportAssignmentsDialogProps {
@@ -128,6 +128,25 @@ export function ImportAssignmentsDialog({
             Upload an Excel file with Employee, Email, and product columns.
             Mark assignments with &apos;Y&apos;. All users must exist in the system.
           </DialogDescription>
+          <div className="flex items-center gap-2 pt-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                const link = document.createElement('a');
+                link.href = '/templates/assignment_template.xlsx';
+                link.download = 'assignment_import_template.xlsx';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                toast.success('Template downloaded successfully');
+              }}
+              className="gap-2"
+            >
+              <Download className="h-4 w-4" />
+              Download Template
+            </Button>
+          </div>
         </DialogHeader>
 
         <div className="space-y-4">

@@ -1,0 +1,16 @@
+# Ignore everything in public directory except templates
+*
+
+# But allow the templates directory
+!templates/
+!.gitignore
+
+# Ignore all files in templates
+templates/*
+
+# But allow Excel template files
+!templates/*.xlsx
+!templates/*.xls
+
+# Allow the directory itself
+!templates/

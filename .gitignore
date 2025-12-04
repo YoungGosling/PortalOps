@@ -84,6 +84,9 @@ dist
 .cache/
 public
 
+# Exception: Next.js public directory should be tracked
+!nextjs/public/
+
 # Vuepress build output
 .vuepress/dist
 
